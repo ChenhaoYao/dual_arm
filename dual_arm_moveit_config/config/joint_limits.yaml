@@ -1,0 +1,99 @@
+joint_limits:
+  laxis1_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  laxis2_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  laxis3_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  laxis4_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  laxis5_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  laxis6_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  laxis7_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  raxis1_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  raxis2_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  raxis3_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  raxis4_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  raxis5_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  raxis6_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
+  raxis7_joint:
+    has_velocity_limits: true
+    max_velocity: 2.0
+    has_acceleration_limits: false
+    max_acceleration: 0.0
+    has_effort_limits: true
+    max_effort: 20.0
