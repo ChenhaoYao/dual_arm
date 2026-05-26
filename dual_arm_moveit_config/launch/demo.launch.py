@@ -21,7 +21,7 @@ def generate_launch_description():
 
     hw_plugin_arg = DeclareLaunchArgument(
         'hw_plugin',
-        default_value='fake_components/GenericSystem',
+        default_value='mock_components/GenericSystem',
         description='Hardware plugin to use'
     )
 

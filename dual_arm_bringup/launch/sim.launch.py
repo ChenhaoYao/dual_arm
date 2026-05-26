@@ -28,7 +28,7 @@ def generate_launch_description():
     robot_description_content = Command([
         'xacro ',
         PathJoinSubstitution([dual_arm_description_pkg, 'urdf', 'dual_arm_1kg.urdf.xacro']),
-        ' hw_plugin:=fake_components/GenericSystem'
+        ' hw_plugin:=mock_components/GenericSystem'
     ])
     robot_description = ParameterValue(robot_description_content, value_type=str)
 
@@ -38,7 +38,7 @@ def generate_launch_description():
         PathJoinSubstitution([dual_arm_moveit_config_pkg, 'launch', 'demo.launch.py']),
         launch_arguments={
             'use_sim_time': use_sim_time,
-            'hw_plugin': 'fake_components/GenericSystem',
+            'hw_plugin': 'mock_components/GenericSystem',
         }.items()
     )
 
