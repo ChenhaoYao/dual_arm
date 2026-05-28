@@ -1,0 +1,1636 @@
+SOEM (Simple Open EtherCAT Master)
+Slaveinfo
+Starting slaveinfo
+ecx_init on enp0s31f6 succeeded.
+2 slaves found and configured.
+Calculated workcounter 6
+
+Slave:1
+ Name:DC Servo Drive
+ Output size: 64bits
+ Input size: 152bits
+ State: 4
+ Delay: 0[ns]
+ Has DC: 1
+ DCParentport:0
+ Activeports:1.1.0.0
+ Configured address: 1001
+ Man: 00004321 ID: 00000036 Rev: 00010000
+ SM0 A:1000 L: 128 F:00010026 Type:1
+ SM1 A:1100 L: 128 F:00010022 Type:2
+ SM2 A:1200 L:   8 F:00010064 Type:3
+ SM3 A:1400 L:  19 F:00010020 Type:4
+ FMMU0 Ls:00000000 Ll:   8 Lsb:0 Leb:7 Ps:1200 Psb:0 Ty:02 Act:01
+ FMMU1 Ls:00000010 Ll:  19 Lsb:0 Leb:7 Ps:1400 Psb:0 Ty:01 Act:01
+ FMMU2 Ls:00000036 Ll:   1 Lsb:0 Leb:7 Ps:080d Psb:0 Ty:01 Act:01
+ FMMUfunc 0:2 1:1 2:3 3:0
+ MBX length wr: 128 rd: 128 MBX protocols : 0c
+ CoE details: 0f FoE details: 01 EoE details: 00 SoE details: 00
+ Ebus current: 0[mA]
+ only LRD/LWR:0
+ CoE Object Description found, 270 entries.
+0x1000      "Device Type"                                 [VAR]
+    0x00      "Device Type"                                 [UNSIGNED32       R_R_R_]      0x00020192 / 131474
+0x1001      "Error Register"                              [VAR]
+    0x00      "Error Register"                              [UNSIGNED8        R_R_R_]      0x00 / 0
+0x1008      "Device Name"                                 [VAR]
+    0x00      "Device Name"                                 [VISIBLE_STR(120) R_R_R_]      "2LD3-EC2410"
+0x1009      "Hardware Version"                            [VAR]
+    0x00      "Hardware Version"                            [VISIBLE_STR(48)  R_R_R_]      "v3.10"
+0x100a      "Software Version"                            [VAR]
+    0x00      "Software Version"                            [VISIBLE_STR(48)  R_R_R_]      "v2.00"
+0x1010      "Store Parameters"                            [RECORD  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x04 / 4
+    0x01      "Save All parameters"                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x02      "Save Communication Parameters"               [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x03      "Save Application Parameters"                 [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x04      "Save Manufacturer Parameters"                [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x1011      "Restore Parameters"                          [RECORD  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x04 / 4
+    0x01      "Restore All Default Parameters"              [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x02      "Restore Communication Default Parameters"      [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x03      "Restore Application Default Parameters"      [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x04      "Restore Manufacturer Default Parameters"      [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x1018      "Identity Object"                             [RECORD  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x04 / 4
+    0x01      "Vendor ID"                                   [UNSIGNED32       R_R_R_]      0x00004321 / 17185
+    0x02      "Product Code"                                [UNSIGNED32       R_R_R_]      0x00000032 / 50
+    0x03      "Revision Number"                             [UNSIGNED32       R_R_R_]      0x00010000 / 65536
+    0x04      "Serial Number"                               [UNSIGNED32       R_R_R_]      0x00000001 / 1
+0x10f1      "Error Settings"                              [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                           [UNSIGNED32       RWRWRW]      0x00000002 / 2
+    0x02      "	"                                           [UNSIGNED16       RWRWRW]      0x0009 / 9
+0x10f3      "Diagnosis history"                           [RECORD  maxsub(0x13 / 19)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x13 / 19
+    0x01      "Maximum Messages"                            [UNSIGNED8        R_R_R_]      0x0a / 10
+    0x02      "Newest Message"                              [UNSIGNED8        R_R_R_]      0x00 / 0
+    0x03      "Newest Acknowledged Message"                 [UNSIGNED8        RWRWRW]      0x00 / 0
+    0x04      "New Messages Available"                      [UNSIGNED8        R_R_R_]      0x00 / 0
+    0x05      "Flags"                                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "Diagnosis Messagge1"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x07      "Diagnosis Messagge2"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x08      "Diagnosis Messagge3"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x09      "Diagnosis Messagge4"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0a      "Diagnosis Messagge5"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0b      "Diagnosis Messagge6"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0c      "Diagnosis Messagge7"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0d      "Diagnosis Messagge8"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0e      "Diagnosis Messagge9"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0f      "Diagnosis Messagge10"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x10      "Diagnosis Messagge11"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x11      "Diagnosis Messagge12"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x12      "Diagnosis Messagge13"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x13      "Diagnosis Messagge14"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x1600      "Receive PDO 1 Mapping Parameter"             [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x03 / 3
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x60400010 / 1614807056
+    0x02      " "                                           [UNSIGNED32       RWR_R_]      0x607a0020 / 1618608160
+    0x03      ""                                           [UNSIGNED32       RWR_R_]      0x60b80010 / 1622671376
+0x1601      "Receive PDO 2 Mapping Parameter"             [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x06 / 6
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x60400010 / 1614807056
+    0x02      " "                                           [UNSIGNED32       RWR_R_]      0x607a0020 / 1618608160
+    0x03      " "                                           [UNSIGNED32       RWR_R_]      0x60810020 / 1619066912
+    0x04      " "                                           [UNSIGNED32       RWR_R_]      0x60830020 / 1619197984
+    0x05      " "                                           [UNSIGNED32       RWR_R_]      0x60840020 / 1619263520
+    0x06      ""                                           [UNSIGNED32       RWR_R_]      0x60600008 / 1616904200
+0x1602      "Receive PDO 3 Mapping Parameter"             [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x05 / 5
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x60400010 / 1614807056
+    0x02      " "                                           [UNSIGNED32       RWR_R_]      0x60ff0020 / 1627324448
+    0x03      " "                                           [UNSIGNED32       RWR_R_]      0x60830020 / 1619197984
+    0x04      " "                                           [UNSIGNED32       RWR_R_]      0x60840020 / 1619263520
+    0x05      ""                                           [UNSIGNED32       RWR_R_]      0x60600008 / 1616904200
+0x1603      "Receive PDO 4 Mapping Parameter"             [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x07 / 7
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x60400010 / 1614807056
+    0x02      ""                                           [UNSIGNED32       RWR_R_]      0x60980008 / 1620574216
+    0x03      " ™`"                                        [UNSIGNED32       RWR_R_]      0x60990120 / 1620640032
+    0x04      " ™`"                                        [UNSIGNED32       RWR_R_]      0x60990220 / 1620640288
+    0x05      " "                                           [UNSIGNED32       RWR_R_]      0x609a0020 / 1620705312
+    0x06      " "                                           [UNSIGNED32       RWR_R_]      0x607c0020 / 1618739232
+    0x07      ""                                           [UNSIGNED32       RWR_R_]      0x60600008 / 1616904200
+0x1a00      "Transmit PDO 1 Mapping Parameter"            [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x07 / 7
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x603f0010 / 1614741520
+    0x02      ""                                           [UNSIGNED32       RWR_R_]      0x60410010 / 1614872592
+    0x03      ""                                           [UNSIGNED32       RWR_R_]      0x60610008 / 1616969736
+    0x04      " "                                           [UNSIGNED32       RWR_R_]      0x60640020 / 1617166368
+    0x05      ""                                           [UNSIGNED32       RWR_R_]      0x60b90010 / 1622736912
+    0x06      " "                                           [UNSIGNED32       RWR_R_]      0x60ba0020 / 1622802464
+    0x07      " "                                           [UNSIGNED32       RWR_R_]      0x60fd0020 / 1627193376
+0x1a01      "Transmit PDO 2 Mapping Parameter"            [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                            [UNSIGNED8        RWR_R_]      0x00 / 0
+0x1c00      "Sync Manager Communication Type"             [ARRAY  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x04 / 4
+    0x01      "Comm. Type, Sync Manager 0"                  [UNSIGNED8        R_R_R_]      0x01 / 1
+    0x02      "Comm. Type, Sync Manager 1"                  [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x03      "Comm. Type, Sync Manager 2"                  [UNSIGNED8        R_R_R_]      0x03 / 3
+    0x04      "Comm. Type, Sync Manager 3"                  [UNSIGNED8        R_R_R_]      0x04 / 4
+0x1c12      "SM2(Outputs) PDO Assignment"                 [ARRAY  maxsub(0x04 / 4)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x01 / 1
+    0x01      ""                                            [UNSIGNED16       RWR_R_]      0x1600 / 5632
+0x1c13      "SM3(Inputs) PDO Assignment"                  [ARRAY  maxsub(0x02 / 2)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x01 / 1
+    0x01      ""                                            [UNSIGNED16       RWR_R_]      0x1a00 / 6656
+0x1c32      "SM2(Outputs) Sync Manager Parameter"         [RECORD  maxsub(0x12 / 18)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x12 / 18
+    0x01      "Synchronization Type"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Cycle Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Shift Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Synchronization Types Supported"             [UNSIGNED16       R_R_R_]      0x0005 / 5
+    0x05      "Minimum Cycle Time"                          [UNSIGNED32       R_R_R_]      0x0003d090 / 250000
+    0x06      "Calc and Copy Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x07      "Minimum Delay Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x08      "Get Cycle Time"                              [UNSIGNED16       R_R_R_]      0x0001 / 1
+    0x09      "Delay Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0a      "Sync0 Cycle Time"                            [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0b      "SM Event Missed Counter"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0c      "Cycle Exceeded Counter"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0d      "Shift Too Short Counter"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0e      "RxPDO Toggle Failed"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0f      "Minimum Cycle Distance"                      [UNSIGNED32       R_R_R_]      0xffffffff / 4294967295
+    0x10      "Maximum Cycle Distance"                      [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x11      "Minimum SM Sync Distance"                    [UNSIGNED32       R_R_R_]      0xffffffff / 4294967295
+    0x12      "Maximum SM Sync Distance"                    [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x1c33      "SM3(Inputs) Sync Manager Parameter"          [RECORD  maxsub(0x0d / 13)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x0d / 13
+    0x01      "Synchronization Type"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Cycle Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Shift Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Synchronization Types Supported"             [UNSIGNED16       R_R_R_]      0x0005 / 5
+    0x05      "Minimum Cycle Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Calc and Copy Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x07      "Minimum Delay Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x08      "Get Cycle Time"                              [UNSIGNED16       R_R_R_]      0x0001 / 1
+    0x09      "Delay Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0a      "Sync0 Cycle Time"                            [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0b      "SM Event Missed Counter"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0c      "Cycle Exceeded Counter"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0d      "Shift Too Short Counter"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x2000      "Basic Function Select Switch 0"              [VAR]
+    0x00      "Basic Function Select Switch 0"              [UNSIGNED16       RWRWRW]      0x0010 / 16
+0x2001      "Application Function Select Switch 1"        [VAR]
+    0x00      "Application Function Select Switch 1"        [UNSIGNED16       RWRWRW]      0x0102 / 258
+0x2002      "Application Function Select Switch 2"        [VAR]
+    0x00      "Application Function Select Switch 2"        [UNSIGNED16       RWRWRW]      0x2001 / 8193
+0x2006      "Application Function Select Switch 6"        [VAR]
+    0x00      "Application Function Select Switch 6"        [UNSIGNED16       RWRWRW]      0x0002 / 2
+0x2007      "Application Function Select Switch 7"        [VAR]
+    0x00      "Application Function Select Switch 7"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2008      "Application Function Select Switch 8"        [VAR]
+    0x00      "Application Function Select Switch 8"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2009      "Application Function Select Switch 9"        [VAR]
+    0x00      "Application Function Select Switch 9"        [UNSIGNED16       RWRWRW]      0x0010 / 16
+0x200b      "Application Function Select Switch B"        [VAR]
+    0x00      "Application Function Select Switch B"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x200c      "Application Function Select Switch C"        [VAR]
+    0x00      "Application Function Select Switch C"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x200d      "Application Function Select Switch D"        [VAR]
+    0x00      "Application Function Select Switch D"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2010      "Axis address for USB communication"          [VAR]
+    0x00      "Axis address for USB communication"          [UNSIGNED16       RWRWRW]      0x0001 / 1
+0x2080      "Application Function Select Switch 80"       [VAR]
+    0x00      "Application Function Select Switch 80"       [UNSIGNED16       RWRWRW]      0x0001 / 1
+0x2100      "Speed Loop Gain"                             [VAR]
+    0x00      "Speed Loop Gain"                             [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2101      "Speed Loop Integral Time Constant"           [VAR]
+    0x00      "Speed Loop Integral Time Constant"           [UNSIGNED16       RWRWRW]      0x07d0 / 2000
+0x2102      "Position Loop Gain"                          [VAR]
+    0x00      "Position Loop Gain"                          [UNSIGNED16       RWRWRW]      0x00c8 / 200
+0x2103      "Moment of Inertia Ratio"                     [VAR]
+    0x00      "Moment of Inertia Ratio"                     [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2104      "2nd Speed Loop Gain"                         [VAR]
+    0x00      "2nd Speed Loop Gain"                         [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2105      "2nd Speed Loop Integral Time Constant"       [VAR]
+    0x00      "2nd Speed Loop Integral Time Constant"       [UNSIGNED16       RWRWRW]      0x07d0 / 2000
+0x2106      "2nd Position Loop Gain"                      [VAR]
+    0x00      "2nd Position Loop Gain"                      [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2109      "Feedforward Gain"                            [VAR]
+    0x00      "Feedforward Gain"                            [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x210a      "Feedforward Filter Time Constant"            [VAR]
+    0x00      "Feedforward Filter Time Constant"            [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x210b      "Application Function for Gain Select Swi"      [VAR]
+    0x00      "Application Function for Gain Select Swi"      [UNSIGNED16       RWRWRW]      0x0004 / 4
+0x210c      "Mode Switch (torque reference)"              [VAR]
+    0x00      "Mode Switch (torque reference)"              [UNSIGNED16       RWRWRW]      0x00c8 / 200
+0x210d      "Mode Switch (speed reference)"               [VAR]
+    0x00      "Mode Switch (speed reference)"               [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x210e      "Mode Switch (acceleration)"                  [VAR]
+    0x00      "Mode Switch (acceleration)"                  [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x210f      "Mode Switch (position error pulse)"          [VAR]
+    0x00      "Mode Switch (position error pulse)"          [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x211f      "Position Integral Time Constant"             [VAR]
+    0x00      "Position Integral Time Constant"             [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2121      "Friction Compensation Gain"                  [VAR]
+    0x00      "Friction Compensation Gain"                  [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2122      "2nd Gain for Friction Compensation"          [VAR]
+    0x00      "2nd Gain for Friction Compensation"          [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2123      "Friction Compensation Coefficient"           [VAR]
+    0x00      "Friction Compensation Coefficient"           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2124      "Friction Compensation Frequency Correcti"      [VAR]
+    0x00      "Friction Compensation Frequency Correcti"      [INTEGER16        RWRWRW]      0x0000 / 0
+0x2125      "Friction Compensation Gain Correction"       [VAR]
+    0x00      "Friction Compensation Gain Correction"       [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2131      "Gain Switching Time 1"                       [VAR]
+    0x00      "Gain Switching Time 1"                       [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2132      "Gain Switching Time 2"                       [VAR]
+    0x00      "Gain Switching Time 2"                       [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2135      "Gain Switching Waiting Time 1"               [VAR]
+    0x00      "Gain Switching Waiting Time 1"               [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2136      "Gain Switching Waiting Time 2"               [VAR]
+    0x00      "Gain Switching Waiting Time 2"               [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2139      "Automatic Gain Changeover Related Switch"      [VAR]
+    0x00      "Automatic Gain Changeover Related Switch"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x213d      "Current Gain Level"                          [VAR]
+    0x00      "Current Gain Level"                          [UNSIGNED16       RWRWRW]      0x07d0 / 2000
+0x2140      "Model Following Control Related Switch"      [VAR]
+    0x00      "Model Following Control Related Switch"      [UNSIGNED16       RWRWRW]      0x0100 / 256
+0x2141      "Model Following Control Gain"                [VAR]
+    0x00      "Model Following Control Gain"                [UNSIGNED16       RWRWRW]      0x01f4 / 500
+0x2142      "Model Following Control Gain Compensatio"      [VAR]
+    0x00      "Model Following Control Gain Compensatio"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2143      "Model Following Control Bias(Forward Dir"      [VAR]
+    0x00      "Model Following Control Bias(Forward Dir"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2144      "Model Following Control Bias(Reverse Dir"      [VAR]
+    0x00      "Model Following Control Bias(Reverse Dir"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2145      "Vibration Suppression 1 Frequency A"         [VAR]
+    0x00      "Vibration Suppression 1 Frequency A"         [UNSIGNED16       RWRWRW]      0x01f4 / 500
+0x2146      "Vibration Suppression 1 Frequency B"         [VAR]
+    0x00      "Vibration Suppression 1 Frequency B"         [UNSIGNED16       RWRWRW]      0x02bc / 700
+0x2147      "Model Following Control Speed Feedforwar"      [VAR]
+    0x00      "Model Following Control Speed Feedforwar"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2148      "2nd Model Following Control Gain"            [VAR]
+    0x00      "2nd Model Following Control Gain"            [UNSIGNED16       RWRWRW]      0x01f4 / 500
+0x2149      "2nd Model Following Control Gain Compens"      [VAR]
+    0x00      "2nd Model Following Control Gain Compens"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x214a      "Vibration Suppression 2 Frequency"           [VAR]
+    0x00      "Vibration Suppression 2 Frequency"           [UNSIGNED16       RWRWRW]      0x0320 / 800
+0x214b      "Vibration Suppression 2 Compensation"        [VAR]
+    0x00      "Vibration Suppression 2 Compensation"        [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2160      "Anti-Resonance Control Related Switch"       [VAR]
+    0x00      "Anti-Resonance Control Related Switch"       [UNSIGNED16       RWRWRW]      0x0010 / 16
+0x2161      "Anti-Resonance Frequency"                    [VAR]
+    0x00      "Anti-Resonance Frequency"                    [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2162      "Anti-Resonance Gain Compensation"            [VAR]
+    0x00      "Anti-Resonance Gain Compensation"            [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2163      "Anti-Resonance Damping Gain"                 [VAR]
+    0x00      "Anti-Resonance Damping Gain"                 [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2164      "Anti-Resonance Filter Time Constant 1 Co"      [VAR]
+    0x00      "Anti-Resonance Filter Time Constant 1 Co"      [INTEGER16        RWRWRW]      0x0000 / 0
+0x2165      "Anti-Resonance Filter Time Constant 2 Co"      [VAR]
+    0x00      "Anti-Resonance Filter Time Constant 2 Co"      [INTEGER16        RWRWRW]      0x0000 / 0
+0x2170      "Tuning-less Function Related Switch"         [VAR]
+    0x00      "Tuning-less Function Related Switch"         [UNSIGNED16       RWRWRW]      0x1400 / 5120
+0x2205      "Multi-turn Limit Setting"                    [VAR]
+    0x00      "Multi-turn Limit Setting"                    [UNSIGNED16       RWRWRW]      0xffff / 65535
+0x2207      "Position Control Function Switch"            [VAR]
+    0x00      "Position Control Function Switch"            [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x220e      "Electronic Gear Ratio Num"                   [VAR]
+    0x00      "Electronic Gear Ratio Num"                   [UNSIGNED32       RWRWRW]      0x00000001 / 1
+0x2210      "Electronic Gear Ratio Den"                   [VAR]
+    0x00      "Electronic Gear Ratio Den"                   [UNSIGNED32       RWRWRW]      0x00000001 / 1
+0x220a      "Number of External Scale Pitch"              [VAR]
+    0x00      "Number of External Scale Pitch"              [UNSIGNED32       RWRWRW]      0x00008000 / 32768
+0x2212      "Encoder Output Pulses"                       [VAR]
+    0x00      "Encoder Output Pulses"                       [UNSIGNED32       RWRWRW]      0x00000800 / 2048
+0x2216      "Position Reference Acceleration Time Con"      [VAR]
+    0x00      "Position Reference Acceleration Time Con"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2217      "Average Movement Time of Position Refere"      [VAR]
+    0x00      "Average Movement Time of Position Refere"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x222a      "Fully-closed Control Selection Switch"       [VAR]
+    0x00      "Fully-closed Control Selection Switch"       [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2281      "Encoder Output Resolution"                   [VAR]
+    0x00      "Encoder Output Resolution"                   [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x2304      "JOG Speed"                                   [VAR]
+    0x00      "JOG Speed"                                   [UNSIGNED16       RWRWRW]      0x0dac / 3500
+0x2305      "Soft Start Acceleration Time"                [VAR]
+    0x00      "Soft Start Acceleration Time"                [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2306      "Soft Start Deceleration Time"                [VAR]
+    0x00      "Soft Start Deceleration Time"                [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2307      "Speed Reference Filter Time Constant"        [VAR]
+    0x00      "Speed Reference Filter Time Constant"        [UNSIGNED16       RWRWRW]      0x0028 / 40
+0x2310      "Vibration Detection Switch"                  [VAR]
+    0x00      "Vibration Detection Switch"                  [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2311      "Vibration Detection Sensibility"             [VAR]
+    0x00      "Vibration Detection Sensibility"             [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2312      "Vibration Detection Level"                   [VAR]
+    0x00      "Vibration Detection Level"                   [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2324      "Moment of Inertia Calculating Start Leve"      [VAR]
+    0x00      "Moment of Inertia Calculating Start Leve"      [UNSIGNED16       RWRWRW]      0x012c / 300
+0x2401      "Torque Reference Filter Time Constant"       [VAR]
+    0x00      "Torque Reference Filter Time Constant"       [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2402      "Forward Torque Limit"                        [VAR]
+    0x00      "Forward Torque Limit"                        [UNSIGNED16       RWRWRW]      0x0320 / 800
+0x2403      "Reverse Torque Limit"                        [VAR]
+    0x00      "Reverse Torque Limit"                        [UNSIGNED16       RWRWRW]      0x0320 / 800
+0x2404      "Forward External Torque Limit"               [VAR]
+    0x00      "Forward External Torque Limit"               [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2405      "Reverse External Torque Limit"               [VAR]
+    0x00      "Reverse External Torque Limit"               [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2406      "Emergency Stop Torque"                       [VAR]
+    0x00      "Emergency Stop Torque"                       [UNSIGNED16       RWRWRW]      0x0320 / 800
+0x2407      "Speed Limit during Torque Control"           [VAR]
+    0x00      "Speed Limit during Torque Control"           [UNSIGNED16       RWRWRW]      0x2710 / 10000
+0x2408      "Torque Related Function Switch"              [VAR]
+    0x00      "Torque Related Function Switch"              [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2409      "1st Notch Filter Frequency"                  [VAR]
+    0x00      "1st Notch Filter Frequency"                  [UNSIGNED16       RWRWRW]      0x1388 / 5000
+0x240a      "1st Notch Filter Q Value"                    [VAR]
+    0x00      "1st Notch Filter Q Value"                    [UNSIGNED16       RWRWRW]      0x0046 / 70
+0x240b      "1st Notch Filter Depth"                      [VAR]
+    0x00      "1st Notch Filter Depth"                      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x240c      "2nd Notch Filter Frequency"                  [VAR]
+    0x00      "2nd Notch Filter Frequency"                  [UNSIGNED16       RWRWRW]      0x1388 / 5000
+0x240d      "2nd Notch Filter Q Value"                    [VAR]
+    0x00      "2nd Notch Filter Q Value"                    [UNSIGNED16       RWRWRW]      0x0046 / 70
+0x240e      "2nd Notch Filter Depth"                      [VAR]
+    0x00      "2nd Notch Filter Depth"                      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x240f      "2nd Torque Reference Filter Frequency"       [VAR]
+    0x00      "2nd Torque Reference Filter Frequency"       [UNSIGNED16       RWRWRW]      0x1388 / 5000
+0x2410      "2nd Torque Reference Filter Q Value"         [VAR]
+    0x00      "2nd Torque Reference Filter Q Value"         [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2412      "1st Step 2nd Torque Reference Filter Tim"      [VAR]
+    0x00      "1st Step 2nd Torque Reference Filter Tim"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2415      "T-REF Filter Time Constant"                  [VAR]
+    0x00      "T-REF Filter Time Constant"                  [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2424      "Torque Limit at Main Circuit Voltage Dro"      [VAR]
+    0x00      "Torque Limit at Main Circuit Voltage Dro"      [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2425      "Release Time for Torque Limit at Main Ci"      [VAR]
+    0x00      "Release Time for Torque Limit at Main Ci"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2456      "Sweep Torque Reference Amplitude"            [VAR]
+    0x00      "Sweep Torque Reference Amplitude"            [UNSIGNED16       RWRWRW]      0x000f / 15
+0x2460      "Notch Filter Adjustment Switch"              [VAR]
+    0x00      "Notch Filter Adjustment Switch"              [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2481      "Polarity Detection Speed Loop Gain"          [VAR]
+    0x00      "Polarity Detection Speed Loop Gain"          [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2482      "Polarity Detection Speed loop Integral t"      [VAR]
+    0x00      "Polarity Detection Speed loop Integral t"      [UNSIGNED16       RWRWRW]      0x0bb8 / 3000
+0x2486      "Polarity Detection Acceleration"             [VAR]
+    0x00      "Polarity Detection Acceleration"             [UNSIGNED16       RWRWRW]      0x0019 / 25
+0x2487      "Polarity Detection Constant Speed Time"      [VAR]
+    0x00      "Polarity Detection Constant Speed Time"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2488      "Polarity Detection Reference Waiting Tim"      [VAR]
+    0x00      "Polarity Detection Reference Waiting Tim"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2490      "Polarity Detection Load Level"               [VAR]
+    0x00      "Polarity Detection Load Level"               [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2493      "Polarity Detection Reference speed"          [VAR]
+    0x00      "Polarity Detection Reference speed"          [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2494      "Polarity Detection travel range"             [VAR]
+    0x00      "Polarity Detection travel range"             [UNSIGNED16       RWRWRW]      0x00fa / 250
+0x2495      "Polarity Detection Confirmation Force Re"      [VAR]
+    0x00      "Polarity Detection Confirmation Force Re"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2498      "Polarity Detection Allowable Error Range"      [VAR]
+    0x00      "Polarity Detection Allowable Error Range"      [UNSIGNED16       RWRWRW]      0x000a / 10
+0x2502      "Rotation Detection Level"                    [VAR]
+    0x00      "Rotation Detection Level"                    [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x2503      "Speed Coincidence Signal Output Width"       [VAR]
+    0x00      "Speed Coincidence Signal Output Width"       [UNSIGNED16       RWRWRW]      0x000a / 10
+0x2506      "Brake Reference - Servo OFF Delay Time"      [VAR]
+    0x00      "Brake Reference - Servo OFF Delay Time"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2507      "Brake Reference Output Speed Level"          [VAR]
+    0x00      "Brake Reference Output Speed Level"          [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2508      "Waiting Time for Brake Signal When Motor"      [VAR]
+    0x00      "Waiting Time for Brake Signal When Motor"      [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2509      "Instantaneous Power Cut Hold time"           [VAR]
+    0x00      "Instantaneous Power Cut Hold time"           [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x250a      "Input Signal Selection 1"                    [VAR]
+    0x00      "Input Signal Selection 1"                    [UNSIGNED16       RWRWRW]      0x2100 / 8448
+0x250b      "Input Signal Selection 2"                    [VAR]
+    0x00      "Input Signal Selection 2"                    [UNSIGNED16       RWRWRW]      0x6543 / 25923
+0x250e      "Output Signal Selection 1"                   [VAR]
+    0x00      "Output Signal Selection 1"                   [UNSIGNED16       RWRWRW]      0x3211 / 12817
+0x250f      "Output Signal Selection 2"                   [VAR]
+    0x00      "Output Signal Selection 2"                   [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2510      "Output Signal Selection 3"                   [VAR]
+    0x00      "Output Signal Selection 3"                   [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2511      "Input Signal Selection 5"                    [VAR]
+    0x00      "Input Signal Selection 5"                    [UNSIGNED16       RWRWRW]      0x8888 / 34952
+0x2512      "Output Signal Reversal Selling"              [VAR]
+    0x00      "Output Signal Reversal Selling"              [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x251b      "Excessive Error Level Between Servomotor"      [VAR]
+    0x00      "Excessive Error Level Between Servomotor"      [UNSIGNED32       RWRWRW]      0x000003e8 / 1000
+0x251e      "Excessive Position Error Warning Level"      [VAR]
+    0x00      "Excessive Position Error Warning Level"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2520      "Excessive Position Error Alarm Level"        [VAR]
+    0x00      "Excessive Position Error Alarm Level"        [UNSIGNED32       RWRWRW]      0x32000000 / 838860800
+0x2522      "Positioning Completed Width"                 [VAR]
+    0x00      "Positioning Completed Width"                 [UNSIGNED32       RWRWRW]      0x00000007 / 7
+0x2524      "NEAR Signal Width"                           [VAR]
+    0x00      "NEAR Signal Width"                           [UNSIGNED32       RWRWRW]      0x40000000 / 1073741824
+0x2529      "Speed Limit Level at Servo ON"               [VAR]
+    0x00      "Speed Limit Level at Servo ON"               [UNSIGNED16       RWRWRW]      0x2710 / 10000
+0x252a      "Multiplier per One Fully-closed Rotation"      [VAR]
+    0x00      "Multiplier per One Fully-closed Rotation"      [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x252b      "Overload Warning Level"                      [VAR]
+    0x00      "Overload Warning Level"                      [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x252c      "Derating of Base Current at Detecting Ov"      [VAR]
+    0x00      "Derating of Base Current at Detecting Ov"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2530      "Program JOG Operation Related Switch"        [VAR]
+    0x00      "Program JOG Operation Related Switch"        [UNSIGNED16       RWRWRW]      0x0004 / 4
+0x2531      "Program JOG Movement Distance"               [VAR]
+    0x00      "Program JOG Movement Distance"               [UNSIGNED32       RWRWRW]      0x00050000 / 327680
+0x2533      "Program JOG Movement Speed"                  [VAR]
+    0x00      "Program JOG Movement Speed"                  [UNSIGNED16       RWRWRW]      0x1388 / 5000
+0x2534      "Program JOG Acceleration Time"               [VAR]
+    0x00      "Program JOG Acceleration Time"               [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2535      "Program JOG Waiting Time"                    [VAR]
+    0x00      "Program JOG Waiting Time"                    [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2536      "Number of Times of Program JOG Movement"      [VAR]
+    0x00      "Number of Times of Program JOG Movement"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2550      "Analog Monitor 1 Offset Voltage"             [VAR]
+    0x00      "Analog Monitor 1 Offset Voltage"             [INTEGER16        RWRWRW]      0x0000 / 0
+0x2551      "Analog Monitor 2 Offset Voltage"             [VAR]
+    0x00      "Analog Monitor 2 Offset Voltage"             [INTEGER16        RWRWRW]      0x0000 / 0
+0x2552      "Analog Monitor Magnification (xl)"           [VAR]
+    0x00      "Analog Monitor Magnification (xl)"           [INTEGER16        RWRWRW]      0x0064 / 100
+0x2553      "Analog Monitor Magnification (x2)"           [VAR]
+    0x00      "Analog Monitor Magnification (x2)"           [INTEGER16        RWRWRW]      0x0064 / 100
+0x2560      "Remained Vibration Detection Width"          [VAR]
+    0x00      "Remained Vibration Detection Width"          [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2561      "Overshoot Detection Level"                   [VAR]
+    0x00      "Overshoot Detection Level"                   [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2600      "Regenerative Resistor Capacity"              [VAR]
+    0x00      "Regenerative Resistor Capacity"              [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x3100      "Firmware Version"                            [RECORD  maxsub(0x03 / 3)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x03 / 3
+    0x01      "Driver Software Version"                     [UNSIGNED16       R_R_R_]      0x00c8 / 200
+    0x02      "FPGA Software Version"                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "Slave Stack Software Version"                [UNSIGNED16       R_R_R_]      0x0065 / 101
+0x4500      "Current Error ID"                            [VAR]
+    0x00      "Current Error ID"                            [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5000      "Internal States"                             [RECORD  maxsub(0x08 / 8)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x08 / 8
+    0x01      "Trajectory Generator Status"                 [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Motion State Machine"                        [UNSIGNED16       R_R_R_]      0x0001 / 1
+    0x03      "Interior Enable Status"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x04      "Target Reached Status"                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x05      "Internal Response Status"                    [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "PDS require"                                 [UNSIGNED16       R_R_R_]      0x0112 / 274
+    0x07      "Actual PDS Status"                           [UNSIGNED16       R_R_R_]      0x0001 / 1
+    0x08      "EEPROM Status"                               [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5001      "Product Code Compile Information"            [RECORD  maxsub(0x06 / 6)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x06 / 6
+    0x01      "Driver Firmware Compile Date"                [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x02      "Driver Firmware Compile Time"                [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "FPGA Firmware Compile Date"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "FPGA Firmware Compile Time"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x05      "Stack Firmware Compile Date"                 [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Stack Firmware Compile Time"                 [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5002      "ESC Register Interface"                      [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "Register Address"                            [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x02      "Register Data"                               [UNSIGNED16       R_R_R_]      0x02a0 / 672
+0x5003      "Sync0 Interface Parameters"                  [RECORD  maxsub(0x08 / 8)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x08 / 8
+    0x01      "Main Task Max. Imple. Time"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x02      "Main Task Max. Cycle Time"                   [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Main Loop Max. Imple. Time"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Main Task Max. Cycle. Time"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x05      "Read Response Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Write Response Time"                         [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x07      "User Task Time 1"                            [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x08      "User Task Time 2"                            [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5004      "Sync0 Interface Parameters"                  [RECORD  maxsub(0x12 / 18)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x12 / 18
+    0x01      "Outputs Size"                                [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Inputs Size"                                 [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "RPDO Count"                                  [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x04      "TPDO Count"                                  [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x05      "Sync0 Watchdog Counter"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "Sync0 Watchdog Counter Internal"             [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x07      "Sync0 Watchdog Value"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x08      "Sync0 Drift Counter"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x09      ""                                           [UNSIGNED16       RWRWRW]      0x0004 / 4
+    0x0a      "SM Watchdog Counter Internal"                [UNSIGNED16       R_R_R_]      0x355f / 13663
+    0x0b      ""                                           [UNSIGNED16       RWRWRW]      0x0004 / 4
+    0x0c      "SM Sync0 Watchdog Counter"                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0d      ""                                           [UNSIGNED16       RWRWRW]      0x0004 / 4
+    0x0e      "Sync Ratio"                                  [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0f      ""                                           [UNSIGNED16       RWRWRW]      0x0003 / 3
+    0x10      "SM Sync0 Interval"                           [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x11      "Outputs Time Consuming"                      [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x12      "Inputs Time Consuming"                       [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5005      "DC Compensate Base Value"                    [VAR]
+    0x00      "ô
+"                                         [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x5006      "Sync Error Detect Setting"                   [VAR]
+    0x00      "{"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x5010      "Valid Outputs/Inputs Watch Dog Time"         [VAR]
+    0x00      "ˆ"                                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x5011      "Internal Actual Position"                    [VAR]
+    0x00      "Internal Actual Position"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+0x5012      "Home Interface"                              [RECORD  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x05 / 5
+    0x01      "Home Reached Position"                       [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x02      "Home Triggered Position"                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x03      "Home Inputs Simulator"                       [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x04      ""                                          [UNSIGNED16       RWRWRW]      0x0112 / 274
+0x5013      "Motor Not Work Code"                         [VAR]
+    0x00      "Motor Not Work Code"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5015      "Profile Mode Interface"                      [RECORD  maxsub(0x08 / 8)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x08 / 8
+    0x01      "Profile Command Position"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x02      "Profile Command Velocity"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x03      "Profile Command Torque"                      [INTEGER16        R_R_R_]      0x0000 / 0
+    0x04      "Reserve 1"                                   [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x05      "ÿ"                                           [UNSIGNED16       RWRWRW]      0x00ff / 255
+    0x06      "ÿ"                                           [UNSIGNED16       RWRWRW]      0x00ff / 255
+    0x07      "ÿ"                                           [UNSIGNED16       RWRWRW]      0x00ff / 255
+    0x08      "ÿ"                                           [UNSIGNED16       RWRWRW]      0x00ff / 255
+0x503f      "Servo Error ID"                              [VAR]
+    0x00      "Servo Error ID"                              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5300      "Hard Fault SP"                               [RECORD  maxsub(0x07 / 7)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x07 / 7
+    0x01      "Hard Fault SP"                               [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x02      "Hard Fault LR"                               [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Hard Fault PC"                               [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Usage Fault LR"                              [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x05      "Usage Fault PC"                              [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Bus Fault LR"                                [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x07      "Bus Fault PC"                                [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5302      "PHY Register Status"                         [RECORD  maxsub(0x06 / 6)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x09 / 9
+    0x01      "MII Status PHY 0"                            [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "MII Status PHY 1"                            [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "PHY 0 LID"                                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x04      "PHY 1 LID"                                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x05      "PHY 0 HID"                                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "PHY 1 HID"                                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5303      "ESC Error Register Status"                   [RECORD  maxsub(0x06 / 6)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x06 / 6
+    0x01      "EPU Error Speed"                             [UNSIGNED8        R_R_R_]      0x00 / 0
+    0x02      "EPU Error Count"                             [UNSIGNED16       R_R_R_]      0x0013 / 19
+    0x03      "Port 0 CRC/RX Error Counter"                 [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x04      "Port 1 CRC/RX Error Counter"                 [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x05      "Forwarded RX Error Counter"                  [UNSIGNED16       R_R_R_]      0x0300 / 768
+    0x06      "Link Lost Counter"                           [UNSIGNED16       R_R_R_]      0x0101 / 257
+0x5304      "Ecc Interface"                               [RECORD  maxsub(0x03 / 3)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x03 / 3
+    0x01      "Ecc Error Counter"                           [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Ecc Check Fail Status"                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "Already Check Counter"                       [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5400      "DC Sync0 Period Limit"                       [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "ú"                                           [UNSIGNED16       RWRWRW]      0x00fa / 250
+    0x02      "'  NSync0 Period Maximum Value"            [UNSIGNED16       RWRWRW]      0x2710 / 10000
+0x5500      "Absolute Encoder Monitors"                   [RECORD  maxsub(0x0c / 12)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x0c / 12
+    0x01      "Absolute Encoder Turns "                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x02      "Absolute Encoder Single Turn Position"       [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Absolute Encoder Low Position"               [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Absolute Encoder High Position"              [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x05      "Mechanical Low Position"                     [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Mechanical High Position"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x07      "Encoder Communication Error Counter"         [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x08      "Manufacture Reserve High 32"                 [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x09      "Manufacture Use Low 32"                      [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0a      "Manufacture Use High 32"                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x0b      "Extern Encoder Feedback Position Low 32"      [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0c      "Extern Encoder Feedback Position High 32"      [INTEGER32        R_R_R_]      0x00000000 / 0
+0x5501      "Motion Monitors"                             [RECORD  maxsub(0x16 / 22)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x16 / 22
+    0x01      "Actual Motor Speed"                          [INTEGER16        R_R_R_]      0x0000 / 0
+    0x02      "Command Speed"                               [INTEGER16        R_R_R_]      0x0000 / 0
+    0x03      "Speed Command"                               [INTEGER16        R_R_R_]      0x0000 / 0
+    0x04      "Actual Torque"                               [INTEGER16        R_R_R_]      0x0000 / 0
+    0x05      "Command Torque"                              [INTEGER16        R_R_R_]      0x0000 / 0
+    0x06      "Relative Position Error"                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x07      "Internal Position Command"                   [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x08      "Overload Rate"                               [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x09      "Regenerative Resistance Load Ratio"          [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0a      "Inertia Ratio"                               [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0b      "Positive Actual Torque Limit"                [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0c      "Negative Actual Torque Limit"                [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0d      "U Phase Actual Current"                      [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0e      "V Phase Actual Current"                      [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0f      "Average Overload Rate"                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x10      "One Tune JOG Act. Posi."                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x11      "One Tune Reached Count."                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x12      "One Tune Reached Time"                       [INTEGER16        R_R_R_]      0x0000 / 0
+    0x13      "One Tune Overshoot Times"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x14      "One Tune Jitter Count"                       [INTEGER16        R_R_R_]      0x0000 / 0
+    0x15      "One Tune Maximum Current"                    [INTEGER16        R_R_R_]      0x0000 / 0
+    0x16      "One Tune Maximum Speed"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5502      "Miscellaneous Monitors"                      [RECORD  maxsub(0x07 / 7)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x07 / 7
+    0x01      "Digital Input Physical Level"                [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Digital Output Physical Level"               [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "Analog Input 1 Level"                        [INTEGER16        R_R_R_]      0x0000 / 0
+    0x04      "Analog Input 2 Level"                        [INTEGER16        R_R_R_]      0x0000 / 0
+    0x05      "DC Link Circuit Voltage"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "IPM Module Temperature"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x07      "Operation Time"                              [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5503      "Special Registers"                           [RECORD  maxsub(0x05 / 5)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x05 / 5
+    0x01      "Special Register 1"                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x02      "Special Register 2"                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x03      "Special Register 3"                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x04      ""                                            [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x05      "–"                                           [UNSIGNED16       RWRWRW]      0x0096 / 150
+0x603f      "Last Error Code"                             [VAR]
+    0x00      "Last Error Code"                             [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x6040      "Control Word"                                [VAR]
+    0x00      "Control Word"                                [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6041      "Status Word"                                 [VAR]
+    0x00      "Status Word"                                 [UNSIGNED16       R_R_R_]      0x0210 / 528
+0x605a      "Quick Stop Option Code"                      [VAR]
+    0x00      ""                                           [INTEGER16        RWRWRW]      0x0000 / 0
+0x605b      "Shutdown Option Code"                        [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x605c      "Disable Option Code"                         [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x605d      "Halt Option Code"                            [VAR]
+    0x00      ""                                           [INTEGER16        RWRWRW]      0x0000 / 0
+0x605e      "Fault ReactionCode Code"                     [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x6060      "Modes of Operation"                          [VAR]
+    0x00      "Modes of Operation"                       [INTEGER8         RWRWRW]      0x00 / 0
+0x6061      "Modes of Operation Display"                  [VAR]
+    0x00      "Modes of Operation Display"                  [INTEGER8         R_R_R_]      0x00 / 0
+0x6062      "Commanded Position"                          [VAR]
+    0x00      "Commanded Position"                          [INTEGER32        R_R_R_]      0x00000000 / 0
+0x6063      "Actual Internal Position"                    [VAR]
+    0x00      "Actual Internal Position"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+0x6064      "Actual Motor Position"                       [VAR]
+    0x00      "Actual Motor Position"                       [INTEGER32        R_R_R_]      0xffffff28 / -216
+0x6065      "Follow Error Window"                         [VAR]
+    0x00      "0u"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6066      "Follow Error Time Out"                       [VAR]
+    0x00      "
+"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6067      "Position Window"                             [VAR]
+    0x00      "
+"                                           [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6068      "Position Window Time"                        [VAR]
+    0x00      ","                                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6069      "Actual Sensor Velocity"                      [VAR]
+    0x00      "Actual Sensor Velocity"                      [INTEGER32        R_R_R_]      0x00000000 / 0
+0x606a      "Velocity Sensor Selection"                   [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x606b      "Commanded Velocity"                          [VAR]
+    0x00      "Commanded Velocity"                          [INTEGER32        R_R_R_]      0x00000000 / 0
+0x606c      "Actual Motor Velocity"                       [VAR]
+    0x00      "Actual Motor Velocity"                       [INTEGER32        R_R_R_]      0x00000000 / 0
+0x606d      "Velocity Window"                             [VAR]
+    0x00      "
+"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x606e      "Velocity Window Time"                        [VAR]
+    0x00      ""                                            [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x606f      "Velocity Threshold"                          [VAR]
+    0x00      "
+"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6070      "Velocity Threshold Time"                     [VAR]
+    0x00      "d"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6071      "Target Torque"                               [VAR]
+    0x00      "Target Torque"                               [INTEGER16        RWRWRW]      0x0000 / 0
+0x6072      "Max Torque"                                  [VAR]
+    0x00      "L"                                          [UNSIGNED16       RWRWRW]      0x1f40 / 8000
+0x6073      "Max Current"                                 [VAR]
+    0x00      "L"                                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6074      "Commanded Torque"                            [VAR]
+    0x00      "Commanded Torque"                            [INTEGER16        R_R_R_]      0x0000 / 0
+0x6075      "Motor Rated Current"                         [VAR]
+    0x00      "¸"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6076      "Motor Rated Torque"                          [VAR]
+    0x00      "¸"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6077      "Actual Motor Torque"                         [VAR]
+    0x00      "Actual Motor Torque"                         [INTEGER16        R_R_R_]      0x0000 / 0
+0x6078      "Actual Motor Current"                        [VAR]
+    0x00      "Actual Motor Current"                        [INTEGER16        R_R_R_]      0x0000 / 0
+0x6079      "DC Link Circuit Voltage"                     [VAR]
+    0x00      "DC Link Circuit Voltage"                     [UNSIGNED32       R_R_R_]      0x00000030 / 48
+0x607a      "Profile Target Position"                     [VAR]
+    0x00      "Profile Target Position"                     [INTEGER32        RWRWRW]      0x00000000 / 0
+0x607b      "Position Range Limit"                        [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+    0x02      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+0x607c      "Homing Offset"                               [VAR]
+    0x00      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+0x607d      "Software Position Limit"                     [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+    0x02      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+0x607e      "Polarity"                                    [VAR]
+    0x00      ""                                            [UNSIGNED8        RWRWRW]      0x00 / 0
+0x607f      "Max Profile Velocity"                        [VAR]
+    0x00      "ÿÿÿ"                                        [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6080      "Maximum Motor Speed"                         [VAR]
+    0x00      "@"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6081      "Profile Target Velocity"                     [VAR]
+    0x00      "'"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6082      "End Velocity"                                [VAR]
+    0x00      ""                                            [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6083      "Profile Target Acceleration"                 [VAR]
+    0x00      "'"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6084      "Profile Target Deceleration"                 [VAR]
+    0x00      "€–˜"                                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6085      "Quick Stop Deceleration"                     [VAR]
+    0x00      "€–˜"                                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6086      "Motion Profile Type"                         [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x6087      "Torque Slope"                                [VAR]
+    0x00      "@B"                                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6088      "Torque Profile Type"                         [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x608f      "Position Encoder Resolution"                 [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "Encoder increments"                          [UNSIGNED32       RWRWRW]      0x00000001 / 1
+    0x02      "Motor revolutions"                           [UNSIGNED32       RWRWRW]      0x00000001 / 1
+0x6091      "Gear Ratio"                                  [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                           [UNSIGNED32       RWRWRW]      0x00000001 / 1
+    0x02      ""                                           [UNSIGNED32       RWRWRW]      0x00000001 / 1
+0x6092      "Feed Constant"                               [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "'"                                          [UNSIGNED32       RWRWRW]      0x00000001 / 1
+    0x02      "Shaft revolutions"                           [UNSIGNED32       R_R_R_]      0x00000001 / 1
+0x6098      "Homing Method"                               [VAR]
+    0x00      "Homing Method"                              [INTEGER8         RWRWRW]      0x00 / 0
+0x6099      "Homing Velocity"                             [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        RWRWRW]      0x02 / 2
+    0x01      "'"                                          [UNSIGNED32       RWRWRW]      0x00002710 / 10000
+    0x02      "ˆ"                                          [UNSIGNED32       RWRWRW]      0x00001388 / 5000
+0x609a      "Homing Acceleration"                         [VAR]
+    0x00      " ¡"                                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x60a4      "Profile Jerk"                                [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "Profile Jerk 1"                              [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x02      "Profile Jerk 2"                              [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x60b0      "Position Offset"                             [VAR]
+    0x00      "Position Offset"                             [INTEGER32        RWRWRW]      0x00000000 / 0
+0x60b1      "Velocity Offset"                             [VAR]
+    0x00      "Velocity Offset"                             [INTEGER32        RWRWRW]      0x00000000 / 0
+0x60b2      "Torque Offset"                               [VAR]
+    0x00      "Torque Offset"                               [INTEGER16        RWRWRW]      0x0000 / 0
+0x60b8      "Touch Probe Function"                        [VAR]
+    0x00      "Touch Probe Function"                        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x60b9      "Touch Probe Status"                          [VAR]
+    0x00      "Touch Probe Status"                          [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60ba      "Touch Probe 1 Positive Value"                [VAR]
+    0x00      "Touch Probe 1 Positive Value"                [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60bb      "Touch Probe 1 Negative Value"                [VAR]
+    0x00      "Touch Probe 1 Negative Value"                [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60bc      "Touch Probe 2 Positive Value"                [VAR]
+    0x00      "Touch Probe 2 Positive Value"                [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60bd      "Touch Probe 2 Negative Value"                [VAR]
+    0x00      "Touch Probe 2 Negative Value"                [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60c2      "InterPolation Time Period"                   [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                           [UNSIGNED8        RWRWRW]      0x02 / 2
+    0x02      "ýInterpolation Time units"                   [INTEGER8         RWRWRW]      0xfffffffd / -3
+0x60c5      "Maximum Acceleration"                        [VAR]
+    0x00      ""                                            [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x60c6      "Maximum Acceleration"                        [VAR]
+    0x00      ""                                            [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x60d5      "Touch Probe 1 Positive Counter"              [VAR]
+    0x00      "Touch Probe 1 Positive Counter"              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60d6      "Touch Probe 1 Negative Counter"              [VAR]
+    0x00      "Touch Probe 1 Negative Counter"              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60d7      "Touch Probe 2 Positive Counter"              [VAR]
+    0x00      "Touch Probe 2 Positive Counter"              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60d8      "Touch Probe 2 Negative Counter"              [VAR]
+    0x00      "Touch Probe 2 Negative Counter"              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60e0      "Positive Torque Limit Value"                 [VAR]
+    0x00      "L"                                          [UNSIGNED16       RWRWRW]      0x1f40 / 8000
+0x60e1      "Negative Torque Limit Value"                 [VAR]
+    0x00      "L"                                          [UNSIGNED16       RWRWRW]      0x1f40 / 8000
+0x60e4      "Additional Position Actual Value"            [RECORD  maxsub(0x01 / 1)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x01 / 1
+    0x01      "External Encoder Position"                   [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60f4      "Position Loop Error"                         [VAR]
+    0x00      "Position Loop Error"                         [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60fa      "Control Effort"                              [VAR]
+    0x00      "Control Effort"                              [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60fc      "Commanded Internal Position"                 [VAR]
+    0x00      "Commanded Internal Position"                 [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60fd      "Digital Inputs"                              [VAR]
+    0x00      "Digital Inputs"                              [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x60fe      "Digital Outputs"                             [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "Physical Outputs"                            [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x02      ""                                            [UNSIGNED32       RWRWRW]      0x7fff0000 / 2147418112
+0x60ff      "Target Velocity"                             [VAR]
+    0x00      "Target Velocity"                             [INTEGER32        RWRWRW]      0x00000000 / 0
+0x6502      "Supported Drive Modes"                       [VAR]
+    0x00      ""                                            [UNSIGNED32       R_R_R_]      0x000003ad / 941
+0x67fe      "CIA402 Version Number"                       [VAR]
+    0x00      "CIA402 Version Number"                       [UNSIGNED32       R_R_R_]      0x00030100 / 196864
+
+Slave:2
+ Name:DC Servo Drive
+ Output size: 64bits
+ Input size: 152bits
+ State: 4
+ Delay: 660[ns]
+ Has DC: 1
+ DCParentport:1
+ Activeports:1.0.0.0
+ Configured address: 1002
+ Man: 00004321 ID: 00000036 Rev: 00010000
+ SM0 A:1000 L: 128 F:00010026 Type:1
+ SM1 A:1100 L: 128 F:00010022 Type:2
+ SM2 A:1200 L:   8 F:00010064 Type:3
+ SM3 A:1400 L:  19 F:00010020 Type:4
+ FMMU0 Ls:00000008 Ll:   8 Lsb:0 Leb:7 Ps:1200 Psb:0 Ty:02 Act:01
+ FMMU1 Ls:00000023 Ll:  19 Lsb:0 Leb:7 Ps:1400 Psb:0 Ty:01 Act:01
+ FMMU2 Ls:00000037 Ll:   1 Lsb:0 Leb:7 Ps:080d Psb:0 Ty:01 Act:01
+ FMMUfunc 0:2 1:1 2:3 3:0
+ MBX length wr: 128 rd: 128 MBX protocols : 0c
+ CoE details: 0f FoE details: 01 EoE details: 00 SoE details: 00
+ Ebus current: 0[mA]
+ only LRD/LWR:0
+ CoE Object Description found, 270 entries.
+0x1000      "Device Type"                                 [VAR]
+    0x00      "Device Type"                                 [UNSIGNED32       R_R_R_]      0x00020192 / 131474
+0x1001      "Error Register"                              [VAR]
+    0x00      "Error Register"                              [UNSIGNED8        R_R_R_]      0x00 / 0
+0x1008      "Device Name"                                 [VAR]
+    0x00      "Device Name"                                 [VISIBLE_STR(120) R_R_R_]      "2LD3-EC2410"
+0x1009      "Hardware Version"                            [VAR]
+    0x00      "Hardware Version"                            [VISIBLE_STR(48)  R_R_R_]      "v3.10"
+0x100a      "Software Version"                            [VAR]
+    0x00      "Software Version"                            [VISIBLE_STR(48)  R_R_R_]      "v2.00"
+0x1010      "Store Parameters"                            [RECORD  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x04 / 4
+    0x01      "Save All parameters"                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x02      "Save Communication Parameters"               [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x03      "Save Application Parameters"                 [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x04      "Save Manufacturer Parameters"                [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x1011      "Restore Parameters"                          [RECORD  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x04 / 4
+    0x01      "Restore All Default Parameters"              [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x02      "Restore Communication Default Parameters"      [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x03      "Restore Application Default Parameters"      [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x04      "Restore Manufacturer Default Parameters"      [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x1018      "Identity Object"                             [RECORD  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x04 / 4
+    0x01      "Vendor ID"                                   [UNSIGNED32       R_R_R_]      0x00004321 / 17185
+    0x02      "Product Code"                                [UNSIGNED32       R_R_R_]      0x00000032 / 50
+    0x03      "Revision Number"                             [UNSIGNED32       R_R_R_]      0x00010000 / 65536
+    0x04      "Serial Number"                               [UNSIGNED32       R_R_R_]      0x00000001 / 1
+0x10f1      "Error Settings"                              [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                           [UNSIGNED32       RWRWRW]      0x00000002 / 2
+    0x02      "	"                                           [UNSIGNED16       RWRWRW]      0x0009 / 9
+0x10f3      "Diagnosis history"                           [RECORD  maxsub(0x13 / 19)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x13 / 19
+    0x01      "Maximum Messages"                            [UNSIGNED8        R_R_R_]      0x0a / 10
+    0x02      "Newest Message"                              [UNSIGNED8        R_R_R_]      0x00 / 0
+    0x03      "Newest Acknowledged Message"                 [UNSIGNED8        RWRWRW]      0x00 / 0
+    0x04      "New Messages Available"                      [UNSIGNED8        R_R_R_]      0x00 / 0
+    0x05      "Flags"                                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "Diagnosis Messagge1"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x07      "Diagnosis Messagge2"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x08      "Diagnosis Messagge3"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x09      "Diagnosis Messagge4"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0a      "Diagnosis Messagge5"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0b      "Diagnosis Messagge6"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0c      "Diagnosis Messagge7"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0d      "Diagnosis Messagge8"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0e      "Diagnosis Messagge9"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0f      "Diagnosis Messagge10"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x10      "Diagnosis Messagge11"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x11      "Diagnosis Messagge12"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x12      "Diagnosis Messagge13"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x13      "Diagnosis Messagge14"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x1600      "Receive PDO 1 Mapping Parameter"             [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x03 / 3
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x60400010 / 1614807056
+    0x02      " "                                           [UNSIGNED32       RWR_R_]      0x607a0020 / 1618608160
+    0x03      ""                                           [UNSIGNED32       RWR_R_]      0x60b80010 / 1622671376
+0x1601      "Receive PDO 2 Mapping Parameter"             [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x06 / 6
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x60400010 / 1614807056
+    0x02      " "                                           [UNSIGNED32       RWR_R_]      0x607a0020 / 1618608160
+    0x03      " "                                           [UNSIGNED32       RWR_R_]      0x60810020 / 1619066912
+    0x04      " "                                           [UNSIGNED32       RWR_R_]      0x60830020 / 1619197984
+    0x05      " "                                           [UNSIGNED32       RWR_R_]      0x60840020 / 1619263520
+    0x06      ""                                           [UNSIGNED32       RWR_R_]      0x60600008 / 1616904200
+0x1602      "Receive PDO 3 Mapping Parameter"             [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x05 / 5
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x60400010 / 1614807056
+    0x02      " "                                           [UNSIGNED32       RWR_R_]      0x60ff0020 / 1627324448
+    0x03      " "                                           [UNSIGNED32       RWR_R_]      0x60830020 / 1619197984
+    0x04      " "                                           [UNSIGNED32       RWR_R_]      0x60840020 / 1619263520
+    0x05      ""                                           [UNSIGNED32       RWR_R_]      0x60600008 / 1616904200
+0x1603      "Receive PDO 4 Mapping Parameter"             [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x07 / 7
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x60400010 / 1614807056
+    0x02      ""                                           [UNSIGNED32       RWR_R_]      0x60980008 / 1620574216
+    0x03      " ™`"                                        [UNSIGNED32       RWR_R_]      0x60990120 / 1620640032
+    0x04      " ™`"                                        [UNSIGNED32       RWR_R_]      0x60990220 / 1620640288
+    0x05      " "                                           [UNSIGNED32       RWR_R_]      0x609a0020 / 1620705312
+    0x06      " "                                           [UNSIGNED32       RWR_R_]      0x607c0020 / 1618739232
+    0x07      ""                                           [UNSIGNED32       RWR_R_]      0x60600008 / 1616904200
+0x1a00      "Transmit PDO 1 Mapping Parameter"            [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x07 / 7
+    0x01      ""                                           [UNSIGNED32       RWR_R_]      0x603f0010 / 1614741520
+    0x02      ""                                           [UNSIGNED32       RWR_R_]      0x60410010 / 1614872592
+    0x03      ""                                           [UNSIGNED32       RWR_R_]      0x60610008 / 1616969736
+    0x04      " "                                           [UNSIGNED32       RWR_R_]      0x60640020 / 1617166368
+    0x05      ""                                           [UNSIGNED32       RWR_R_]      0x60b90010 / 1622736912
+    0x06      " "                                           [UNSIGNED32       RWR_R_]      0x60ba0020 / 1622802464
+    0x07      " "                                           [UNSIGNED32       RWR_R_]      0x60fd0020 / 1627193376
+0x1a01      "Transmit PDO 2 Mapping Parameter"            [RECORD  maxsub(0x0a / 10)]
+    0x00      ""                                            [UNSIGNED8        RWR_R_]      0x00 / 0
+0x1c00      "Sync Manager Communication Type"             [ARRAY  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x04 / 4
+    0x01      "Comm. Type, Sync Manager 0"                  [UNSIGNED8        R_R_R_]      0x01 / 1
+    0x02      "Comm. Type, Sync Manager 1"                  [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x03      "Comm. Type, Sync Manager 2"                  [UNSIGNED8        R_R_R_]      0x03 / 3
+    0x04      "Comm. Type, Sync Manager 3"                  [UNSIGNED8        R_R_R_]      0x04 / 4
+0x1c12      "SM2(Outputs) PDO Assignment"                 [ARRAY  maxsub(0x04 / 4)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x01 / 1
+    0x01      ""                                            [UNSIGNED16       RWR_R_]      0x1600 / 5632
+0x1c13      "SM3(Inputs) PDO Assignment"                  [ARRAY  maxsub(0x02 / 2)]
+    0x00      ""                                           [UNSIGNED8        RWR_R_]      0x01 / 1
+    0x01      ""                                            [UNSIGNED16       RWR_R_]      0x1a00 / 6656
+0x1c32      "SM2(Outputs) Sync Manager Parameter"         [RECORD  maxsub(0x12 / 18)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x12 / 18
+    0x01      "Synchronization Type"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Cycle Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Shift Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Synchronization Types Supported"             [UNSIGNED16       R_R_R_]      0x0005 / 5
+    0x05      "Minimum Cycle Time"                          [UNSIGNED32       R_R_R_]      0x0003d090 / 250000
+    0x06      "Calc and Copy Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x07      "Minimum Delay Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x08      "Get Cycle Time"                              [UNSIGNED16       R_R_R_]      0x0001 / 1
+    0x09      "Delay Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0a      "Sync0 Cycle Time"                            [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0b      "SM Event Missed Counter"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0c      "Cycle Exceeded Counter"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0d      "Shift Too Short Counter"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0e      "RxPDO Toggle Failed"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0f      "Minimum Cycle Distance"                      [UNSIGNED32       R_R_R_]      0xffffffff / 4294967295
+    0x10      "Maximum Cycle Distance"                      [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x11      "Minimum SM Sync Distance"                    [UNSIGNED32       R_R_R_]      0xffffffff / 4294967295
+    0x12      "Maximum SM Sync Distance"                    [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x1c33      "SM3(Inputs) Sync Manager Parameter"          [RECORD  maxsub(0x0d / 13)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x0d / 13
+    0x01      "Synchronization Type"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Cycle Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Shift Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Synchronization Types Supported"             [UNSIGNED16       R_R_R_]      0x0005 / 5
+    0x05      "Minimum Cycle Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Calc and Copy Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x07      "Minimum Delay Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x08      "Get Cycle Time"                              [UNSIGNED16       R_R_R_]      0x0001 / 1
+    0x09      "Delay Time"                                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0a      "Sync0 Cycle Time"                            [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0b      "SM Event Missed Counter"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0c      "Cycle Exceeded Counter"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0d      "Shift Too Short Counter"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x2000      "Basic Function Select Switch 0"              [VAR]
+    0x00      "Basic Function Select Switch 0"              [UNSIGNED16       RWRWRW]      0x0010 / 16
+0x2001      "Application Function Select Switch 1"        [VAR]
+    0x00      "Application Function Select Switch 1"        [UNSIGNED16       RWRWRW]      0x0102 / 258
+0x2002      "Application Function Select Switch 2"        [VAR]
+    0x00      "Application Function Select Switch 2"        [UNSIGNED16       RWRWRW]      0x2001 / 8193
+0x2006      "Application Function Select Switch 6"        [VAR]
+    0x00      "Application Function Select Switch 6"        [UNSIGNED16       RWRWRW]      0x0002 / 2
+0x2007      "Application Function Select Switch 7"        [VAR]
+    0x00      "Application Function Select Switch 7"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2008      "Application Function Select Switch 8"        [VAR]
+    0x00      "Application Function Select Switch 8"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2009      "Application Function Select Switch 9"        [VAR]
+    0x00      "Application Function Select Switch 9"        [UNSIGNED16       RWRWRW]      0x0010 / 16
+0x200b      "Application Function Select Switch B"        [VAR]
+    0x00      "Application Function Select Switch B"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x200c      "Application Function Select Switch C"        [VAR]
+    0x00      "Application Function Select Switch C"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x200d      "Application Function Select Switch D"        [VAR]
+    0x00      "Application Function Select Switch D"        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2010      "Axis address for USB communication"          [VAR]
+    0x00      "Axis address for USB communication"          [UNSIGNED16       RWRWRW]      0x0001 / 1
+0x2080      "Application Function Select Switch 80"       [VAR]
+    0x00      "Application Function Select Switch 80"       [UNSIGNED16       RWRWRW]      0x0001 / 1
+0x2100      "Speed Loop Gain"                             [VAR]
+    0x00      "Speed Loop Gain"                             [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2101      "Speed Loop Integral Time Constant"           [VAR]
+    0x00      "Speed Loop Integral Time Constant"           [UNSIGNED16       RWRWRW]      0x07d0 / 2000
+0x2102      "Position Loop Gain"                          [VAR]
+    0x00      "Position Loop Gain"                          [UNSIGNED16       RWRWRW]      0x00c8 / 200
+0x2103      "Moment of Inertia Ratio"                     [VAR]
+    0x00      "Moment of Inertia Ratio"                     [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2104      "2nd Speed Loop Gain"                         [VAR]
+    0x00      "2nd Speed Loop Gain"                         [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2105      "2nd Speed Loop Integral Time Constant"       [VAR]
+    0x00      "2nd Speed Loop Integral Time Constant"       [UNSIGNED16       RWRWRW]      0x07d0 / 2000
+0x2106      "2nd Position Loop Gain"                      [VAR]
+    0x00      "2nd Position Loop Gain"                      [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2109      "Feedforward Gain"                            [VAR]
+    0x00      "Feedforward Gain"                            [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x210a      "Feedforward Filter Time Constant"            [VAR]
+    0x00      "Feedforward Filter Time Constant"            [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x210b      "Application Function for Gain Select Swi"      [VAR]
+    0x00      "Application Function for Gain Select Swi"      [UNSIGNED16       RWRWRW]      0x0004 / 4
+0x210c      "Mode Switch (torque reference)"              [VAR]
+    0x00      "Mode Switch (torque reference)"              [UNSIGNED16       RWRWRW]      0x00c8 / 200
+0x210d      "Mode Switch (speed reference)"               [VAR]
+    0x00      "Mode Switch (speed reference)"               [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x210e      "Mode Switch (acceleration)"                  [VAR]
+    0x00      "Mode Switch (acceleration)"                  [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x210f      "Mode Switch (position error pulse)"          [VAR]
+    0x00      "Mode Switch (position error pulse)"          [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x211f      "Position Integral Time Constant"             [VAR]
+    0x00      "Position Integral Time Constant"             [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2121      "Friction Compensation Gain"                  [VAR]
+    0x00      "Friction Compensation Gain"                  [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2122      "2nd Gain for Friction Compensation"          [VAR]
+    0x00      "2nd Gain for Friction Compensation"          [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2123      "Friction Compensation Coefficient"           [VAR]
+    0x00      "Friction Compensation Coefficient"           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2124      "Friction Compensation Frequency Correcti"      [VAR]
+    0x00      "Friction Compensation Frequency Correcti"      [INTEGER16        RWRWRW]      0x0000 / 0
+0x2125      "Friction Compensation Gain Correction"       [VAR]
+    0x00      "Friction Compensation Gain Correction"       [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2131      "Gain Switching Time 1"                       [VAR]
+    0x00      "Gain Switching Time 1"                       [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2132      "Gain Switching Time 2"                       [VAR]
+    0x00      "Gain Switching Time 2"                       [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2135      "Gain Switching Waiting Time 1"               [VAR]
+    0x00      "Gain Switching Waiting Time 1"               [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2136      "Gain Switching Waiting Time 2"               [VAR]
+    0x00      "Gain Switching Waiting Time 2"               [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2139      "Automatic Gain Changeover Related Switch"      [VAR]
+    0x00      "Automatic Gain Changeover Related Switch"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x213d      "Current Gain Level"                          [VAR]
+    0x00      "Current Gain Level"                          [UNSIGNED16       RWRWRW]      0x07d0 / 2000
+0x2140      "Model Following Control Related Switch"      [VAR]
+    0x00      "Model Following Control Related Switch"      [UNSIGNED16       RWRWRW]      0x0100 / 256
+0x2141      "Model Following Control Gain"                [VAR]
+    0x00      "Model Following Control Gain"                [UNSIGNED16       RWRWRW]      0x01f4 / 500
+0x2142      "Model Following Control Gain Compensatio"      [VAR]
+    0x00      "Model Following Control Gain Compensatio"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2143      "Model Following Control Bias(Forward Dir"      [VAR]
+    0x00      "Model Following Control Bias(Forward Dir"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2144      "Model Following Control Bias(Reverse Dir"      [VAR]
+    0x00      "Model Following Control Bias(Reverse Dir"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2145      "Vibration Suppression 1 Frequency A"         [VAR]
+    0x00      "Vibration Suppression 1 Frequency A"         [UNSIGNED16       RWRWRW]      0x01f4 / 500
+0x2146      "Vibration Suppression 1 Frequency B"         [VAR]
+    0x00      "Vibration Suppression 1 Frequency B"         [UNSIGNED16       RWRWRW]      0x02bc / 700
+0x2147      "Model Following Control Speed Feedforwar"      [VAR]
+    0x00      "Model Following Control Speed Feedforwar"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2148      "2nd Model Following Control Gain"            [VAR]
+    0x00      "2nd Model Following Control Gain"            [UNSIGNED16       RWRWRW]      0x01f4 / 500
+0x2149      "2nd Model Following Control Gain Compens"      [VAR]
+    0x00      "2nd Model Following Control Gain Compens"      [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x214a      "Vibration Suppression 2 Frequency"           [VAR]
+    0x00      "Vibration Suppression 2 Frequency"           [UNSIGNED16       RWRWRW]      0x0320 / 800
+0x214b      "Vibration Suppression 2 Compensation"        [VAR]
+    0x00      "Vibration Suppression 2 Compensation"        [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2160      "Anti-Resonance Control Related Switch"       [VAR]
+    0x00      "Anti-Resonance Control Related Switch"       [UNSIGNED16       RWRWRW]      0x0010 / 16
+0x2161      "Anti-Resonance Frequency"                    [VAR]
+    0x00      "Anti-Resonance Frequency"                    [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2162      "Anti-Resonance Gain Compensation"            [VAR]
+    0x00      "Anti-Resonance Gain Compensation"            [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2163      "Anti-Resonance Damping Gain"                 [VAR]
+    0x00      "Anti-Resonance Damping Gain"                 [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2164      "Anti-Resonance Filter Time Constant 1 Co"      [VAR]
+    0x00      "Anti-Resonance Filter Time Constant 1 Co"      [INTEGER16        RWRWRW]      0x0000 / 0
+0x2165      "Anti-Resonance Filter Time Constant 2 Co"      [VAR]
+    0x00      "Anti-Resonance Filter Time Constant 2 Co"      [INTEGER16        RWRWRW]      0x0000 / 0
+0x2170      "Tuning-less Function Related Switch"         [VAR]
+    0x00      "Tuning-less Function Related Switch"         [UNSIGNED16       RWRWRW]      0x1400 / 5120
+0x2205      "Multi-turn Limit Setting"                    [VAR]
+    0x00      "Multi-turn Limit Setting"                    [UNSIGNED16       RWRWRW]      0xffff / 65535
+0x2207      "Position Control Function Switch"            [VAR]
+    0x00      "Position Control Function Switch"            [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x220e      "Electronic Gear Ratio Num"                   [VAR]
+    0x00      "Electronic Gear Ratio Num"                   [UNSIGNED32       RWRWRW]      0x00000001 / 1
+0x2210      "Electronic Gear Ratio Den"                   [VAR]
+    0x00      "Electronic Gear Ratio Den"                   [UNSIGNED32       RWRWRW]      0x00000001 / 1
+0x220a      "Number of External Scale Pitch"              [VAR]
+    0x00      "Number of External Scale Pitch"              [UNSIGNED32       RWRWRW]      0x00008000 / 32768
+0x2212      "Encoder Output Pulses"                       [VAR]
+    0x00      "Encoder Output Pulses"                       [UNSIGNED32       RWRWRW]      0x00000800 / 2048
+0x2216      "Position Reference Acceleration Time Con"      [VAR]
+    0x00      "Position Reference Acceleration Time Con"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2217      "Average Movement Time of Position Refere"      [VAR]
+    0x00      "Average Movement Time of Position Refere"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x222a      "Fully-closed Control Selection Switch"       [VAR]
+    0x00      "Fully-closed Control Selection Switch"       [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2281      "Encoder Output Resolution"                   [VAR]
+    0x00      "Encoder Output Resolution"                   [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x2304      "JOG Speed"                                   [VAR]
+    0x00      "JOG Speed"                                   [UNSIGNED16       RWRWRW]      0x1194 / 4500
+0x2305      "Soft Start Acceleration Time"                [VAR]
+    0x00      "Soft Start Acceleration Time"                [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2306      "Soft Start Deceleration Time"                [VAR]
+    0x00      "Soft Start Deceleration Time"                [UNSIGNED16       RWRWRW]      0x03e8 / 1000
+0x2307      "Speed Reference Filter Time Constant"        [VAR]
+    0x00      "Speed Reference Filter Time Constant"        [UNSIGNED16       RWRWRW]      0x0028 / 40
+0x2310      "Vibration Detection Switch"                  [VAR]
+    0x00      "Vibration Detection Switch"                  [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2311      "Vibration Detection Sensibility"             [VAR]
+    0x00      "Vibration Detection Sensibility"             [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2312      "Vibration Detection Level"                   [VAR]
+    0x00      "Vibration Detection Level"                   [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2324      "Moment of Inertia Calculating Start Leve"      [VAR]
+    0x00      "Moment of Inertia Calculating Start Leve"      [UNSIGNED16       RWRWRW]      0x012c / 300
+0x2401      "Torque Reference Filter Time Constant"       [VAR]
+    0x00      "Torque Reference Filter Time Constant"       [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2402      "Forward Torque Limit"                        [VAR]
+    0x00      "Forward Torque Limit"                        [UNSIGNED16       RWRWRW]      0x0320 / 800
+0x2403      "Reverse Torque Limit"                        [VAR]
+    0x00      "Reverse Torque Limit"                        [UNSIGNED16       RWRWRW]      0x0320 / 800
+0x2404      "Forward External Torque Limit"               [VAR]
+    0x00      "Forward External Torque Limit"               [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2405      "Reverse External Torque Limit"               [VAR]
+    0x00      "Reverse External Torque Limit"               [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2406      "Emergency Stop Torque"                       [VAR]
+    0x00      "Emergency Stop Torque"                       [UNSIGNED16       RWRWRW]      0x0320 / 800
+0x2407      "Speed Limit during Torque Control"           [VAR]
+    0x00      "Speed Limit during Torque Control"           [UNSIGNED16       RWRWRW]      0x2710 / 10000
+0x2408      "Torque Related Function Switch"              [VAR]
+    0x00      "Torque Related Function Switch"              [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2409      "1st Notch Filter Frequency"                  [VAR]
+    0x00      "1st Notch Filter Frequency"                  [UNSIGNED16       RWRWRW]      0x1388 / 5000
+0x240a      "1st Notch Filter Q Value"                    [VAR]
+    0x00      "1st Notch Filter Q Value"                    [UNSIGNED16       RWRWRW]      0x0046 / 70
+0x240b      "1st Notch Filter Depth"                      [VAR]
+    0x00      "1st Notch Filter Depth"                      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x240c      "2nd Notch Filter Frequency"                  [VAR]
+    0x00      "2nd Notch Filter Frequency"                  [UNSIGNED16       RWRWRW]      0x1388 / 5000
+0x240d      "2nd Notch Filter Q Value"                    [VAR]
+    0x00      "2nd Notch Filter Q Value"                    [UNSIGNED16       RWRWRW]      0x0046 / 70
+0x240e      "2nd Notch Filter Depth"                      [VAR]
+    0x00      "2nd Notch Filter Depth"                      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x240f      "2nd Torque Reference Filter Frequency"       [VAR]
+    0x00      "2nd Torque Reference Filter Frequency"       [UNSIGNED16       RWRWRW]      0x1388 / 5000
+0x2410      "2nd Torque Reference Filter Q Value"         [VAR]
+    0x00      "2nd Torque Reference Filter Q Value"         [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2412      "1st Step 2nd Torque Reference Filter Tim"      [VAR]
+    0x00      "1st Step 2nd Torque Reference Filter Tim"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2415      "T-REF Filter Time Constant"                  [VAR]
+    0x00      "T-REF Filter Time Constant"                  [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2424      "Torque Limit at Main Circuit Voltage Dro"      [VAR]
+    0x00      "Torque Limit at Main Circuit Voltage Dro"      [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2425      "Release Time for Torque Limit at Main Ci"      [VAR]
+    0x00      "Release Time for Torque Limit at Main Ci"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2456      "Sweep Torque Reference Amplitude"            [VAR]
+    0x00      "Sweep Torque Reference Amplitude"            [UNSIGNED16       RWRWRW]      0x000f / 15
+0x2460      "Notch Filter Adjustment Switch"              [VAR]
+    0x00      "Notch Filter Adjustment Switch"              [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2481      "Polarity Detection Speed Loop Gain"          [VAR]
+    0x00      "Polarity Detection Speed Loop Gain"          [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2482      "Polarity Detection Speed loop Integral t"      [VAR]
+    0x00      "Polarity Detection Speed loop Integral t"      [UNSIGNED16       RWRWRW]      0x0bb8 / 3000
+0x2486      "Polarity Detection Acceleration"             [VAR]
+    0x00      "Polarity Detection Acceleration"             [UNSIGNED16       RWRWRW]      0x0019 / 25
+0x2487      "Polarity Detection Constant Speed Time"      [VAR]
+    0x00      "Polarity Detection Constant Speed Time"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2488      "Polarity Detection Reference Waiting Tim"      [VAR]
+    0x00      "Polarity Detection Reference Waiting Tim"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2490      "Polarity Detection Load Level"               [VAR]
+    0x00      "Polarity Detection Load Level"               [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2493      "Polarity Detection Reference speed"          [VAR]
+    0x00      "Polarity Detection Reference speed"          [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2494      "Polarity Detection travel range"             [VAR]
+    0x00      "Polarity Detection travel range"             [UNSIGNED16       RWRWRW]      0x00fa / 250
+0x2495      "Polarity Detection Confirmation Force Re"      [VAR]
+    0x00      "Polarity Detection Confirmation Force Re"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2498      "Polarity Detection Allowable Error Range"      [VAR]
+    0x00      "Polarity Detection Allowable Error Range"      [UNSIGNED16       RWRWRW]      0x000a / 10
+0x2502      "Rotation Detection Level"                    [VAR]
+    0x00      "Rotation Detection Level"                    [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x2503      "Speed Coincidence Signal Output Width"       [VAR]
+    0x00      "Speed Coincidence Signal Output Width"       [UNSIGNED16       RWRWRW]      0x000a / 10
+0x2506      "Brake Reference - Servo OFF Delay Time"      [VAR]
+    0x00      "Brake Reference - Servo OFF Delay Time"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2507      "Brake Reference Output Speed Level"          [VAR]
+    0x00      "Brake Reference Output Speed Level"          [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2508      "Waiting Time for Brake Signal When Motor"      [VAR]
+    0x00      "Waiting Time for Brake Signal When Motor"      [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2509      "Instantaneous Power Cut Hold time"           [VAR]
+    0x00      "Instantaneous Power Cut Hold time"           [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x250a      "Input Signal Selection 1"                    [VAR]
+    0x00      "Input Signal Selection 1"                    [UNSIGNED16       RWRWRW]      0x2100 / 8448
+0x250b      "Input Signal Selection 2"                    [VAR]
+    0x00      "Input Signal Selection 2"                    [UNSIGNED16       RWRWRW]      0x6543 / 25923
+0x250e      "Output Signal Selection 1"                   [VAR]
+    0x00      "Output Signal Selection 1"                   [UNSIGNED16       RWRWRW]      0x3211 / 12817
+0x250f      "Output Signal Selection 2"                   [VAR]
+    0x00      "Output Signal Selection 2"                   [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2510      "Output Signal Selection 3"                   [VAR]
+    0x00      "Output Signal Selection 3"                   [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2511      "Input Signal Selection 5"                    [VAR]
+    0x00      "Input Signal Selection 5"                    [UNSIGNED16       RWRWRW]      0x8888 / 34952
+0x2512      "Output Signal Reversal Selling"              [VAR]
+    0x00      "Output Signal Reversal Selling"              [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x251b      "Excessive Error Level Between Servomotor"      [VAR]
+    0x00      "Excessive Error Level Between Servomotor"      [UNSIGNED32       RWRWRW]      0x000003e8 / 1000
+0x251e      "Excessive Position Error Warning Level"      [VAR]
+    0x00      "Excessive Position Error Warning Level"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2520      "Excessive Position Error Alarm Level"        [VAR]
+    0x00      "Excessive Position Error Alarm Level"        [UNSIGNED32       RWRWRW]      0x32000000 / 838860800
+0x2522      "Positioning Completed Width"                 [VAR]
+    0x00      "Positioning Completed Width"                 [UNSIGNED32       RWRWRW]      0x00000007 / 7
+0x2524      "NEAR Signal Width"                           [VAR]
+    0x00      "NEAR Signal Width"                           [UNSIGNED32       RWRWRW]      0x40000000 / 1073741824
+0x2529      "Speed Limit Level at Servo ON"               [VAR]
+    0x00      "Speed Limit Level at Servo ON"               [UNSIGNED16       RWRWRW]      0x2710 / 10000
+0x252a      "Multiplier per One Fully-closed Rotation"      [VAR]
+    0x00      "Multiplier per One Fully-closed Rotation"      [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x252b      "Overload Warning Level"                      [VAR]
+    0x00      "Overload Warning Level"                      [UNSIGNED16       RWRWRW]      0x0014 / 20
+0x252c      "Derating of Base Current at Detecting Ov"      [VAR]
+    0x00      "Derating of Base Current at Detecting Ov"      [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2530      "Program JOG Operation Related Switch"        [VAR]
+    0x00      "Program JOG Operation Related Switch"        [UNSIGNED16       RWRWRW]      0x0004 / 4
+0x2531      "Program JOG Movement Distance"               [VAR]
+    0x00      "Program JOG Movement Distance"               [UNSIGNED32       RWRWRW]      0x00050000 / 327680
+0x2533      "Program JOG Movement Speed"                  [VAR]
+    0x00      "Program JOG Movement Speed"                  [UNSIGNED16       RWRWRW]      0x1388 / 5000
+0x2534      "Program JOG Acceleration Time"               [VAR]
+    0x00      "Program JOG Acceleration Time"               [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x2535      "Program JOG Waiting Time"                    [VAR]
+    0x00      "Program JOG Waiting Time"                    [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2536      "Number of Times of Program JOG Movement"      [VAR]
+    0x00      "Number of Times of Program JOG Movement"      [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x2550      "Analog Monitor 1 Offset Voltage"             [VAR]
+    0x00      "Analog Monitor 1 Offset Voltage"             [INTEGER16        RWRWRW]      0x0000 / 0
+0x2551      "Analog Monitor 2 Offset Voltage"             [VAR]
+    0x00      "Analog Monitor 2 Offset Voltage"             [INTEGER16        RWRWRW]      0x0000 / 0
+0x2552      "Analog Monitor Magnification (xl)"           [VAR]
+    0x00      "Analog Monitor Magnification (xl)"           [INTEGER16        RWRWRW]      0x0064 / 100
+0x2553      "Analog Monitor Magnification (x2)"           [VAR]
+    0x00      "Analog Monitor Magnification (x2)"           [INTEGER16        RWRWRW]      0x0064 / 100
+0x2560      "Remained Vibration Detection Width"          [VAR]
+    0x00      "Remained Vibration Detection Width"          [UNSIGNED16       RWRWRW]      0x0190 / 400
+0x2561      "Overshoot Detection Level"                   [VAR]
+    0x00      "Overshoot Detection Level"                   [UNSIGNED16       RWRWRW]      0x0064 / 100
+0x2600      "Regenerative Resistor Capacity"              [VAR]
+    0x00      "Regenerative Resistor Capacity"              [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x3100      "Firmware Version"                            [RECORD  maxsub(0x03 / 3)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x03 / 3
+    0x01      "Driver Software Version"                     [UNSIGNED16       R_R_R_]      0x00c8 / 200
+    0x02      "FPGA Software Version"                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "Slave Stack Software Version"                [UNSIGNED16       R_R_R_]      0x0065 / 101
+0x4500      "Current Error ID"                            [VAR]
+    0x00      "Current Error ID"                            [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5000      "Internal States"                             [RECORD  maxsub(0x08 / 8)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x08 / 8
+    0x01      "Trajectory Generator Status"                 [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Motion State Machine"                        [UNSIGNED16       R_R_R_]      0x0001 / 1
+    0x03      "Interior Enable Status"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x04      "Target Reached Status"                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x05      "Internal Response Status"                    [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "PDS require"                                 [UNSIGNED16       R_R_R_]      0x0112 / 274
+    0x07      "Actual PDS Status"                           [UNSIGNED16       R_R_R_]      0x0001 / 1
+    0x08      "EEPROM Status"                               [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5001      "Product Code Compile Information"            [RECORD  maxsub(0x06 / 6)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x06 / 6
+    0x01      "Driver Firmware Compile Date"                [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x02      "Driver Firmware Compile Time"                [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "FPGA Firmware Compile Date"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "FPGA Firmware Compile Time"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x05      "Stack Firmware Compile Date"                 [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Stack Firmware Compile Time"                 [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5002      "ESC Register Interface"                      [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "Register Address"                            [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x02      "Register Data"                               [UNSIGNED16       R_R_R_]      0x02a0 / 672
+0x5003      "Sync0 Interface Parameters"                  [RECORD  maxsub(0x08 / 8)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x08 / 8
+    0x01      "Main Task Max. Imple. Time"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x02      "Main Task Max. Cycle Time"                   [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Main Loop Max. Imple. Time"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Main Task Max. Cycle. Time"                  [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x05      "Read Response Time"                          [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Write Response Time"                         [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x07      "User Task Time 1"                            [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x08      "User Task Time 2"                            [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5004      "Sync0 Interface Parameters"                  [RECORD  maxsub(0x12 / 18)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x12 / 18
+    0x01      "Outputs Size"                                [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Inputs Size"                                 [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "RPDO Count"                                  [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x04      "TPDO Count"                                  [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x05      "Sync0 Watchdog Counter"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "Sync0 Watchdog Counter Internal"             [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x07      "Sync0 Watchdog Value"                        [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x08      "Sync0 Drift Counter"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x09      ""                                           [UNSIGNED16       RWRWRW]      0x0004 / 4
+    0x0a      "SM Watchdog Counter Internal"                [UNSIGNED16       R_R_R_]      0x8c7f / 35967
+    0x0b      ""                                           [UNSIGNED16       RWRWRW]      0x0004 / 4
+    0x0c      "SM Sync0 Watchdog Counter"                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0d      ""                                           [UNSIGNED16       RWRWRW]      0x0004 / 4
+    0x0e      "Sync Ratio"                                  [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0f      ""                                           [UNSIGNED16       RWRWRW]      0x0003 / 3
+    0x10      "SM Sync0 Interval"                           [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x11      "Outputs Time Consuming"                      [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x12      "Inputs Time Consuming"                       [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5005      "DC Compensate Base Value"                    [VAR]
+    0x00      "ô
+"                                         [UNSIGNED16       RWRWRW]      0x0032 / 50
+0x5006      "Sync Error Detect Setting"                   [VAR]
+    0x00      "{"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x5010      "Valid Outputs/Inputs Watch Dog Time"         [VAR]
+    0x00      "ˆ"                                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x5011      "Internal Actual Position"                    [VAR]
+    0x00      "Internal Actual Position"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+0x5012      "Home Interface"                              [RECORD  maxsub(0x04 / 4)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x05 / 5
+    0x01      "Home Reached Position"                       [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x02      "Home Triggered Position"                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x03      "Home Inputs Simulator"                       [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x04      ""                                          [UNSIGNED16       RWRWRW]      0x0112 / 274
+0x5013      "Motor Not Work Code"                         [VAR]
+    0x00      "Motor Not Work Code"                         [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5015      "Profile Mode Interface"                      [RECORD  maxsub(0x08 / 8)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x08 / 8
+    0x01      "Profile Command Position"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x02      "Profile Command Velocity"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x03      "Profile Command Torque"                      [INTEGER16        R_R_R_]      0x0000 / 0
+    0x04      "Reserve 1"                                   [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x05      "ÿ"                                           [UNSIGNED16       RWRWRW]      0x00ff / 255
+    0x06      "ÿ"                                           [UNSIGNED16       RWRWRW]      0x00ff / 255
+    0x07      "ÿ"                                           [UNSIGNED16       RWRWRW]      0x00ff / 255
+    0x08      "ÿ"                                           [UNSIGNED16       RWRWRW]      0x00ff / 255
+0x503f      "Servo Error ID"                              [VAR]
+    0x00      "Servo Error ID"                              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5300      "Hard Fault SP"                               [RECORD  maxsub(0x07 / 7)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x07 / 7
+    0x01      "Hard Fault SP"                               [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x02      "Hard Fault LR"                               [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Hard Fault PC"                               [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Usage Fault LR"                              [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x05      "Usage Fault PC"                              [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Bus Fault LR"                                [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x07      "Bus Fault PC"                                [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5302      "PHY Register Status"                         [RECORD  maxsub(0x06 / 6)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x09 / 9
+    0x01      "MII Status PHY 0"                            [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "MII Status PHY 1"                            [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "PHY 0 LID"                                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x04      "PHY 1 LID"                                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x05      "PHY 0 HID"                                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "PHY 1 HID"                                   [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5303      "ESC Error Register Status"                   [RECORD  maxsub(0x06 / 6)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x06 / 6
+    0x01      "EPU Error Speed"                             [UNSIGNED8        R_R_R_]      0x00 / 0
+    0x02      "EPU Error Count"                             [UNSIGNED16       R_R_R_]      0x000e / 14
+    0x03      "Port 0 CRC/RX Error Counter"                 [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x04      "Port 1 CRC/RX Error Counter"                 [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x05      "Forwarded RX Error Counter"                  [UNSIGNED16       R_R_R_]      0x0005 / 5
+    0x06      "Link Lost Counter"                           [UNSIGNED16       R_R_R_]      0x0101 / 257
+0x5304      "Ecc Interface"                               [RECORD  maxsub(0x03 / 3)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x03 / 3
+    0x01      "Ecc Error Counter"                           [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Ecc Check Fail Status"                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "Already Check Counter"                       [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5400      "DC Sync0 Period Limit"                       [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "ú"                                           [UNSIGNED16       RWRWRW]      0x00fa / 250
+    0x02      "'  NSync0 Period Maximum Value"            [UNSIGNED16       RWRWRW]      0x2710 / 10000
+0x5500      "Absolute Encoder Monitors"                   [RECORD  maxsub(0x0c / 12)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x0c / 12
+    0x01      "Absolute Encoder Turns "                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x02      "Absolute Encoder Single Turn Position"       [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x03      "Absolute Encoder Low Position"               [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x04      "Absolute Encoder High Position"              [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x05      "Mechanical Low Position"                     [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x06      "Mechanical High Position"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x07      "Encoder Communication Error Counter"         [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x08      "Manufacture Reserve High 32"                 [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x09      "Manufacture Use Low 32"                      [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0a      "Manufacture Use High 32"                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x0b      "Extern Encoder Feedback Position Low 32"      [UNSIGNED32       R_R_R_]      0x00000000 / 0
+    0x0c      "Extern Encoder Feedback Position High 32"      [INTEGER32        R_R_R_]      0x00000000 / 0
+0x5501      "Motion Monitors"                             [RECORD  maxsub(0x16 / 22)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x16 / 22
+    0x01      "Actual Motor Speed"                          [INTEGER16        R_R_R_]      0x0000 / 0
+    0x02      "Command Speed"                               [INTEGER16        R_R_R_]      0x0000 / 0
+    0x03      "Speed Command"                               [INTEGER16        R_R_R_]      0x0000 / 0
+    0x04      "Actual Torque"                               [INTEGER16        R_R_R_]      0x0000 / 0
+    0x05      "Command Torque"                              [INTEGER16        R_R_R_]      0x0000 / 0
+    0x06      "Relative Position Error"                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x07      "Internal Position Command"                   [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x08      "Overload Rate"                               [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x09      "Regenerative Resistance Load Ratio"          [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0a      "Inertia Ratio"                               [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x0b      "Positive Actual Torque Limit"                [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0c      "Negative Actual Torque Limit"                [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0d      "U Phase Actual Current"                      [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0e      "V Phase Actual Current"                      [INTEGER16        R_R_R_]      0x0000 / 0
+    0x0f      "Average Overload Rate"                       [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x10      "One Tune JOG Act. Posi."                     [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x11      "One Tune Reached Count."                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x12      "One Tune Reached Time"                       [INTEGER16        R_R_R_]      0x0000 / 0
+    0x13      "One Tune Overshoot Times"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+    0x14      "One Tune Jitter Count"                       [INTEGER16        R_R_R_]      0x0000 / 0
+    0x15      "One Tune Maximum Current"                    [INTEGER16        R_R_R_]      0x0000 / 0
+    0x16      "One Tune Maximum Speed"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x5502      "Miscellaneous Monitors"                      [RECORD  maxsub(0x07 / 7)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x07 / 7
+    0x01      "Digital Input Physical Level"                [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x02      "Digital Output Physical Level"               [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x03      "Analog Input 1 Level"                        [INTEGER16        R_R_R_]      0x0000 / 0
+    0x04      "Analog Input 2 Level"                        [INTEGER16        R_R_R_]      0x0000 / 0
+    0x05      "DC Link Circuit Voltage"                     [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x06      "IPM Module Temperature"                      [UNSIGNED16       R_R_R_]      0x0000 / 0
+    0x07      "Operation Time"                              [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x5503      "Special Registers"                           [RECORD  maxsub(0x05 / 5)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x05 / 5
+    0x01      "Special Register 1"                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x02      "Special Register 2"                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x03      "Special Register 3"                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x04      ""                                            [UNSIGNED16       RWRWRW]      0x0000 / 0
+    0x05      "–"                                           [UNSIGNED16       RWRWRW]      0x0096 / 150
+0x603f      "Last Error Code"                             [VAR]
+    0x00      "Last Error Code"                             [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x6040      "Control Word"                                [VAR]
+    0x00      "Control Word"                                [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6041      "Status Word"                                 [VAR]
+    0x00      "Status Word"                                 [UNSIGNED16       R_R_R_]      0x0210 / 528
+0x605a      "Quick Stop Option Code"                      [VAR]
+    0x00      ""                                           [INTEGER16        RWRWRW]      0x0000 / 0
+0x605b      "Shutdown Option Code"                        [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x605c      "Disable Option Code"                         [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x605d      "Halt Option Code"                            [VAR]
+    0x00      ""                                           [INTEGER16        RWRWRW]      0x0000 / 0
+0x605e      "Fault ReactionCode Code"                     [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x6060      "Modes of Operation"                          [VAR]
+    0x00      "Modes of Operation"                       [INTEGER8         RWRWRW]      0x00 / 0
+0x6061      "Modes of Operation Display"                  [VAR]
+    0x00      "Modes of Operation Display"                  [INTEGER8         R_R_R_]      0x00 / 0
+0x6062      "Commanded Position"                          [VAR]
+    0x00      "Commanded Position"                          [INTEGER32        R_R_R_]      0x00000000 / 0
+0x6063      "Actual Internal Position"                    [VAR]
+    0x00      "Actual Internal Position"                    [INTEGER32        R_R_R_]      0x00000000 / 0
+0x6064      "Actual Motor Position"                       [VAR]
+    0x00      "Actual Motor Position"                       [INTEGER32        R_R_R_]      0xffffff8f / -113
+0x6065      "Follow Error Window"                         [VAR]
+    0x00      "0u"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6066      "Follow Error Time Out"                       [VAR]
+    0x00      "
+"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6067      "Position Window"                             [VAR]
+    0x00      "
+"                                           [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6068      "Position Window Time"                        [VAR]
+    0x00      ","                                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6069      "Actual Sensor Velocity"                      [VAR]
+    0x00      "Actual Sensor Velocity"                      [INTEGER32        R_R_R_]      0x00000000 / 0
+0x606a      "Velocity Sensor Selection"                   [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x606b      "Commanded Velocity"                          [VAR]
+    0x00      "Commanded Velocity"                          [INTEGER32        R_R_R_]      0x00000000 / 0
+0x606c      "Actual Motor Velocity"                       [VAR]
+    0x00      "Actual Motor Velocity"                       [INTEGER32        R_R_R_]      0x00000000 / 0
+0x606d      "Velocity Window"                             [VAR]
+    0x00      "
+"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x606e      "Velocity Window Time"                        [VAR]
+    0x00      ""                                            [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x606f      "Velocity Threshold"                          [VAR]
+    0x00      "
+"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6070      "Velocity Threshold Time"                     [VAR]
+    0x00      "d"                                           [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6071      "Target Torque"                               [VAR]
+    0x00      "Target Torque"                               [INTEGER16        RWRWRW]      0x0000 / 0
+0x6072      "Max Torque"                                  [VAR]
+    0x00      "L"                                          [UNSIGNED16       RWRWRW]      0x1f40 / 8000
+0x6073      "Max Current"                                 [VAR]
+    0x00      "L"                                          [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x6074      "Commanded Torque"                            [VAR]
+    0x00      "Commanded Torque"                            [INTEGER16        R_R_R_]      0x0000 / 0
+0x6075      "Motor Rated Current"                         [VAR]
+    0x00      "¸"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6076      "Motor Rated Torque"                          [VAR]
+    0x00      "¸"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6077      "Actual Motor Torque"                         [VAR]
+    0x00      "Actual Motor Torque"                         [INTEGER16        R_R_R_]      0x0000 / 0
+0x6078      "Actual Motor Current"                        [VAR]
+    0x00      "Actual Motor Current"                        [INTEGER16        R_R_R_]      0x0000 / 0
+0x6079      "DC Link Circuit Voltage"                     [VAR]
+    0x00      "DC Link Circuit Voltage"                     [UNSIGNED32       R_R_R_]      0x00000030 / 48
+0x607a      "Profile Target Position"                     [VAR]
+    0x00      "Profile Target Position"                     [INTEGER32        RWRWRW]      0x00000000 / 0
+0x607b      "Position Range Limit"                        [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+    0x02      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+0x607c      "Homing Offset"                               [VAR]
+    0x00      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+0x607d      "Software Position Limit"                     [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+    0x02      ""                                            [INTEGER32        RWRWRW]      0x00000000 / 0
+0x607e      "Polarity"                                    [VAR]
+    0x00      ""                                            [UNSIGNED8        RWRWRW]      0x00 / 0
+0x607f      "Max Profile Velocity"                        [VAR]
+    0x00      "ÿÿÿ"                                        [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6080      "Maximum Motor Speed"                         [VAR]
+    0x00      "@"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6081      "Profile Target Velocity"                     [VAR]
+    0x00      "'"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6082      "End Velocity"                                [VAR]
+    0x00      ""                                            [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6083      "Profile Target Acceleration"                 [VAR]
+    0x00      "'"                                          [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6084      "Profile Target Deceleration"                 [VAR]
+    0x00      "€–˜"                                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6085      "Quick Stop Deceleration"                     [VAR]
+    0x00      "€–˜"                                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6086      "Motion Profile Type"                         [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x6087      "Torque Slope"                                [VAR]
+    0x00      "@B"                                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x6088      "Torque Profile Type"                         [VAR]
+    0x00      ""                                            [INTEGER16        RWRWRW]      0x0000 / 0
+0x608f      "Position Encoder Resolution"                 [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "Encoder increments"                          [UNSIGNED32       RWRWRW]      0x00000001 / 1
+    0x02      "Motor revolutions"                           [UNSIGNED32       RWRWRW]      0x00000001 / 1
+0x6091      "Gear Ratio"                                  [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                           [UNSIGNED32       RWRWRW]      0x00000001 / 1
+    0x02      ""                                           [UNSIGNED32       RWRWRW]      0x00000001 / 1
+0x6092      "Feed Constant"                               [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "'"                                          [UNSIGNED32       RWRWRW]      0x00000001 / 1
+    0x02      "Shaft revolutions"                           [UNSIGNED32       R_R_R_]      0x00000001 / 1
+0x6098      "Homing Method"                               [VAR]
+    0x00      "Homing Method"                              [INTEGER8         RWRWRW]      0x00 / 0
+0x6099      "Homing Velocity"                             [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        RWRWRW]      0x02 / 2
+    0x01      "'"                                          [UNSIGNED32       RWRWRW]      0x00002710 / 10000
+    0x02      "ˆ"                                          [UNSIGNED32       RWRWRW]      0x00001388 / 5000
+0x609a      "Homing Acceleration"                         [VAR]
+    0x00      " ¡"                                         [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x60a4      "Profile Jerk"                                [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "Profile Jerk 1"                              [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x02      "Profile Jerk 2"                              [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x60b0      "Position Offset"                             [VAR]
+    0x00      "Position Offset"                             [INTEGER32        RWRWRW]      0x00000000 / 0
+0x60b1      "Velocity Offset"                             [VAR]
+    0x00      "Velocity Offset"                             [INTEGER32        RWRWRW]      0x00000000 / 0
+0x60b2      "Torque Offset"                               [VAR]
+    0x00      "Torque Offset"                               [INTEGER16        RWRWRW]      0x0000 / 0
+0x60b8      "Touch Probe Function"                        [VAR]
+    0x00      "Touch Probe Function"                        [UNSIGNED16       RWRWRW]      0x0000 / 0
+0x60b9      "Touch Probe Status"                          [VAR]
+    0x00      "Touch Probe Status"                          [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60ba      "Touch Probe 1 Positive Value"                [VAR]
+    0x00      "Touch Probe 1 Positive Value"                [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60bb      "Touch Probe 1 Negative Value"                [VAR]
+    0x00      "Touch Probe 1 Negative Value"                [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60bc      "Touch Probe 2 Positive Value"                [VAR]
+    0x00      "Touch Probe 2 Positive Value"                [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60bd      "Touch Probe 2 Negative Value"                [VAR]
+    0x00      "Touch Probe 2 Negative Value"                [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60c2      "InterPolation Time Period"                   [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      ""                                           [UNSIGNED8        RWRWRW]      0x02 / 2
+    0x02      "ýInterpolation Time units"                   [INTEGER8         RWRWRW]      0xfffffffd / -3
+0x60c5      "Maximum Acceleration"                        [VAR]
+    0x00      ""                                            [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x60c6      "Maximum Acceleration"                        [VAR]
+    0x00      ""                                            [UNSIGNED32       RWRWRW]      0x00000000 / 0
+0x60d5      "Touch Probe 1 Positive Counter"              [VAR]
+    0x00      "Touch Probe 1 Positive Counter"              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60d6      "Touch Probe 1 Negative Counter"              [VAR]
+    0x00      "Touch Probe 1 Negative Counter"              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60d7      "Touch Probe 2 Positive Counter"              [VAR]
+    0x00      "Touch Probe 2 Positive Counter"              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60d8      "Touch Probe 2 Negative Counter"              [VAR]
+    0x00      "Touch Probe 2 Negative Counter"              [UNSIGNED16       R_R_R_]      0x0000 / 0
+0x60e0      "Positive Torque Limit Value"                 [VAR]
+    0x00      "L"                                          [UNSIGNED16       RWRWRW]      0x1f40 / 8000
+0x60e1      "Negative Torque Limit Value"                 [VAR]
+    0x00      "L"                                          [UNSIGNED16       RWRWRW]      0x1f40 / 8000
+0x60e4      "Additional Position Actual Value"            [RECORD  maxsub(0x01 / 1)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x01 / 1
+    0x01      "External Encoder Position"                   [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60f4      "Position Loop Error"                         [VAR]
+    0x00      "Position Loop Error"                         [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60fa      "Control Effort"                              [VAR]
+    0x00      "Control Effort"                              [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60fc      "Commanded Internal Position"                 [VAR]
+    0x00      "Commanded Internal Position"                 [INTEGER32        R_R_R_]      0x00000000 / 0
+0x60fd      "Digital Inputs"                              [VAR]
+    0x00      "Digital Inputs"                              [UNSIGNED32       R_R_R_]      0x00000000 / 0
+0x60fe      "Digital Outputs"                             [RECORD  maxsub(0x02 / 2)]
+    0x00      "Number of Entries"                           [UNSIGNED8        R_R_R_]      0x02 / 2
+    0x01      "Physical Outputs"                            [UNSIGNED32       RWRWRW]      0x00000000 / 0
+    0x02      ""                                            [UNSIGNED32       RWRWRW]      0x7fff0000 / 2147418112
+0x60ff      "Target Velocity"                             [VAR]
+    0x00      "Target Velocity"                             [INTEGER32        RWRWRW]      0x00000000 / 0
+0x6502      "Supported Drive Modes"                       [VAR]
+    0x00      ""                                            [UNSIGNED32       R_R_R_]      0x000003ad / 941
+0x67fe      "CIA402 Version Number"                       [VAR]
+    0x00      "CIA402 Version Number"                       [UNSIGNED32       R_R_R_]      0x00030100 / 196864
+End slaveinfo, close socket
+End program

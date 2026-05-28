@@ -1,0 +1,29 @@
+build*/
+install
+*~
+/doc/latex
+/doc/html
+tags
+.vscode
+
+# Common local files
+.idea/
+*.swp
+*.swo
+*.tmp
+*.bak
+*.orig
+*.rej
+*.log
+
+# Build and generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+Testing/
+
+# Project local outputs
+#/log/
+#/docs/

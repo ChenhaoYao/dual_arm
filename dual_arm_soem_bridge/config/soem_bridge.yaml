@@ -1,0 +1,20 @@
+soem_bridge_node:
+  ros__parameters:
+    ifname: ""
+    dry_run: true
+    waypoint_topic: /dual_arm/pp_waypoints
+    joint_names:
+      - laxis1_joint
+      - laxis2_joint
+      - laxis3_joint
+      - laxis4_joint
+      - laxis5_joint
+      - laxis6_joint
+      - laxis7_joint
+      - raxis1_joint
+      - raxis2_joint
+      - raxis3_joint
+      - raxis4_joint
+      - raxis5_joint
+      - raxis6_joint
+      - raxis7_joint

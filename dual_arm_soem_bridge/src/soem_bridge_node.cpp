@@ -1,0 +1,171 @@
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "control_msgs/msg/joint_trajectory_controller_state.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
+#include "std_srvs/srv/set_bool.hpp"
+#include "std_srvs/srv/trigger.hpp"
+#include "trajectory_msgs/msg/joint_trajectory.hpp"
+
+#include "dual_arm_soem_bridge/soem_pp_master.hpp"
+
+namespace dual_arm_soem_bridge
+{
+
+class SoemBridgeNode : public rclcpp::Node
+{
+public:
+  SoemBridgeNode()
+  : Node("soem_bridge_node"), master_(std::make_unique<SoemPpMaster>())
+  {
+    ifname_ = declare_parameter<std::string>("ifname", "");
+    dry_run_ = declare_parameter<bool>("dry_run", true);
+    waypoint_topic_ = declare_parameter<std::string>("waypoint_topic", "/dual_arm/pp_waypoints");
+    joint_names_ = declare_parameter<std::vector<std::string>>("joint_names", default_joint_names());
+
+    waypoint_sub_ = create_subscription<trajectory_msgs::msg::JointTrajectory>(
+      waypoint_topic_, rclcpp::QoS(10),
+      [this](trajectory_msgs::msg::JointTrajectory::SharedPtr msg) { on_waypoints(msg); });
+
+    real_joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>(
+      "~/real_joint_states", rclcpp::QoS(10));
+
+    enable_srv_ = create_service<std_srvs::srv::SetBool>(
+      "~/enable",
+      [this](
+        const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+        std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
+        handle_enable(request, response);
+      });
+
+    stop_srv_ = create_service<std_srvs::srv::Trigger>(
+      "~/stop",
+      [this](
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+        handle_stop(request, response);
+      });
+
+    clear_fault_srv_ = create_service<std_srvs::srv::Trigger>(
+      "~/clear_fault",
+      [this](
+        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+        std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+        handle_clear_fault(request, response);
+      });
+
+    RCLCPP_INFO(
+      get_logger(), "SOEM bridge ready: dry_run=%s ifname='%s' topic='%s' soem_context_size=%zu",
+      dry_run_ ? "true" : "false", ifname_.c_str(), waypoint_topic_.c_str(),
+      master_->soem_context_size());
+  }
+
+private:
+  static std::vector<std::string> default_joint_names()
+  {
+    return {
+      "laxis1_joint", "laxis2_joint", "laxis3_joint", "laxis4_joint", "laxis5_joint",
+      "laxis6_joint", "laxis7_joint", "raxis1_joint", "raxis2_joint", "raxis3_joint",
+      "raxis4_joint", "raxis5_joint", "raxis6_joint", "raxis7_joint"};
+  }
+
+  void on_waypoints(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg)
+  {
+    std::vector<PpWaypoint> waypoints;
+    waypoints.reserve(msg->points.size());
+
+    for (const auto & point : msg->points) {
+      PpWaypoint waypoint;
+      waypoint.joint_names = msg->joint_names;
+      waypoint.positions = point.positions;
+      waypoint.time_from_start = rclcpp::Duration(point.time_from_start).seconds();
+      waypoints.push_back(std::move(waypoint));
+    }
+
+    if (dry_run_) {
+      RCLCPP_INFO(
+        get_logger(), "dry-run received trajectory: joints=%zu points=%zu",
+        msg->joint_names.size(), msg->points.size());
+      return;
+    }
+
+    if (!master_->enabled()) {
+      RCLCPP_WARN(get_logger(), "trajectory ignored because SOEM master is not enabled");
+      return;
+    }
+
+    if (!master_->submit_waypoints(waypoints)) {
+      RCLCPP_WARN(get_logger(), "failed to submit SOEM PP waypoints");
+    }
+  }
+
+  void handle_enable(
+    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
+    std::shared_ptr<std_srvs::srv::SetBool::Response> response)
+  {
+    if (!request->data) {
+      master_->stop();
+      response->success = true;
+      response->message = "SOEM bridge disabled";
+      return;
+    }
+
+    if (dry_run_) {
+      response->success = true;
+      response->message = "dry-run enabled without opening EtherCAT";
+      return;
+    }
+
+    if (!master_->configure(ifname_)) {
+      response->success = false;
+      response->message = "ifname parameter is empty";
+      return;
+    }
+
+    response->success = master_->start();
+    response->message = response->success ? "SOEM bridge enabled" : "failed to enable SOEM bridge";
+  }
+
+  void handle_stop(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+  {
+    (void)request;
+    master_->stop();
+    response->success = true;
+    response->message = "SOEM bridge stopped";
+  }
+
+  void handle_clear_fault(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+  {
+    (void)request;
+    response->success = dry_run_;
+    response->message = dry_run_ ? "dry-run clear_fault accepted" : "clear_fault is not implemented yet";
+  }
+
+  std::unique_ptr<SoemPpMaster> master_;
+  std::string ifname_;
+  std::string waypoint_topic_;
+  std::vector<std::string> joint_names_;
+  bool dry_run_{true};
+
+  rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr waypoint_sub_;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr real_joint_state_pub_;
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enable_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr clear_fault_srv_;
+};
+
+}  // namespace dual_arm_soem_bridge
+
+int main(int argc, char ** argv)
+{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<dual_arm_soem_bridge::SoemBridgeNode>());
+  rclcpp::shutdown();
+  return 0;
+}
