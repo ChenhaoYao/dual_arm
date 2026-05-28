@@ -17,3 +17,7 @@ __pycache__/
 
 # ROS2
 COLCON_IGNORE
+
+# Debug files
+DEBUGGING_NOTES.md
+

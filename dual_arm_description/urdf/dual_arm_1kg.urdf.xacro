@@ -22,7 +22,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://dual_arm_description/meshes/base_link.STL" />
+        <box size="0.4 0.4 0.2" />
       </geometry>
     </collision>
   </link>
@@ -45,7 +45,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://dual_arm_description/meshes/laxis1_link.STL" />
+        <cylinder length="0.1" radius="0.05" />
       </geometry>
     </collision>
   </link>
@@ -76,7 +76,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://dual_arm_description/meshes/laxis2_link.STL" />
+        <cylinder length="0.1" radius="0.05" />
       </geometry>
     </collision>
   </link>
@@ -262,7 +262,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://dual_arm_description/meshes/raxis1_link.STL" />
+        <cylinder length="0.1" radius="0.05" />
       </geometry>
     </collision>
   </link>
@@ -293,7 +293,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://dual_arm_description/meshes/raxis2_link.STL" />
+        <cylinder length="0.1" radius="0.05" />
       </geometry>
     </collision>
   </link>
