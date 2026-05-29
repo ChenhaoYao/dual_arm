@@ -8,10 +8,12 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(control_msgs REQUIRED)
 
+# SOEM 保持第三方 CMake 工程，这里只把库编进当前 ROS2 包。
 set(SOEM_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../SOEM" CACHE PATH "Path to SOEM source")
 set(SOEM_BUILD_SAMPLES OFF CACHE BOOL "Build SOEM samples" FORCE)
 add_subdirectory("${SOEM_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/soem")
 
+# 底层封装库：后续放 EtherCAT 初始化、PDO 映射和 PP 状态机。
 add_library(soem_pp_master
   src/soem_pp_master.cpp
 )
@@ -21,6 +23,7 @@ target_include_directories(soem_pp_master PUBLIC
 )
 target_link_libraries(soem_pp_master PUBLIC soem)
 
+# ROS2 节点：负责参数、话题、服务，调用 soem_pp_master。
 add_executable(soem_bridge_node
   src/soem_bridge_node.cpp
 )
@@ -33,6 +36,7 @@ ament_target_dependencies(soem_bridge_node
   control_msgs
 )
 
+# 安装节点、库、头文件、launch 和参数文件。
 install(TARGETS soem_pp_master soem_bridge_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

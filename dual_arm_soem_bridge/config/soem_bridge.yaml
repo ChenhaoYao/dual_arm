@@ -1,8 +1,12 @@
 soem_bridge_node:
   ros__parameters:
+    # EtherCAT 网卡名；dry_run=true 时可以留空。
     ifname: ""
+    # 默认干跑，避免启动节点时直接连接真实电机。
     dry_run: true
+    # 接收低频 PP waypoint 的话题。
     waypoint_topic: /dual_arm/pp_waypoints
+    # 关节顺序需要和 MoveIt/ros2_control 保持一致。
     joint_names:
       - laxis1_joint
       - laxis2_joint

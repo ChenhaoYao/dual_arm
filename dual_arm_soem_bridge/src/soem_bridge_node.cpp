@@ -20,18 +20,22 @@ public:
   SoemBridgeNode()
   : Node("soem_bridge_node"), master_(std::make_unique<SoemPpMaster>())
   {
+    // 参数由 launch/yaml 注入；默认 dry_run=true，避免误连真实硬件。
     ifname_ = declare_parameter<std::string>("ifname", "");
     dry_run_ = declare_parameter<bool>("dry_run", true);
     waypoint_topic_ = declare_parameter<std::string>("waypoint_topic", "/dual_arm/pp_waypoints");
     joint_names_ = declare_parameter<std::vector<std::string>>("joint_names", default_joint_names());
 
+    // 订阅低频 PP waypoint，消息类型为 JointTrajectory。
     waypoint_sub_ = create_subscription<trajectory_msgs::msg::JointTrajectory>(
       waypoint_topic_, rclcpp::QoS(10),
       [this](trajectory_msgs::msg::JointTrajectory::SharedPtr msg) { on_waypoints(msg); });
 
+    // 真实机械臂反馈单独发布，不覆盖仿真的 /joint_states。
     real_joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>(
       "~/real_joint_states", rclcpp::QoS(10));
 
+    // 显式使能服务，真实硬件不随节点启动自动运动。
     enable_srv_ = create_service<std_srvs::srv::SetBool>(
       "~/enable",
       [this](
@@ -40,6 +44,7 @@ public:
         handle_enable(request, response);
       });
 
+    // 停止服务，后续会扩展为清空队列和安全停机。
     stop_srv_ = create_service<std_srvs::srv::Trigger>(
       "~/stop",
       [this](
@@ -48,6 +53,7 @@ public:
         handle_stop(request, response);
       });
 
+    // 故障复位服务，后续映射到 CiA402 fault reset。
     clear_fault_srv_ = create_service<std_srvs::srv::Trigger>(
       "~/clear_fault",
       [this](
@@ -65,6 +71,7 @@ public:
 private:
   static std::vector<std::string> default_joint_names()
   {
+    // 默认顺序：左臂 7 轴 + 右臂 7 轴。
     return {
       "laxis1_joint", "laxis2_joint", "laxis3_joint", "laxis4_joint", "laxis5_joint",
       "laxis6_joint", "laxis7_joint", "raxis1_joint", "raxis2_joint", "raxis3_joint",
@@ -73,6 +80,7 @@ private:
 
   void on_waypoints(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg)
   {
+    // 将 ROS JointTrajectory 转成内部 PP waypoint 结构。
     std::vector<PpWaypoint> waypoints;
     waypoints.reserve(msg->points.size());
 
@@ -91,6 +99,7 @@ private:
       return;
     }
 
+    // 非 dry-run 时必须先调用 enable 服务。
     if (!master_->enabled()) {
       RCLCPP_WARN(get_logger(), "trajectory ignored because SOEM master is not enabled");
       return;
@@ -105,6 +114,7 @@ private:
     const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
     std::shared_ptr<std_srvs::srv::SetBool::Response> response)
   {
+    // 请求 false 表示关闭桥接。
     if (!request->data) {
       master_->stop();
       response->success = true;
@@ -112,12 +122,14 @@ private:
       return;
     }
 
+    // dry-run 模式下不打开网卡，只验证 ROS 流程。
     if (dry_run_) {
       response->success = true;
       response->message = "dry-run enabled without opening EtherCAT";
       return;
     }
 
+    // 真实模式必须提供网卡名。
     if (!master_->configure(ifname_)) {
       response->success = false;
       response->message = "ifname parameter is empty";
@@ -133,6 +145,7 @@ private:
     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
     (void)request;
+    // 当前骨架只停止主站标志。
     master_->stop();
     response->success = true;
     response->message = "SOEM bridge stopped";
@@ -143,6 +156,7 @@ private:
     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
     (void)request;
+    // 真实故障复位还未实现，非 dry-run 下明确返回失败。
     response->success = dry_run_;
     response->message = dry_run_ ? "dry-run clear_fault accepted" : "clear_fault is not implemented yet";
   }
