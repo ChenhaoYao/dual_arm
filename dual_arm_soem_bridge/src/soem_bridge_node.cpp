@@ -18,7 +18,7 @@ class SoemBridgeNode : public rclcpp::Node
 {
 public:
   SoemBridgeNode()
-  : Node("soem_bridge_node"), master_(std::make_unique<SoemPpMaster>())
+  : Node("soem_bridge_node"), master_(std::make_unique<SoemPpMaster>()) // 初始化列表，与master_ = std::make_unique<SoemPpMaster>();效果相同
   {
     // 参数由 launch/yaml 注入；默认 dry_run=true，避免误连真实硬件。
     ifname_ = declare_parameter<std::string>("ifname", "");
@@ -161,10 +161,10 @@ private:
     response->message = dry_run_ ? "dry-run clear_fault accepted" : "clear_fault is not implemented yet";
   }
 
-  std::unique_ptr<SoemPpMaster> master_;
+  std::unique_ptr<SoemPpMaster> master_; // 指向SoemPpMaster类型的智能指针
   std::string ifname_;
   std::string waypoint_topic_;
-  std::vector<std::string> joint_names_;
+  std::vector<std::string> joint_names_; // 一个vector动态数组，元素类型是字符串
   bool dry_run_{true};
 
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr waypoint_sub_;
