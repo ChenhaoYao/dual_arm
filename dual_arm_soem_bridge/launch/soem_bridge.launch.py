@@ -1,3 +1,6 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
@@ -18,16 +21,25 @@ def generate_launch_description():
         description='Run without opening EtherCAT hardware'
     )
 
-    # 启动 SOEM 桥接节点。
+    # 轴标定/采样等参数从 config/soem_bridge.yaml 加载。
+    config_file = os.path.join(
+        get_package_share_directory('dual_arm_soem_bridge'),
+        'config', 'soem_bridge.yaml'
+    )
+
+    # 启动 SOEM 桥接节点。命令行 ifname/dry_run 覆盖 yaml 中的同名项。
     soem_bridge_node = Node(
         package='dual_arm_soem_bridge',
         executable='soem_bridge_node',
         name='soem_bridge_node',
         output='screen',
-        parameters=[{
-            'ifname': LaunchConfiguration('ifname'),
-            'dry_run': LaunchConfiguration('dry_run'),
-        }]
+        parameters=[
+            config_file,
+            {
+                'ifname': LaunchConfiguration('ifname'),
+                'dry_run': LaunchConfiguration('dry_run'),
+            },
+        ]
     )
 
     return LaunchDescription([

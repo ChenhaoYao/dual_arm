@@ -1,13 +1,18 @@
 #pragma once
 
+#include <atomic>
 #include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace dual_arm_soem_bridge
 {
 
-// 单个 PP waypoint，positions 使用 ROS 标准单位 rad。
+// 单个 PP waypoint，positions 使用 ROS 标准单位 rad，顺序与 joint_names 对应。
 struct PpWaypoint
 {
   std::vector<std::string> joint_names;
@@ -15,28 +20,105 @@ struct PpWaypoint
   double time_from_start{0.0};
 };
 
-// SOEM 主站封装类，后续把 ec_sample.c 的 PP 控制逻辑迁移到这里。
+// 单轴标定参数：把 ROS 关节角(rad)换算成电机端编码器 counts。
+// 公式：counts = direction * round(rad/(2pi) * 2^enc_bits * gear_ratio) + zero_offset_counts
+struct AxisConfig
+{
+  std::string joint_name;            // ROS 关节名，用于和 waypoint 对齐
+  uint16_t slave{0};                 // EtherCAT 从站编号(1-based)
+  int enc_bits{19};                  // 编码器位数
+  double gear_ratio{100.0};          // 减速比
+  int direction{1};                  // +1 / -1，关节正方向与电机方向关系
+  int32_t zero_offset_counts{0};     // 零点偏置(counts)
+  int32_t min_counts{-2147483647};   // 软限位下限(counts)
+  int32_t max_counts{2147483647};    // 软限位上限(counts)
+  uint32_t profile_vel{0};           // 0x6081 profile velocity，0 表示用默认
+  uint32_t profile_acc{0};           // 0x6083/0x6084 加减速，0 表示用默认
+};
+
+// 单轴运行期状态：CiA402 状态机 + PP set-point 握手所需的内部变量。
+struct AxisRuntime
+{
+  AxisConfig cfg;
+  std::atomic<int32_t> target_counts{0};   // 最新命令目标(由 submit_waypoints 写入)
+  std::atomic<bool> has_target{false};     // 是否已收到过有效目标
+  // 以下仅在 RT 线程内访问，无需原子。
+  bool enabled_logged{false};
+  int fr_low_cnt{0};       // fault reset 低电平计数
+  int trig_phase{0};       // PP 触发子状态：0 预载/等新目标 1 已置bit4 2 等ack释放
+  int preload_cnt{0};      // 预载周期计数
+  int32_t latched_target{0};   // 本次握手锁存的目标
+  bool first_target_latched{false};
+  uint16_t prev_sw{0xFFFF};
+  uint16_t prev_err{0xFFFF};
+  // 反馈快照(原子，供 ROS 线程读取发布)。
+  std::atomic<int32_t> fb_pos{0};
+  std::atomic<int32_t> fb_vel{0};
+  std::atomic<int16_t> fb_torq{0};
+  std::atomic<uint16_t> fb_sw{0};
+  std::atomic<uint16_t> fb_err{0};
+};
+
+// 真实电机反馈快照，供 ROS 节点发布。
+struct AxisFeedback
+{
+  std::string joint_name;
+  double position_rad{0.0};
+  double velocity_rad_s{0.0};
+  int16_t torque{0};
+  uint16_t status_word{0};
+  uint16_t error_code{0};
+};
+
+// SOEM 主站封装类，迁移自 ec_sample.c：EtherCAT 初始化、PDO 映射、
+// DC Sync0、1kHz RT 线程与 CiA402 PP 状态机，改为吃动态目标队列。
 class SoemPpMaster
 {
 public:
   SoemPpMaster();
   ~SoemPpMaster();
 
-  // 配置 EtherCAT 网卡名。
+  // 配置网卡名与各轴标定参数(start 之前调用)。
+  bool configure(const std::string & ifname, const std::vector<AxisConfig> & axes);
+  // 仅配置网卡名(兼容旧接口，使用默认空轴表)。
   bool configure(const std::string & ifname);
-  // 启动/停止 SOEM 主站。
+  // 启动/停止 SOEM 主站(打开 EtherCAT、起 RT 线程 / 降级关闭)。
   bool start();
   void stop();
-  // 接收 ROS 侧转换后的 waypoint 队列。
+  // 接收 ROS 侧 waypoint，转 counts 后更新每轴 pending target。
   bool submit_waypoints(const std::vector<PpWaypoint> & waypoints);
   bool enabled() const;
+  // 读取各轴真实反馈(rad)，供 ROS 发布。
+  std::vector<AxisFeedback> feedback() const;
+  // 把单个关节角(rad)换算为该轴 counts，并应用方向/零点/软限位。
+  int32_t rad_to_counts(const AxisConfig & cfg, double rad) const;
+  double counts_to_rad(const AxisConfig & cfg, int32_t counts) const;
+  // 把速度(counts/s)换算为 rad/s(不含零点偏置)。
+  double counts_to_rad_vel(const AxisConfig & cfg, int32_t counts) const;
+  // 供静态 PO2SOconfig 回调读取每轴配置。
+  const std::vector<AxisConfig> & axes_for_config() const;
   // 用于验证 SOEM 头文件和链接是否可用。
   std::size_t soem_context_size() const;
 
 private:
+  bool ecat_bringup();    // 迁移自 ec_sample 的 ecatbringup
+  void ecat_teardown();   // 降级到 SAFE-OP/INIT
+  void rt_loop();         // 迁移自 ec_sample 的 ecatthread
+  void axis_step(AxisRuntime & ax);  // 迁移自 ec_sample 的 axis_step
+
   std::string ifname_;
+  std::vector<AxisConfig> axis_configs_;
   bool configured_{false};
-  bool running_{false};
+  std::atomic<bool> running_{false};
+  std::atomic<bool> dorun_{false};        // RT 线程是否进行 PDO 交换
+  std::atomic<bool> mapping_done_{false};
+  std::atomic<bool> rt_should_exit_{false};
+
+  std::vector<std::unique_ptr<AxisRuntime>> axes_;
+  std::thread rt_thread_;
+  int expected_wkc_{0};
+  int wkc_{0};
+  uint64_t cycle_{0};
 };
 
 }  // namespace dual_arm_soem_bridge
