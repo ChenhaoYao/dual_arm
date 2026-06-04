@@ -72,6 +72,7 @@ typedef struct
    int     enabled_logged;
    int     reached_logged;
    int     pp_phase;
+   int     tick_header_printed;
    int     motion_seen;
    int     fr_low_cnt;
    int     preload_cnt;
@@ -243,6 +244,12 @@ static const char *cia402_state_name(uint16_t sw)
    return "?";
 }
 
+/* 阶段分隔线 */
+static void log_sep(const char *title)
+{
+   printf("\n─── %-54s ───\n", title);
+}
+
 static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
 {
    (void)idx;
@@ -281,8 +288,9 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
          axis->enabled_logged = 1;
          axis->base_pos = pos;
          axis->final_target = pos + TARGET_COUNTS;
-         printf("[AXIS%d] cycle=%d Op Enabled, base=%d → final=%d\n",
-                axis->slave, cycle, axis->base_pos, axis->final_target);
+         log_sep("PP MOTION");
+         printf("  cycle=%d  Op Enabled, base=%d -> final=%d (%d°)\n",
+                cycle, axis->base_pos, axis->final_target, TARGET_DEG);
       }
 
       tgt = axis->final_target;
@@ -297,10 +305,10 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
          }
          else if (sync_trigger)
          {
-            cw = 0x003F;
-            axis->pp_phase = 1;
-            printf("[AXIS%d] cycle=%d 同步触发 PP 定位 → %d counts (%d°), preload=%dms\n",
-                   axis->slave, cycle, tgt, TARGET_DEG, PP_TARGET_PRELOAD_CYCLES);
+             cw = 0x003F;
+             axis->pp_phase = 1;
+             printf("  cycle=%d  PP trigger -> %d counts (%d°)\n",
+                    cycle, tgt, TARGET_DEG);
          }
       }
       else if (axis->pp_phase == 1)
@@ -310,8 +318,8 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
          if (sw & 0x1000)
          {
             axis->pp_phase = 2;
-            printf("[AXIS%d] cycle=%d Set-point acknowledged, SW=0x%04X ModeDisp=%d pos=%d err=%d\n",
-                   axis->slave, cycle, sw, mode_disp, pos, err);
+            printf("  cycle=%d  Set-point ack, SW=0x%04X pos=%d err=%d\n",
+                   cycle, sw, pos, err);
          }
       }
       else if (axis->pp_phase == 2)
@@ -321,8 +329,8 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
          if (!(sw & 0x1000))
          {
             axis->pp_phase = axis->motion_seen ? 4 : 3;
-            printf("[AXIS%d] cycle=%d Set-point acknowledge released, SW=0x%04X ModeDisp=%d pos=%d err=%d\n",
-                   axis->slave, cycle, sw, mode_disp, pos, err);
+            printf("  cycle=%d  Set-point ack released, SW=0x%04X pos=%d err=%d\n",
+                   cycle, sw, pos, err);
          }
       }
       else if (axis->pp_phase == 3)
@@ -332,8 +340,8 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
          {
             axis->motion_seen = 1;
             axis->pp_phase = 4;
-            printf("[AXIS%d] cycle=%d Motion active, SW=0x%04X ModeDisp=%d pos=%d err=%d\n",
-                   axis->slave, cycle, sw, mode_disp, pos, err);
+            printf("  cycle=%d  Motion active, SW=0x%04X pos=%d err=%d\n",
+                   cycle, sw, pos, err);
          }
       }
       else
@@ -342,8 +350,8 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
          if ((sw & 0x0400) && llabs((long long)err) <= TARGET_TOLERANCE_COUNTS && !axis->reached_logged)
          {
             axis->reached_logged = 1;
-            printf("[AXIS%d] cycle=%d Target Reached, pos=%d (期望 %d, 误差 %d)\n",
-                   axis->slave, cycle, pos, axis->final_target, pos - axis->final_target);
+            printf("  cycle=%d  Target Reached, pos=%d (err=%d)\n",
+                   cycle, pos, pos - axis->final_target);
          }
       }
    }
@@ -351,15 +359,23 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
 
    if (sw != axis->prev_sw || er != axis->prev_err)
    {
-      printf("[CHG][AXIS%d] cycle=%d SW:0x%04X→0x%04X (%s) Err:0x%04X→0x%04X CW=0x%04X ModeDisp=%d pos=%d vel=%d torq=%d\n",
-             axis->slave, cycle, axis->prev_sw, sw, cia402_state_name(sw), axis->prev_err, er, cw, mode_disp, pos, vel, torq);
+      printf("  %-6d  SW 0x%04X->0x%04X  %-24s  CW=0x%04X  Err=0x%04X  Mode=%d\n",
+             cycle, axis->prev_sw, sw, cia402_state_name(sw), cw, er, mode_disp);
       axis->prev_sw = sw; axis->prev_err = er;
    }
 
    if ((loop_i % LOG_DIV) == 0)
    {
-      printf("[TICK][AXIS%d] cycle=%d wkc=%d SW=0x%04X (%s) CW=0x%04X ModeDisp=%d pos=%d vel=%d torq=%d Err=0x%04X\n",
-             axis->slave, cycle, wkc, sw, cia402_state_name(sw), cw, mode_disp, pos, vel, torq, er);
+      if (!axis->tick_header_printed)
+      {
+         axis->tick_header_printed = 1;
+         printf("\n  %-7s %-17s %-12s %-12s %-7s\n",
+                "cycle", "pos", "vel", "torq", "phase");
+         printf("  %-7s %-17s %-12s %-12s %-7s\n",
+                "------", "----------------", "-----------", "-----------", "------");
+      }
+      printf("  %-7d %-17d %-12d %-12d %-7d\n",
+             cycle, pos, vel, torq, axis->pp_phase);
    }
 
    out[RX_CW    ] = (uint8_t)(cw  & 0xFF);
@@ -475,7 +491,9 @@ static void ecatbringup(const char *ifname)
    }
 
    printf("[BOOT] 进入 OP，开始 CiA402 状态机推进\n");
+   log_sep("STATE MACHINE");
    run_motion();
+   log_sep("TEARDOWN");
    printf("[DONE] 主循环结束\n");
 
 teardown:
@@ -492,7 +510,10 @@ teardown:
 int main(int argc, char *argv[])
 {
    setup_log();
-   printf("SOEM ec_sample (精简版) — 让电机转 %d°\n", TARGET_DEG);
+   printf("\n═══════════════════════════════════════════════════════════\n");
+   printf("  SOEM ec_sample — PP 模式  |  目标 %d°\n", TARGET_DEG);
+   printf("═══════════════════════════════════════════════════════════\n");
+   log_sep("BOOT");
 
    if (argc < 2)
    {

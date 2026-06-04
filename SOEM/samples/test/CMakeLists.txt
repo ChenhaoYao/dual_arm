@@ -1,5 +1,6 @@
 add_subdirectory(csp_test)
 add_subdirectory(cst_test)
+add_subdirectory(csv_test)
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL Linux)
   add_subdirectory(eoe_test)

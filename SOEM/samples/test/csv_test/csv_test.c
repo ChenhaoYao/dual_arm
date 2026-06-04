@@ -1,29 +1,22 @@
 /*
- * cst_test — SOEM CST (Cyclic Synchronous Torque) 模式电机控制
+ * csv_test — SOEM CSV (Cyclic Synchronous Velocity) 模式电机控制
  *
- * 模仿 ec_sample (PP模式) 和 csp_test (CSP模式) 的结构，
- * 使用 CiA402 CST 模式 (0x6060 = 10) 通过周期性力矩命令控制电机。
+ * 使用 CiA402 CSV 模式 (0x6060 = 9) 通过周期性速度命令控制电机。
  *
- * CST 模式特点：
- *   - 主站每周期下发目标力矩 (0x6071)，驱动器内部执行力矩环
- *   - 适合力控、柔顺控制等场景
- *   - RxPDO：CW(2) + TargetTorque(2) + TorqueOffset(2) + Mode(1)
- *     （目标转矩 = 0x6071 + 0x60B2，60B2 象征性写 0）
- *   - TxPDO 包含反馈：SW(2) + ActualPos(4) + ActualVel(4) + ActualTorque(2) + Err(2) + ModeDisp(1)
+ * CSV 模式特点：
+ *   - 主站每周期下发目标速度 (0x60FF)，驱动器内部执行速度环
+ *   - 位置环在驱动器内部闭合，主站可读取实际位置用于监控
+ *   - RxPDO：CW(2) + TargetVelocity(4) + VelocityOffset(2) + Mode(1)
+ *   - TxPDO：SW(2) + ActualPos(4) + ActualVel(4) + ActualTorque(2) + Err(2) + ModeDisp(1)
  *
  * 运动策略：
- *   1. 先以 smoothstep 斜坡把目标力矩从 0 升到 TARGET_TORQUE_PERMILLE
- *   2. 保持 HOLD_S 秒
- *   3. 再以 smoothstep 斜坡降到 0
- *   4. 等待实际力矩回零后退出
- *
- * 关键流程（与 ec_sample / csp_test 一致）：
- *   setup_log → ecx_init → config_init → PO2SOconfig(PRE-OP, 重建PDO+CST参数)
- *   → config_map_group → configdc → dcsync0 → OP前持续跟随 → 切OP
- *   → run_motion → 回 INIT
+ *   1. 使能后等待 100ms
+ *   2. smoothstep 斜坡把目标速度从 0 升到 TARGET_VEL
+ *   3. 保持 HOLD_S 秒
+ *   4. smoothstep 斜坡降到 0
+ *   5. 等待实际速度回零后退出
  */
 
- // TODO cst这里给50转的偏快
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,30 +32,29 @@
 /* ==========================================================================
  * 用户可调参数
  * ========================================================================== */
-#define TARGET_TORQUE_PERMILLE  50     /* 目标力矩，单位：千分之额定力矩 (‰) */
-#define RAMP_S                  2.0    /* 力矩斜坡上升/下降时长 (s) */
-#define HOLD_S                  3.0    /* 力矩保持时长 (s) */
-#define CYCLE_NS            1000000    /* RT 线程 PDO 周期：1 ms */
+#define TARGET_VEL          5242880  /* 目标速度 (counts/s), 19bit编码器100减速比 → ≈0.1 rev/s 输出 */
+#define RAMP_S                  2.0  /* 速度斜坡上升/下降时长 (s) */
+#define HOLD_S                  3.0  /* 速度保持时长 (s) */
+#define CYCLE_NS            1000000  /* RT 线程 PDO 周期：1 ms */
 #define MOTION_SLAVE_FIRST       1
 #define MAX_MOTION_AXES          1
-#define LOG_DIV                 100    /* 主循环每 N 周期打印一次 (≈100ms) */
-#define MAX_CYCLES            20000    /* 主循环上限 (≈20s) */
-#define TORQUE_TOLERANCE         5     /* 力矩回零判定容差 (‰) */
-#define MODE_CST                10     /* CiA402 CST 模式值 */
-#define ENABLE_WAIT_MS         100    /* 使能后等待时间 (ms)，再发转矩指令 */
+#define LOG_DIV                 100   /* 主循环每 N 周期打印一次 (≈100ms) */
+#define MAX_CYCLES            20000  /* 主循环上限 (≈20s) */
+#define VEL_TOLERANCE          1000  /* 速度回零判定容差 (counts/s) */
+#define MODE_CSV                 9   /* CiA402 CSV 模式值 */
+#define ENABLE_WAIT_MS         100   /* 使能后等待时间 (ms) */
 
 /* 派生量 */
 #define RAMP_CYCLES    ((int)((RAMP_S * 1000000000LL) / CYCLE_NS))
 #define HOLD_CYCLES    ((int)((HOLD_S * 1000000000LL) / CYCLE_NS))
 #define TOTAL_MOTION_CYCLES (2 * RAMP_CYCLES + HOLD_CYCLES)
-#define ENABLE_WAIT_CYCLES  (ENABLE_WAIT_MS)  /* 1ms 周期，ms 数 = 周期数 */
+#define ENABLE_WAIT_CYCLES  (ENABLE_WAIT_MS)
 
-/* RxPDO 0x1600 (7B): CW(2) + TargetTorque(2) + TorqueOffset(2) + ModeOfOperation(1)
- * 目标转矩 = 0x6071 + 0x60B2，60B2 象征性写 0 */
+/* RxPDO 0x1600 (11B): CW(2) + TargetVelocity(4) + VelocityOffset(4) + Mode(1) */
 #define RX_CW           0
-#define RX_TARGET_TORQ  2
-#define RX_TORQ_OFFSET  4
-#define RX_MODE         6
+#define RX_TARGET_VEL   2
+#define RX_VEL_OFFSET   6
+#define RX_MODE         10
 
 /* TxPDO 0x1A00 (15B): SW(2) + ActualPos(4) + ActualVel(4) + ActualTorque(2) + Err(2) + ModeDisp(1) */
 #define TX_SW           0
@@ -76,14 +68,13 @@ typedef struct
 {
    uint16_t slave;
    int      enabled_logged;
-   int      enable_wait_cnt;    /* 使能后等待计数，达 ENABLE_WAIT_CYCLES 后才允许发转矩 */
-   int      sync_hold_cnt;      /* enable_wait 完成后的同步保持计数 */
+   int      enable_wait_cnt;
+   int      sync_hold_cnt;
    int      finished_logged;
-   int      cst_started;
-   int      tick_header_printed;  /* TICK 表头是否已打印 */
+   int      csv_started;
+   int      tick_header_printed;
    int      sync_cycle;
    int      fault_reset_cnt;
-   int16_t  last_tgt_torq;       /* 上一周期实际写出去的目标力矩 */
    uint16_t prev_sw;
    uint16_t prev_err;
 } axis_state_t;
@@ -116,7 +107,7 @@ static void setup_log(void)
    struct tm tmv;
    localtime_r(&now, &tmv);
    char path[128];
-   strftime(path, sizeof(path), "log/cst_test_%Y%m%d_%H%M%S.log", &tmv);
+   strftime(path, sizeof(path), "log/csv_test_%Y%m%d_%H%M%S.log", &tmv);
 
    char cmd[256];
    snprintf(cmd, sizeof(cmd), "tee %s", path);
@@ -169,12 +160,6 @@ static void write_u16_to_pdo(uint8_t *p, uint16_t v)
    p[1] = (uint8_t)((v >> 8) & 0xFF);
 }
 
-static void write_i16_to_pdo(uint8_t *p, int16_t v)
-{
-   p[0] = (uint8_t)(v & 0xFF);
-   p[1] = (uint8_t)((v >> 8) & 0xFF);
-}
-
 static void write_i32_to_pdo(uint8_t *p, int32_t v)
 {
    p[0] = (uint8_t)(v & 0xFF);
@@ -211,7 +196,7 @@ static void discover_motion_axes(void)
    }
 }
 
-/* PRE-OP 阶段：设置 CST 模式 + 重建 PDO 映射 */
+/* PRE-OP 阶段：设置 CSV 模式 + 重建 PDO 映射 */
 static int my_po2so_config(ecx_contextt *unused, uint16 slave)
 {
    (void)unused;
@@ -219,12 +204,12 @@ static int my_po2so_config(ecx_contextt *unused, uint16 slave)
 
    if (axis < 0)
    {
-      printf("[PRE-OP] slave%d 非运动轴，跳过 CST/PDO 配置\n", slave);
+      printf("[PRE-OP] slave%d 非运动轴，跳过 CSV/PDO 配置\n", slave);
       return 1;
    }
 
-   /* RxPDO: CW(2) + TargetTorque(2) + TorqueOffset(2) + Mode(1) */
-   uint32 rx[] = { 0x60400010, 0x60710010, 0x60B20010, 0x60600008 };
+   /* RxPDO: CW(2) + TargetVelocity(4) + VelocityOffset(4) + Mode(1) */
+   uint32 rx[] = { 0x60400010, 0x60FF0020, 0x60B10020, 0x60600008 };
    /* TxPDO: SW(2) + ActualPos(4) + ActualVel(4) + ActualTorque(2) + Err(2) + ModeDisp(1) */
    uint32 tx[] = { 0x60410010, 0x60640020, 0x606C0020, 0x60770010, 0x603F0010, 0x60610008 };
 
@@ -233,13 +218,12 @@ static int my_po2so_config(ecx_contextt *unused, uint16 slave)
    if (sm_assign_set(slave, 0x1C12, 0x1600) <= 0) { printf("[PRE-OP] slave%d SM2 分配失败\n", slave); return 0; }
    if (sm_assign_set(slave, 0x1C13, 0x1A00) <= 0) { printf("[PRE-OP] slave%d SM3 分配失败\n", slave); return 0; }
 
-   /* 写入 CST 模式 */
-   int8_t mode = MODE_CST;
+   int8_t mode = MODE_CSV;
    int wk = ecx_SDOwrite(&ctx, slave, 0x6060, 0x00, FALSE, sizeof(mode), &mode, EC_TIMEOUTRXM);
-   if (wk <= 0) { printf("[PRE-OP] slave%d 写 6060h CST 失败\n", slave); return 0; }
+   if (wk <= 0) { printf("[PRE-OP] slave%d 写 6060h CSV 失败\n", slave); return 0; }
 
-   printf("[PRE-OP] axis%d slave%d PDO 映射 OK，CST target=%d‰, ramp=%.1fs, hold=%.1fs\n",
-          axis, slave, TARGET_TORQUE_PERMILLE, RAMP_S, HOLD_S);
+   printf("[PRE-OP] axis%d slave%d PDO 映射 OK, CSV target=%d cnt/s, ramp=%.1fs, hold=%.1fs\n",
+          axis, slave, TARGET_VEL, RAMP_S, HOLD_S);
    return 1;
 }
 
@@ -280,7 +264,7 @@ OSAL_THREAD_FUNC_RT ecatthread(void)
 }
 
 /* ==========================================================================
- * CiA402 状态机 + CST 力矩斜坡
+ * CiA402 状态机 + CSV 速度斜坡
  * ========================================================================== */
 static const char *cia402_state_name(uint16_t sw)
 {
@@ -293,7 +277,6 @@ static const char *cia402_state_name(uint16_t sw)
    return "?";
 }
 
-/* smoothstep: t in [0,1] -> [0,1], 一阶导在端点为 0 */
 static double smoothstep(double t)
 {
    if (t <= 0.0) return 0.0;
@@ -301,7 +284,6 @@ static double smoothstep(double t)
    return t * t * (3.0 - 2.0 * t);
 }
 
-/* 阶段分隔线 */
 static void log_sep(const char *title)
 {
    printf("\n─── %-54s ───\n", title);
@@ -317,12 +299,12 @@ static void axis_step(axis_state_t *axis)
    uint16_t sw        = (uint16_t)in[TX_SW] | ((uint16_t)in[TX_SW + 1] << 8);
    int32_t  pos       = read_i32_from_pdo(in + TX_POS);
    int32_t  vel       = read_i32_from_pdo(in + TX_VEL);
-   int16_t  act_torq  = (int16_t)((uint16_t)in[TX_TORQ] | ((uint16_t)in[TX_TORQ + 1] << 8));
+   int16_t  torq      = (int16_t)((uint16_t)in[TX_TORQ] | ((uint16_t)in[TX_TORQ + 1] << 8));
    uint16_t er        = (uint16_t)in[TX_ERR] | ((uint16_t)in[TX_ERR + 1] << 8);
    int8_t   mode_disp = (int8_t)in[TX_MODEDISP];
 
    uint16_t cw  = 0;
-   int16_t  tgt_torq = 0;  /* 默认 0：未启动 CST 或故障时撤力 */
+   int32_t  tgt_vel = 0;
 
    if (sw & 0x0008)
    {
@@ -339,30 +321,27 @@ static void axis_step(axis_state_t *axis)
       if (!axis->enabled_logged)
       {
          axis->enabled_logged = 1;
-         log_sep("CST TORQUE RAMP");
-         printf("  cycle=%d  Op Enabled, 等待 %dms 后发转矩指令\n",
+         log_sep("CSV VELOCITY RAMP");
+         printf("  cycle=%d  Op Enabled, 等待 %dms 后发速度指令\n",
                 cycle, ENABLE_WAIT_MS);
       }
 
-      /* 阶段 1：使能后等待 ENABLE_WAIT_CYCLES，CW=0x000F、转矩=0 */
       if (axis->enable_wait_cnt < ENABLE_WAIT_CYCLES)
       {
          axis->enable_wait_cnt++;
-         tgt_torq = 0;
+         tgt_vel = 0;
       }
-      /* 阶段 2：enable_wait 完成后再保持 5 周期，让 CW 稳定生效 */
       else if (axis->sync_hold_cnt < 5)
       {
          axis->sync_hold_cnt++;
-         tgt_torq = 0;
+         tgt_vel = 0;
       }
-      /* 阶段 3：启动 CST 力矩斜坡 */
-      else if (!axis->cst_started)
+      else if (!axis->csv_started)
       {
-         axis->cst_started = 1;
+         axis->csv_started = 1;
          axis->sync_cycle  = cycle;
-         tgt_torq = 0;
-         printf("  cycle=%d  启动斜坡 → %d‰\n", cycle, TARGET_TORQUE_PERMILLE);
+         tgt_vel = 0;
+         printf("  cycle=%d  启动斜坡 → %d cnt/s\n", cycle, TARGET_VEL);
       }
       else
       {
@@ -371,26 +350,26 @@ static void axis_step(axis_state_t *axis)
          if (step < RAMP_CYCLES)
          {
             double p = (double)step / (double)RAMP_CYCLES;
-            tgt_torq = (int16_t)(TARGET_TORQUE_PERMILLE * smoothstep(p));
+            tgt_vel = (int32_t)(TARGET_VEL * smoothstep(p));
          }
          else if (step < RAMP_CYCLES + HOLD_CYCLES)
          {
-            tgt_torq = (int16_t)TARGET_TORQUE_PERMILLE;
+            tgt_vel = (int32_t)TARGET_VEL;
          }
          else if (step < TOTAL_MOTION_CYCLES)
          {
             double p = (double)(step - RAMP_CYCLES - HOLD_CYCLES) / (double)RAMP_CYCLES;
-            tgt_torq = (int16_t)(TARGET_TORQUE_PERMILLE * (1.0 - smoothstep(p)));
+            tgt_vel = (int32_t)(TARGET_VEL * (1.0 - smoothstep(p)));
          }
          else
          {
-            tgt_torq = 0;
+            tgt_vel = 0;
 
             if (!axis->finished_logged)
             {
                axis->finished_logged = 1;
                printf("  cycle=%d  斜坡完成, pos=%d vel=%d torq=%d\n",
-                      cycle, pos, vel, act_torq);
+                      cycle, pos, vel, torq);
             }
          }
       }
@@ -400,7 +379,6 @@ static void axis_step(axis_state_t *axis)
       cw = 0x0006;
    }
 
-   /* 诊断打印：SW/Err 变化时 */
    if (sw != axis->prev_sw || er != axis->prev_err)
    {
       printf("  %-6d  SW 0x%04X->0x%04X  %-24s  CW=0x%04X  Err=0x%04X  Mode=%d\n",
@@ -409,26 +387,24 @@ static void axis_step(axis_state_t *axis)
       axis->prev_err = er;
    }
 
-   /* 周期性 TICK 打印：对齐表格 */
    if ((cycle % LOG_DIV) == 0)
    {
       if (!axis->tick_header_printed)
       {
          axis->tick_header_printed = 1;
-         printf("\n  %-7s %-8s %-7s      %-17s %-12s\n",
-                "cycle", "tgt(‰)", "act(‰)", "pos", "vel");
-         printf("  %-7s %-8s %-7s      %-17s %-12s\n",
-                "------", "-------", "------", "----------------", "-----------");
+         printf("\n  %-7s %-12s %-12s %-17s %-12s %-7s\n",
+                "cycle", "tgt_vel", "act_vel", "pos", "torq", "mode");
+         printf("  %-7s %-12s %-12s %-17s %-12s %-7s\n",
+                "------", "-----------", "-----------", "----------------", "-----------", "------");
       }
-      printf("  %-7d %-8d %-7d      %-17d %-12d\n",
-             cycle, tgt_torq, act_torq, pos, vel);
+      printf("  %-7d %-12d %-12d %-17d %-12d %-7d\n",
+             cycle, tgt_vel, vel, pos, torq, mode_disp);
    }
 
-   /* 写入 RxPDO */
    write_u16_to_pdo(out + RX_CW, cw);
-   write_i16_to_pdo(out + RX_TARGET_TORQ, tgt_torq);
-   write_i16_to_pdo(out + RX_TORQ_OFFSET, 0);  /* 60B2 象征性写 0 */
-   out[RX_MODE] = MODE_CST;
+   write_i32_to_pdo(out + RX_TARGET_VEL, tgt_vel);
+   write_i32_to_pdo(out + RX_VEL_OFFSET, 0);
+   out[RX_MODE] = MODE_CSV;
 }
 
 /* ==========================================================================
@@ -478,7 +454,7 @@ static void ecatbringup(const char *ifname)
    for (int s = 1; s <= ctx.slavecount; s++)
       ctx.slavelist[s].PO2SOconfig = my_po2so_config;
    printf("[BOOT] 找到 %d 个从站，注册 PO2SOconfig 完成\n", ctx.slavecount);
-   printf("[BOOT] 本次将控制 %d 个 CST 电机\n", motion_axis_count);
+   printf("[BOOT] 本次将控制 %d 个 CSV 电机\n", motion_axis_count);
 
    ec_groupt *grp = &ctx.grouplist[0];
    ecx_config_map_group(&ctx, IOmap, 0);
@@ -500,7 +476,7 @@ static void ecatbringup(const char *ifname)
       if (ctx.slavelist[s].CoEdetails > 0)
          ecx_slavembxcyclic(&ctx, s);
 
-   /* OP 前预填：CW=0x0006 (Shutdown)，目标力矩=0，TorqueOffset=0，模式=CST */
+   /* OP 前预填：CW=0x0006, 速度=0, 模式=CSV */
    dorun = 1;
    for (int i = 0; i < 500; i++)
    {
@@ -510,9 +486,9 @@ static void ecatbringup(const char *ifname)
          if (!ctx.slavelist[s].outputs) continue;
          uint8_t *o = ctx.slavelist[s].outputs;
          o[RX_CW] = 0x06; o[RX_CW + 1] = 0;
-         write_i16_to_pdo(o + RX_TARGET_TORQ, 0);
-         write_i16_to_pdo(o + RX_TORQ_OFFSET, 0);
-         o[RX_MODE] = MODE_CST;
+         write_i32_to_pdo(o + RX_TARGET_VEL, 0);
+         write_i32_to_pdo(o + RX_VEL_OFFSET, 0);
+         o[RX_MODE] = MODE_CSV;
       }
       osal_usleep(CYCLE_NS / 1000);
    }
@@ -532,7 +508,7 @@ static void ecatbringup(const char *ifname)
       goto teardown;
    }
 
-   printf("[BOOT] 进入 OP，开始 CiA402 CST 状态机推进\n");
+   printf("[BOOT] 进入 OP，开始 CiA402 CSV 状态机推进\n");
    log_sep("STATE MACHINE");
    run_motion();
    log_sep("TEARDOWN");
@@ -553,8 +529,8 @@ int main(int argc, char *argv[])
 {
    setup_log();
    printf("\n═══════════════════════════════════════════════════════════\n");
-   printf("  SOEM CST Test — 目标 %d‰  |  ramp=%.1fs  hold=%.1fs\n",
-          TARGET_TORQUE_PERMILLE, RAMP_S, HOLD_S);
+   printf("  SOEM CSV Test — 目标 %d cnt/s  |  ramp=%.1fs  hold=%.1fs\n",
+          TARGET_VEL, RAMP_S, HOLD_S);
    printf("═══════════════════════════════════════════════════════════\n");
    log_sep("BOOT");
 

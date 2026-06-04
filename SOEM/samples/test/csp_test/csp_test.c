@@ -74,6 +74,7 @@ typedef struct
    int      reached_logged;
    int      csp_started;       /* 0=尚未启动 CSP 插补; 1=已启动 */
    int      sync_cycle;        /* csp_started=1 时记录的 RT cycle 起点 */
+   int      tick_header_printed;
    int      fault_reset_cnt;   /* Fault 状态下做 0x00->0x80 的脉冲计数 */
    int32_t  base_pos;          /* Op enabled 瞬间的实际位置，作轨迹起点（锁死后不再更新） */
    int32_t  final_target;      /* base_pos + TARGET_COUNTS（锁死末端，故障复位也不重新规划） */
@@ -328,7 +329,7 @@ OSAL_THREAD_FUNC_RT ecatthread(void)
          else if (g_pause_start >= 0)
          {
             g_pause_cycles += (cycle - g_pause_start);
-            printf("[PAUSE] cycle=%d 累计暂停 %d 周期\n", cycle, g_pause_cycles);
+            printf("  [PAUSE] cycle=%d  paused %d cycles\n", cycle, g_pause_cycles);
             g_pause_start = -1;
          }
 
@@ -374,6 +375,12 @@ static const char *cia402_state_name(uint16_t sw)
  *     主线程抖动带偏；smoothstep 让加减速连续。
  *   - tgt 用 ±MAX_TARGET_LEAD_COUNTS 钳住：万一驱动跟不上（机械卡死/限位）
  *     不会让后续轨迹越跑越远。 */
+/* 阶段分隔线 */
+static void log_sep(const char *title)
+{
+   printf("\n─── %-54s ───\n", title);
+}
+
 /* 单轴周期控制核心：读取反馈、计算控制字和目标位置并写回 RxPDO。 */
 static void axis_step(axis_state_t *axis, int sync_trigger)
 {
@@ -428,8 +435,9 @@ static void axis_step(axis_state_t *axis, int sync_trigger)
          axis->final_target   = pos + TARGET_COUNTS;
          axis->last_tgt       = pos;
          tgt                  = pos;
-         printf("[AXIS%d] cycle=%d Op Enabled, base=%d → final=%d\n",
-                axis->slave, cycle, axis->base_pos, axis->final_target);
+         log_sep("CSP MOTION");
+         printf("  cycle=%d  Op Enabled, base=%d -> final=%d (%d°)\n",
+                cycle, axis->base_pos, axis->final_target, TARGET_DEG);
       }
 
       if (!axis->csp_started)
@@ -441,8 +449,8 @@ static void axis_step(axis_state_t *axis, int sync_trigger)
             axis->csp_started = 1;
             axis->sync_cycle  = cycle;
             tgt               = axis->base_pos;
-            printf("[AXIS%d] cycle=%d 同步启动 CSP 插补 → %d counts (%d°)\n",
-                   axis->slave, cycle, axis->final_target, TARGET_DEG);
+            printf("  cycle=%d  CSP start -> %d counts (%d°)\n",
+                   cycle, axis->final_target, TARGET_DEG);
          }
       }
       else
@@ -460,9 +468,9 @@ static void axis_step(axis_state_t *axis, int sync_trigger)
          if (step > CSP_STEPS && !axis->reached_logged &&
              llabs((long long)err) <= TARGET_TOLERANCE_COUNTS)
          {
-            axis->reached_logged = 1;
-            printf("[AXIS%d] cycle=%d Target Reached, pos=%d (期望 %d, 误差 %d)\n",
-                   axis->slave, cycle, pos, axis->final_target, err);
+             axis->reached_logged = 1;
+             printf("  cycle=%d  Target Reached, pos=%d (err=%d)\n",
+                    cycle, pos, err);
          }
       }
    }
@@ -484,20 +492,23 @@ static void axis_step(axis_state_t *axis, int sync_trigger)
    /* 诊断打印 */
    if (sw != axis->prev_sw || er != axis->prev_err)
    {
-      // 运行过程中的一些主要变化
-      printf("[CHG][AXIS%d] cycle=%d SW:0x%04X→0x%04X (%s) Err:0x%04X→0x%04X "
-             "CW=0x%04X ModeDisp=%d pos=%d vel=%d torq=%d tgt=%d\n",
-             axis->slave, cycle, axis->prev_sw, sw, cia402_state_name(sw),
-             axis->prev_err, er, cw, mode_disp, pos, vel, torq, tgt);
+      printf("  %-6d  SW 0x%04X->0x%04X  %-24s  CW=0x%04X  Err=0x%04X  Mode=%d\n",
+             cycle, axis->prev_sw, sw, cia402_state_name(sw), cw, er, mode_disp);
       axis->prev_sw  = sw;
       axis->prev_err = er;
    }
    if ((cycle % LOG_DIV) == 0)
    {
-      printf("[TICK][AXIS%d] cycle=%d wkc=%d SW=0x%04X (%s) CW=0x%04X ModeDisp=%d "
-             "pos=%d vel=%d torq=%d tgt=%d Err=0x%04X\n",
-             axis->slave, cycle, wkc, sw, cia402_state_name(sw), cw, mode_disp,
-             pos, vel, torq, tgt, er);
+      if (!axis->tick_header_printed)
+      {
+         axis->tick_header_printed = 1;
+         printf("\n  %-7s %-17s %-17s %-12s %-12s\n",
+                "cycle", "tgt", "pos", "vel", "torq");
+         printf("  %-7s %-17s %-17s %-12s %-12s\n",
+                "------", "----------------", "----------------", "-----------", "-----------");
+      }
+      printf("  %-7d %-17d %-17d %-12d %-12d\n",
+             cycle, tgt, pos, vel, torq);
    }
 
    /* 写到本地output缓冲区，ecx_send_processdata 顺序执行，无撕裂 */
@@ -637,7 +648,9 @@ static void ecatbringup(const char *ifname)
    }
 
    printf("[BOOT] 进入 OP，开始 CiA402 状态机推进\n");
+   log_sep("STATE MACHINE");
    run_motion();
+   log_sep("TEARDOWN");
    printf("[DONE] 主循环结束\n");
 
 teardown:
@@ -654,7 +667,10 @@ teardown:
 int main(int argc, char *argv[])
 {
    setup_log();
-   printf("SOEM csp_test (精简版) — CSP 模式让电机转 %d°\n", TARGET_DEG);
+   printf("\n═══════════════════════════════════════════════════════════\n");
+   printf("  SOEM csp_test — CSP 模式  |  目标 %d°\n", TARGET_DEG);
+   printf("═══════════════════════════════════════════════════════════\n");
+   log_sep("BOOT");
 
    if (argc < 2)
    {
