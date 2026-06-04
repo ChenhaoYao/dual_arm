@@ -122,9 +122,17 @@ private:
   {
     const size_t n = joint_names_.size();
     int enc_bits = static_cast<int>(declare_parameter<int>("enc_bits", 19));
-    double gear_ratio = declare_parameter<double>("gear_ratio", 100.0);
-    double pos_min_rad = declare_parameter<double>("pos_limit_min_rad", -3.2);
-    double pos_max_rad = declare_parameter<double>("pos_limit_max_rad", 3.2);
+
+    // 从数组读取每轴参数，长度不足时用默认值填充。
+    auto read_double_array = [this, n](const std::string & name, double default_val) {
+      auto vec = declare_parameter<std::vector<double>>(name, std::vector<double>(n, default_val));
+      if (vec.size() < n) vec.resize(n, default_val);
+      return vec;
+    };
+
+    auto gear_ratios = read_double_array("gear_ratio", 100.0);
+    auto pos_min_vec = read_double_array("pos_limit_min_rad", -3.2);
+    auto pos_max_vec = read_double_array("pos_limit_max_rad", 3.2);
 
     std::vector<int64_t> default_slaves;
     for (size_t i = 0; i < n; i++) default_slaves.push_back(static_cast<int64_t>(i + 1));
@@ -141,13 +149,13 @@ private:
       cfg.slave = (i < slaves.size()) ? static_cast<uint16_t>(slaves[i])
                                       : static_cast<uint16_t>(i + 1);
       cfg.enc_bits = enc_bits;
-      cfg.gear_ratio = gear_ratio;
+      cfg.gear_ratio = gear_ratios[i];
       cfg.direction = (i < directions.size() && directions[i] < 0) ? -1 : 1;
       cfg.zero_offset_counts =
         (i < zero_offsets.size()) ? static_cast<int32_t>(zero_offsets[i]) : 0;
       // 此时 cfg.min/max 仍为默认极大值，rad_to_counts 不会裁剪，得到纯换算限位。
-      int32_t lo = master_->rad_to_counts(cfg, pos_min_rad);
-      int32_t hi = master_->rad_to_counts(cfg, pos_max_rad);
+      int32_t lo = master_->rad_to_counts(cfg, pos_min_vec[i]);
+      int32_t hi = master_->rad_to_counts(cfg, pos_max_vec[i]);
       if (lo > hi) std::swap(lo, hi);
       cfg.min_counts = lo;
       cfg.max_counts = hi;

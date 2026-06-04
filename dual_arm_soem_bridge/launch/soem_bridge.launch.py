@@ -2,48 +2,24 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    # 真实 EtherCAT 网卡名，例如 enp0s31f6。
-    ifname_arg = DeclareLaunchArgument(
-        'ifname',
-        default_value='',
-        description='EtherCAT network interface name'
-    )
-    # 默认 dry-run，先验证 ROS 链路，不打开真实硬件。
-    dry_run_arg = DeclareLaunchArgument(
-        'dry_run',
-        default_value='true',
-        description='Run without opening EtherCAT hardware'
-    )
-
-    # 轴标定/采样等参数从 config/soem_bridge.yaml 加载。
+    # 所有参数从 config/soem_bridge.yaml 加载，修改参数直接改 yaml 即可。
     config_file = os.path.join(
         get_package_share_directory('dual_arm_soem_bridge'),
         'config', 'soem_bridge.yaml'
     )
 
-    # 启动 SOEM 桥接节点。命令行 ifname/dry_run 覆盖 yaml 中的同名项。
     soem_bridge_node = Node(
         package='dual_arm_soem_bridge',
         executable='soem_bridge_node',
         name='soem_bridge_node',
         output='screen',
-        parameters=[
-            config_file,
-            {
-                'ifname': LaunchConfiguration('ifname'),
-                'dry_run': LaunchConfiguration('dry_run'),
-            },
-        ]
+        parameters=[config_file]
     )
 
     return LaunchDescription([
-        ifname_arg,
-        dry_run_arg,
         soem_bridge_node,
     ])

@@ -1,9 +1,9 @@
 soem_bridge_node:
   ros__parameters:
     # EtherCAT 网卡名；dry_run=true 时可以留空。
-    ifname: ""
-    # 默认干跑，避免启动节点时直接连接真实电机。
-    dry_run: true
+    ifname: "enp0s31f6"
+    # dry_run: true=干跑不连硬件, false=连接真实硬件。
+    dry_run: false
     # 接收低频 CSV waypoint 的话题。
     waypoint_topic: /dual_arm/csv_waypoints
     # 关节顺序需要和 MoveIt/ros2_control 保持一致。
@@ -24,26 +24,27 @@ soem_bridge_node:
       - raxis7_joint
 
     # ---- waypoint 生成(从控制器状态低频采样) ----
-    # 是否订阅 controller_state 自动采样生成 waypoint。
     sample_from_controllers: true
-    # 左右臂 joint_trajectory_controller 的状态话题。
     left_state_topic: /left_arm_controller/controller_state
     right_state_topic: /right_arm_controller/controller_state
-    # 采样频率(Hz)：低频更新 CSV 目标。
     sample_rate_hz: 10.0
-    # 真实反馈发布频率(Hz)。
     feedback_rate_hz: 20.0
 
-    # ---- 轴标定(rad -> counts) ----
-    # 编码器位数与减速比(所有轴共享，电机型号一致时足够)。
-    enc_bits: 19
-    gear_ratio: 100.0
-    # 软限位(rad)，按 URDF ±3.14 留少量余量。
-    pos_limit_min_rad: -3.2
-    pos_limit_max_rad: 3.2
-    # 关节 -> EtherCAT 从站编号映射(1-based)，顺序对应 joint_names。
+    # ---- 每轴标定参数(顺序对应 joint_names) ----
+    # 关节 -> EtherCAT 从站编号映射(1-based)。 # TODO 跳过分线器
     axis_slaves: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    # 每轴方向(+1/-1)，顺序对应 joint_names。
+    # 每轴方向(+1/-1)。
     axis_directions: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    # 每轴零点偏置(counts)，标定后填写。
+    # 每轴零点偏置(counts)。
     axis_zero_offsets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    # 编码器位数。
+    enc_bits: 19
+    # 减速比(每轴可不同，如 [100, 100, 50, 50, ...])。
+    gear_ratio: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0,
+                 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+    # 软限位下限(rad)，每轴可不同。
+    pos_limit_min_rad: [-3.2, -3.2, -3.2, -3.2, -3.2, -3.2, -3.2,
+                        -3.2, -3.2, -3.2, -3.2, -3.2, -3.2, -3.2]
+    # 软限位上限(rad)，每轴可不同。
+    pos_limit_max_rad: [3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2,
+                        3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2]
