@@ -34,7 +34,7 @@ python3 joint_control_panel.py
 ## Key facts
 
 - Package is purely ROS2 / ament_cmake. No ROS1 (catkin) files.
-- Dependencies: rclpy, sensor_msgs, robot_state_publisher, joint_state_publisher_gui, rviz2, gazebo_ros.
+- Dependencies: rclpy, sensor_msgs, robot_state_publisher, joint_state_publisher_gui, rviz2, gazebo_ros, xacro.
 - Build artifacts (`build/`, `install/`, `log/`) live at the colcon workspace root, not in this directory.
 - `notes.md` (in Chinese) documents the ROS1→ROS2 migration issues and fixes applied.
 - The `urdf.rviz` file must be installed to the share directory (already handled in CMakeLists.txt) or rviz2 falls back to `map` frame and fails.
