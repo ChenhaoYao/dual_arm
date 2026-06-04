@@ -12,11 +12,12 @@
 namespace dual_arm_soem_bridge
 {
 
-// 单个 PP waypoint，positions 使用 ROS 标准单位 rad，顺序与 joint_names 对应。
-struct PpWaypoint
+// 单个 CSV waypoint，positions/velocities 使用 ROS 标准单位 rad/rad/s，顺序与 joint_names 对应。
+struct CsvWaypoint
 {
   std::vector<std::string> joint_names;
-  std::vector<double> positions;
+  std::vector<double> positions;      // 目标位置(rad)，用于位置环反馈
+  std::vector<double> velocities;     // 目标速度(rad/s)，直接下发给驱动器
   double time_from_start{0.0};
 };
 
@@ -32,23 +33,18 @@ struct AxisConfig
   int32_t zero_offset_counts{0};     // 零点偏置(counts)
   int32_t min_counts{-2147483647};   // 软限位下限(counts)
   int32_t max_counts{2147483647};    // 软限位上限(counts)
-  uint32_t profile_vel{0};           // 0x6081 profile velocity，0 表示用默认
-  uint32_t profile_acc{0};           // 0x6083/0x6084 加减速，0 表示用默认
 };
 
-// 单轴运行期状态：CiA402 状态机 + PP set-point 握手所需的内部变量。
+// 单轴运行期状态：CiA402 状态机 + CSV 速度跟随所需的内部变量。
 struct AxisRuntime
 {
   AxisConfig cfg;
-  std::atomic<int32_t> target_counts{0};   // 最新命令目标(由 submit_waypoints 写入)
-  std::atomic<bool> has_target{false};     // 是否已收到过有效目标
+  std::atomic<int32_t> target_vel_counts{0};   // 最新速度命令(由 submit_waypoints 写入)
+  std::atomic<bool> has_target{false};          // 是否已收到过有效目标
   // 以下仅在 RT 线程内访问，无需原子。
   bool enabled_logged{false};
   int fr_low_cnt{0};       // fault reset 低电平计数
-  int trig_phase{0};       // PP 触发子状态：0 预载/等新目标 1 已置bit4 2 等ack释放
-  int preload_cnt{0};      // 预载周期计数
-  int32_t latched_target{0};   // 本次握手锁存的目标
-  bool first_target_latched{false};
+  int enable_wait_cnt{0};  // 使能后等待计数
   uint16_t prev_sw{0xFFFF};
   uint16_t prev_err{0xFFFF};
   // 反馈快照(原子，供 ROS 线程读取发布)。
@@ -70,13 +66,13 @@ struct AxisFeedback
   uint16_t error_code{0};
 };
 
-// SOEM 主站封装类，迁移自 ec_sample.c：EtherCAT 初始化、PDO 映射、
-// DC Sync0、1kHz RT 线程与 CiA402 PP 状态机，改为吃动态目标队列。
-class SoemPpMaster
+// SOEM 主站封装类，CiA402 CSV (Cyclic Synchronous Velocity) 模式实现。
+// 周期性下发速度指令，驱动器内部执行速度环。
+class SoemCsvMaster
 {
 public:
-  SoemPpMaster();
-  ~SoemPpMaster();
+  SoemCsvMaster();
+  ~SoemCsvMaster();
 
   // 配置网卡名与各轴标定参数(start 之前调用)。
   bool configure(const std::string & ifname, const std::vector<AxisConfig> & axes);
@@ -85,8 +81,8 @@ public:
   // 启动/停止 SOEM 主站(打开 EtherCAT、起 RT 线程 / 降级关闭)。
   bool start();
   void stop();
-  // 接收 ROS 侧 waypoint，转 counts 后更新每轴 pending target。
-  bool submit_waypoints(const std::vector<PpWaypoint> & waypoints);
+  // 接收 ROS 侧 waypoint，转 counts/s 后更新每轴 pending target。
+  bool submit_waypoints(const std::vector<CsvWaypoint> & waypoints);
   bool enabled() const;
   // 读取各轴真实反馈(rad)，供 ROS 发布。
   std::vector<AxisFeedback> feedback() const;
@@ -95,16 +91,18 @@ public:
   double counts_to_rad(const AxisConfig & cfg, int32_t counts) const;
   // 把速度(counts/s)换算为 rad/s(不含零点偏置)。
   double counts_to_rad_vel(const AxisConfig & cfg, int32_t counts) const;
+  // 把速度(rad/s)换算为 counts/s。
+  int32_t vel_to_counts(const AxisConfig & cfg, double vel_rad_s) const;
   // 供静态 PO2SOconfig 回调读取每轴配置。
   const std::vector<AxisConfig> & axes_for_config() const;
   // 用于验证 SOEM 头文件和链接是否可用。
   std::size_t soem_context_size() const;
 
 private:
-  bool ecat_bringup();    // 迁移自 ec_sample 的 ecatbringup
+  bool ecat_bringup();    // EtherCAT 初始化
   void ecat_teardown();   // 降级到 SAFE-OP/INIT
-  void rt_loop();         // 迁移自 ec_sample 的 ecatthread
-  void axis_step(AxisRuntime & ax);  // 迁移自 ec_sample 的 axis_step
+  void rt_loop();         // RT 线程
+  void axis_step(AxisRuntime & ax);  // 单轴 CSV 状态机
 
   std::string ifname_;
   std::vector<AxisConfig> axis_configs_;

@@ -12,7 +12,7 @@
 #include "std_srvs/srv/trigger.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 
-#include "dual_arm_soem_bridge/soem_pp_master.hpp"
+#include "dual_arm_soem_bridge/soem_master.hpp"
 
 namespace dual_arm_soem_bridge
 {
@@ -23,12 +23,12 @@ class SoemBridgeNode : public rclcpp::Node
 {
 public:
   SoemBridgeNode()
-  : Node("soem_bridge_node"), master_(std::make_unique<SoemPpMaster>()) // 初始化列表，与master_ = std::make_unique<SoemPpMaster>();效果相同
+  : Node("soem_bridge_node"), master_(std::make_unique<SoemCsvMaster>())
   {
     // 参数由 launch/yaml 注入；默认 dry_run=true，避免误连真实硬件。
     ifname_ = declare_parameter<std::string>("ifname", ""); // declare_parameter 是模板函数，<> 用来指定返回值类型
     dry_run_ = declare_parameter<bool>("dry_run", true);
-    waypoint_topic_ = declare_parameter<std::string>("waypoint_topic", "/dual_arm/pp_waypoints");
+    waypoint_topic_ = declare_parameter<std::string>("waypoint_topic", "/dual_arm/csv_waypoints");
     joint_names_ = declare_parameter<std::vector<std::string>>("joint_names", default_joint_names());
 
     // 第 3 步 waypoint 生成：从控制器 controller_state 低频采样 reference.positions。
@@ -43,7 +43,7 @@ public:
     // 第 4 步轴标定参数(编码器位数/减速比共享标量，从站/方向/零点用数组)。
     load_axis_configs();
 
-    // 订阅低频 PP waypoint(也可由外部直接发布)，并提供发布器供采样器使用。
+    // 订阅低频 CSV waypoint(也可由外部直接发布)，并提供发布器供采样器使用。
     waypoint_sub_ = create_subscription<trajectory_msgs::msg::JointTrajectory>(
       waypoint_topic_, rclcpp::QoS(10),
       [this](trajectory_msgs::msg::JointTrajectory::SharedPtr msg) { on_waypoints(msg); });
@@ -101,7 +101,7 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "SOEM bridge ready: dry_run=%s ifname='%s' topic='%s' axes=%zu sample=%s@%.1fHz ctx=%zu",
+      "SOEM bridge ready (CSV mode): dry_run=%s ifname='%s' topic='%s' axes=%zu sample=%s@%.1fHz ctx=%zu",
       dry_run_ ? "true" : "false", ifname_.c_str(), waypoint_topic_.c_str(),
       axis_configs_.size(), sample_from_controllers_ ? "on" : "off", sample_rate_hz_,
       master_->soem_context_size());
@@ -125,8 +125,6 @@ private:
     double gear_ratio = declare_parameter<double>("gear_ratio", 100.0);
     double pos_min_rad = declare_parameter<double>("pos_limit_min_rad", -3.2);
     double pos_max_rad = declare_parameter<double>("pos_limit_max_rad", 3.2);
-    int profile_vel = static_cast<int>(declare_parameter<int>("profile_vel", 0));
-    int profile_acc = static_cast<int>(declare_parameter<int>("profile_acc", 0));
 
     std::vector<int64_t> default_slaves;
     for (size_t i = 0; i < n; i++) default_slaves.push_back(static_cast<int64_t>(i + 1));
@@ -153,8 +151,6 @@ private:
       if (lo > hi) std::swap(lo, hi);
       cfg.min_counts = lo;
       cfg.max_counts = hi;
-      cfg.profile_vel = static_cast<uint32_t>(profile_vel < 0 ? 0 : profile_vel);
-      cfg.profile_acc = static_cast<uint32_t>(profile_acc < 0 ? 0 : profile_acc);
       axis_configs_.push_back(cfg);
     }
   }
@@ -207,14 +203,20 @@ private:
 
   void on_waypoints(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg)
   {
-    // 将 ROS JointTrajectory 转成内部 PP waypoint 结构。
-    std::vector<PpWaypoint> waypoints;
+    // 将 ROS JointTrajectory 转成内部 CSV waypoint 结构。
+    std::vector<CsvWaypoint> waypoints;
     waypoints.reserve(msg->points.size());
 
     for (const auto & point : msg->points) {
-      PpWaypoint waypoint;
+      CsvWaypoint waypoint;
       waypoint.joint_names = msg->joint_names;
       waypoint.positions = point.positions;
+      // 如果有速度信息则使用，否则默认为 0
+      if (!point.velocities.empty()) {
+        waypoint.velocities = point.velocities;
+      } else {
+        waypoint.velocities.resize(point.positions.size(), 0.0);
+      }
       waypoint.time_from_start = rclcpp::Duration(point.time_from_start).seconds();
       waypoints.push_back(std::move(waypoint));
     }
@@ -222,15 +224,19 @@ private:
     if (dry_run_) {
       // dry-run：打印收到的目标和首关节 rad->counts 换算，便于核对标定。
       int32_t c0 = 0;
+      int32_t v0 = 0;
       if (!msg->joint_names.empty() && !axis_configs_.empty() && !msg->points.empty() &&
         !msg->points.back().positions.empty())
       {
         c0 = master_->rad_to_counts(axis_configs_[0], msg->points.back().positions[0]);
+        if (!msg->points.back().velocities.empty()) {
+          v0 = master_->vel_to_counts(axis_configs_[0], msg->points.back().velocities[0]);
+        }
       }
       RCLCPP_INFO_THROTTLE(
         get_logger(), *get_clock(), 1000,
-        "dry-run waypoint: joints=%zu points=%zu axis0_counts=%d",
-        msg->joint_names.size(), msg->points.size(), c0);
+        "dry-run waypoint: joints=%zu points=%zu axis0_pos_counts=%d axis0_vel_counts=%d",
+        msg->joint_names.size(), msg->points.size(), c0, v0);
       return;
     }
 
@@ -243,7 +249,7 @@ private:
 
     if (!master_->submit_waypoints(waypoints)) {
       RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 2000, "failed to submit SOEM PP waypoints");
+        get_logger(), *get_clock(), 2000, "failed to submit SOEM CSV waypoints");
     }
   }
 
@@ -299,7 +305,7 @@ private:
                                  : "fault reset handled by RT state machine";
   }
 
-  std::unique_ptr<SoemPpMaster> master_; // 指向SoemPpMaster类型的智能指针
+  std::unique_ptr<SoemCsvMaster> master_;
   std::string ifname_;
   std::string waypoint_topic_;
   std::vector<std::string> joint_names_; // 一个vector动态数组，元素类型是字符串

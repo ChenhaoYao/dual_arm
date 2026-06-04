@@ -3,8 +3,8 @@
 <package format="3">
   <name>dual_arm_soem_bridge</name>
   <version>0.1.0</version>
-  <!-- ROS2 与 SOEM EtherCAT 之间的桥接包：后续负责把 MoveIt 轨迹转成 PP waypoint。 -->
-  <description>ROS2 bridge between MoveIt trajectories and SOEM EtherCAT PP control</description>
+  <!-- ROS2 与 SOEM EtherCAT 之间的桥接包：负责把 MoveIt 轨迹转成 CSV waypoint。 -->
+  <description>ROS2 bridge between MoveIt trajectories and SOEM EtherCAT CSV control</description>
   <maintainer email="user@todo.todo">user</maintainer>
   <license>BSD</license>
 
@@ -13,7 +13,7 @@
 
   <!-- rclcpp 提供 ROS2 C++ 节点、参数、话题和服务能力。 -->
   <depend>rclcpp</depend>
-  <!-- trajectory_msgs::JointTrajectory 作为低频 PP waypoint 输入消息。 -->
+  <!-- trajectory_msgs::JointTrajectory 作为低频 CSV waypoint 输入消息。 -->
   <depend>trajectory_msgs</depend>
   <!-- sensor_msgs::JointState 后续用于发布真实机械臂反馈状态。 -->
   <depend>sensor_msgs</depend>
