@@ -1,3 +1,15 @@
+// soem_bridge_node.cpp
+// ROS2 节点：桥接 MoveIt 轨迹与 SOEM EtherCAT 电机控制。
+//
+// 数据流：
+//   MoveIt → joint_trajectory_controller → controller_state (采样)
+//       → waypoint_topic → 本节点 → SoemCsvMaster → EtherCAT 电机
+//
+// 服务：
+//   ~/enable       使能/关闭电机控制
+//   ~/stop         紧急停止
+//   ~/clear_fault  故障复位(RT 线程自动处理，此服务仅回执)
+
 #include <chrono>
 #include <map>
 #include <memory>
@@ -25,13 +37,18 @@ public:
   SoemBridgeNode()
   : Node("soem_bridge_node"), master_(std::make_unique<SoemCsvMaster>())
   {
-    // 参数由 launch/yaml 注入；默认 dry_run=true，避免误连真实硬件。
-    ifname_ = declare_parameter<std::string>("ifname", ""); // declare_parameter 是模板函数，<> 用来指定返回值类型
+    // =====================================================================
+    // 参数声明（从 yaml 注入）
+    // =====================================================================
+
+    // 基础配置
+    ifname_ = declare_parameter<std::string>("ifname", "");
     dry_run_ = declare_parameter<bool>("dry_run", true);
     waypoint_topic_ = declare_parameter<std::string>("waypoint_topic", "/dual_arm/csv_waypoints");
+    feedback_topic_ = declare_parameter<std::string>("feedback_topic", "~/real_joint_states");
     joint_names_ = declare_parameter<std::vector<std::string>>("joint_names", default_joint_names());
 
-    // 第 3 步 waypoint 生成：从控制器 controller_state 低频采样 reference.positions。
+    // 控制器采样配置：从左右臂 controller_state 话题采样 reference.positions 生成 waypoint
     sample_from_controllers_ = declare_parameter<bool>("sample_from_controllers", true);
     left_state_topic_ = declare_parameter<std::string>(
       "left_state_topic", "/left_arm_controller/controller_state");
@@ -40,48 +57,50 @@ public:
     sample_rate_hz_ = declare_parameter<double>("sample_rate_hz", 10.0);
     feedback_rate_hz_ = declare_parameter<double>("feedback_rate_hz", 20.0);
 
-    // 第 4 步轴标定参数(编码器位数/减速比共享标量，从站/方向/零点用数组)。
+    // 轴标定参数（每轴独立配置：从站号/方向/零点/减速比/限位）
     load_axis_configs();
 
-    // 订阅低频 CSV waypoint(也可由外部直接发布)，并提供发布器供采样器使用。
+    // =====================================================================
+    // 话题 & 服务
+    // =====================================================================
+
+    // waypoint 订阅 & 发布（外部可直接发布 waypoint，也可由采样器自动生成）
     waypoint_sub_ = create_subscription<trajectory_msgs::msg::JointTrajectory>(
       waypoint_topic_, rclcpp::QoS(10),
       [this](trajectory_msgs::msg::JointTrajectory::SharedPtr msg) { on_waypoints(msg); });
     waypoint_pub_ = create_publisher<trajectory_msgs::msg::JointTrajectory>(
       waypoint_topic_, rclcpp::QoS(10));
 
-    // 真实机械臂反馈单独发布，不覆盖仿真的 /joint_states。
+    // 真实电机反馈（可通过 feedback_topic 参数配置话题名）
+    // 设为 "/joint_states" 可让 RViz 直接显示真实编码器数据
     real_joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>(
-      "~/real_joint_states", rclcpp::QoS(10));
+      feedback_topic_, rclcpp::QoS(10));
 
-    // 显式使能服务，真实硬件不随节点启动自动运动。
+    // 使能/停止/故障复位服务
     enable_srv_ = create_service<std_srvs::srv::SetBool>(
       "~/enable",
-      [this](
-        const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-        std::shared_ptr<std_srvs::srv::SetBool::Response> response) {
-        handle_enable(request, response);
+      [this](const std::shared_ptr<std_srvs::srv::SetBool::Request> req,
+             std::shared_ptr<std_srvs::srv::SetBool::Response> res) {
+        handle_enable(req, res);
       });
-
-    // 停止服务，后续会扩展为清空队列和安全停机。
     stop_srv_ = create_service<std_srvs::srv::Trigger>(
       "~/stop",
-      [this](
-        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
-        handle_stop(request, response);
+      [this](const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
+             std::shared_ptr<std_srvs::srv::Trigger::Response> res) {
+        handle_stop(req, res);
       });
-
-    // 故障复位服务，后续映射到 CiA402 fault reset。
     clear_fault_srv_ = create_service<std_srvs::srv::Trigger>(
       "~/clear_fault",
-      [this](
-        const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
-        std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
-        handle_clear_fault(request, response);
+      [this](const std::shared_ptr<std_srvs::srv::Trigger::Request> req,
+             std::shared_ptr<std_srvs::srv::Trigger::Response> res) {
+        handle_clear_fault(req, res);
       });
 
-    // 第 3 步：订阅左右控制器状态并定时采样发布 waypoint。
+    // =====================================================================
+    // 定时器
+    // =====================================================================
+
+    // 控制器状态采样：定时从 ref_cache_ 组装 waypoint 并发布
     if (sample_from_controllers_) {
       left_state_sub_ = create_subscription<JTCState>(
         left_state_topic_, rclcpp::QoS(10),
@@ -94,36 +113,42 @@ public:
         std::chrono::duration<double>(1.0 / rate), [this] { sample_and_publish(); });
     }
 
-    // 真实状态发布定时器。
+    // 电机反馈发布
     double frate = feedback_rate_hz_ > 0.1 ? feedback_rate_hz_ : 20.0;
     feedback_timer_ = create_wall_timer(
       std::chrono::duration<double>(1.0 / frate), [this] { publish_feedback(); });
 
     RCLCPP_INFO(
       get_logger(),
-      "SOEM bridge ready (CSV mode): dry_run=%s ifname='%s' topic='%s' axes=%zu sample=%s@%.1fHz ctx=%zu",
+      "SOEM bridge ready (CSV): dry_run=%s ifname='%s' waypoint='%s' feedback='%s' axes=%zu",
       dry_run_ ? "true" : "false", ifname_.c_str(), waypoint_topic_.c_str(),
-      axis_configs_.size(), sample_from_controllers_ ? "on" : "off", sample_rate_hz_,
-      master_->soem_context_size());
+      feedback_topic_.c_str(), axis_configs_.size());
   }
 
 private:
+  // =====================================================================
+  // 默认关节名（左臂 7 轴 + 右臂 7 轴）
+  // =====================================================================
   static std::vector<std::string> default_joint_names()
   {
-    // 默认顺序：左臂 7 轴 + 右臂 7 轴。
     return {
-      "laxis1_joint", "laxis2_joint", "laxis3_joint", "laxis4_joint", "laxis5_joint",
-      "laxis6_joint", "laxis7_joint", "raxis1_joint", "raxis2_joint", "raxis3_joint",
-      "raxis4_joint", "raxis5_joint", "raxis6_joint", "raxis7_joint"};
+      "laxis1_joint", "laxis2_joint", "laxis3_joint", "laxis4_joint",
+      "laxis5_joint", "laxis6_joint", "laxis7_joint",
+      "raxis1_joint", "raxis2_joint", "raxis3_joint", "raxis4_joint",
+      "raxis5_joint", "raxis6_joint", "raxis7_joint"};
   }
 
-  // 从参数构造每轴标定配置。数组参数若长度不足则用默认值填充。
+  // =====================================================================
+  // 轴标定参数加载
+  // 从 yaml 读取每轴配置，构造 AxisConfig 数组。
+  // 数组参数长度不足时用默认值填充。
+  // =====================================================================
   void load_axis_configs()
   {
     const size_t n = joint_names_.size();
     int enc_bits = static_cast<int>(declare_parameter<int>("enc_bits", 19));
 
-    // 从数组读取每轴参数，长度不足时用默认值填充。
+    // lambda：读取 double 数组参数，不足 n 个时用 default_val 补全
     auto read_double_array = [this, n](const std::string & name, double default_val) {
       auto vec = declare_parameter<std::vector<double>>(name, std::vector<double>(n, default_val));
       if (vec.size() < n) vec.resize(n, default_val);
@@ -153,7 +178,7 @@ private:
       cfg.direction = (i < directions.size() && directions[i] < 0) ? -1 : 1;
       cfg.zero_offset_counts =
         (i < zero_offsets.size()) ? static_cast<int32_t>(zero_offsets[i]) : 0;
-      // 此时 cfg.min/max 仍为默认极大值，rad_to_counts 不会裁剪，得到纯换算限位。
+      // 软限位：rad → counts，确保 lo < hi
       int32_t lo = master_->rad_to_counts(cfg, pos_min_vec[i]);
       int32_t hi = master_->rad_to_counts(cfg, pos_max_vec[i]);
       if (lo > hi) std::swap(lo, hi);
@@ -163,7 +188,11 @@ private:
     }
   }
 
-  // 缓存控制器期望位置(reference.positions)，按关节名存。
+  // =====================================================================
+  // 控制器状态采样
+  // 订阅左右臂 controller_state，缓存 reference.positions 到 ref_cache_。
+  // sample_and_publish() 定时从缓存组装 waypoint 发布。
+  // =====================================================================
   void on_controller_state(const JTCState::SharedPtr msg)
   {
     std::lock_guard<std::mutex> lk(cache_mtx_);
@@ -172,17 +201,16 @@ private:
     }
   }
 
-  // 定时按统一关节顺序组装单点 waypoint 并发布到 waypoint_topic。
   void sample_and_publish()
   {
     trajectory_msgs::msg::JointTrajectory traj;
     trajectory_msgs::msg::JointTrajectoryPoint pt;
     {
       std::lock_guard<std::mutex> lk(cache_mtx_);
-      if (ref_cache_.empty()) return;  // 还没收到控制器状态
+      if (ref_cache_.empty()) return;
       for (const auto & jn : joint_names_) {
         auto it = ref_cache_.find(jn);
-        if (it == ref_cache_.end()) return;  // 关节未集齐，跳过本次
+        if (it == ref_cache_.end()) return;  // 某关节未收到状态，跳过本周期
         traj.joint_names.push_back(jn);
         pt.positions.push_back(it->second);
       }
@@ -192,7 +220,10 @@ private:
     waypoint_pub_->publish(traj);
   }
 
-  // 发布真实电机反馈到 ~/real_joint_states。
+  // =====================================================================
+  // 电机反馈发布
+  // 将 SoemCsvMaster 的反馈（位置/速度/力矩）发布到 ~/real_joint_states。
+  // =====================================================================
   void publish_feedback()
   {
     if (dry_run_ || !master_->enabled()) return;
@@ -209,9 +240,13 @@ private:
     real_joint_state_pub_->publish(js);
   }
 
+  // =====================================================================
+  // waypoint 接收
+  // 将 ROS JointTrajectory 转成内部 CsvWaypoint，提交给 SoemCsvMaster。
+  // dry_run 模式下只打印换算结果，不发送给电机。
+  // =====================================================================
   void on_waypoints(const trajectory_msgs::msg::JointTrajectory::SharedPtr msg)
   {
-    // 将 ROS JointTrajectory 转成内部 CSV waypoint 结构。
     std::vector<CsvWaypoint> waypoints;
     waypoints.reserve(msg->points.size());
 
@@ -219,22 +254,19 @@ private:
       CsvWaypoint waypoint;
       waypoint.joint_names = msg->joint_names;
       waypoint.positions = point.positions;
-      // 如果有速度信息则使用，否则默认为 0
-      if (!point.velocities.empty()) {
-        waypoint.velocities = point.velocities;
-      } else {
-        waypoint.velocities.resize(point.positions.size(), 0.0);
-      }
+      // 有速度信息则使用，否则填 0（CSV 模式速度为 0 时电机保持位置）
+      waypoint.velocities = point.velocities.empty()
+        ? std::vector<double>(point.positions.size(), 0.0)
+        : point.velocities;
       waypoint.time_from_start = rclcpp::Duration(point.time_from_start).seconds();
       waypoints.push_back(std::move(waypoint));
     }
 
+    // dry-run：打印首轴换算结果，便于核对标定参数
     if (dry_run_) {
-      // dry-run：打印收到的目标和首关节 rad->counts 换算，便于核对标定。
-      int32_t c0 = 0;
-      int32_t v0 = 0;
-      if (!msg->joint_names.empty() && !axis_configs_.empty() && !msg->points.empty() &&
-        !msg->points.back().positions.empty())
+      int32_t c0 = 0, v0 = 0;
+      if (!msg->joint_names.empty() && !axis_configs_.empty() &&
+        !msg->points.empty() && !msg->points.back().positions.empty())
       {
         c0 = master_->rad_to_counts(axis_configs_[0], msg->points.back().positions[0]);
         if (!msg->points.back().velocities.empty()) {
@@ -243,12 +275,12 @@ private:
       }
       RCLCPP_INFO_THROTTLE(
         get_logger(), *get_clock(), 1000,
-        "dry-run waypoint: joints=%zu points=%zu axis0_pos_counts=%d axis0_vel_counts=%d",
+        "dry-run: joints=%zu points=%zu axis0_pos=%d axis0_vel=%d",
         msg->joint_names.size(), msg->points.size(), c0, v0);
       return;
     }
 
-    // 非 dry-run 时必须先调用 enable 服务。
+    // 真实模式：必须先调用 enable 服务
     if (!master_->enabled()) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 2000, "trajectory ignored: SOEM master not enabled");
@@ -257,15 +289,20 @@ private:
 
     if (!master_->submit_waypoints(waypoints)) {
       RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 2000, "failed to submit SOEM CSV waypoints");
+        get_logger(), *get_clock(), 2000, "failed to submit CSV waypoints");
     }
   }
 
+  // =====================================================================
+  // 服务处理
+  // =====================================================================
+
+  // enable(true)  → 配置并启动 EtherCAT 主站
+  // enable(false) → 停止主站
   void handle_enable(
     const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
     std::shared_ptr<std_srvs::srv::SetBool::Response> response)
   {
-    // 请求 false 表示关闭桥接。
     if (!request->data) {
       master_->stop();
       response->success = true;
@@ -273,14 +310,12 @@ private:
       return;
     }
 
-    // dry-run 模式下不打开网卡，只验证 ROS 流程。
     if (dry_run_) {
       response->success = true;
       response->message = "dry-run enabled without opening EtherCAT";
       return;
     }
 
-    // 真实模式：下发网卡名与轴标定后启动。
     if (!master_->configure(ifname_, axis_configs_)) {
       response->success = false;
       response->message = "configure failed";
@@ -292,43 +327,49 @@ private:
   }
 
   void handle_stop(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
-    (void)request;
-    // 当前骨架只停止主站标志。
     master_->stop();
     response->success = true;
     response->message = "SOEM bridge stopped";
   }
 
+  // CiA402 fault 由 RT 线程自动复位，此服务仅回执。
   void handle_clear_fault(
-    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    const std::shared_ptr<std_srvs::srv::Trigger::Request>,
     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
-    (void)request;
-    // CiA402 fault 在 RT 状态机里自动复位，这里仅作占位回执。
     response->success = true;
     response->message = dry_run_ ? "dry-run clear_fault accepted"
                                  : "fault reset handled by RT state machine";
   }
 
+  // =====================================================================
+  // 成员变量
+  // =====================================================================
+
+  // EtherCAT 主站
   std::unique_ptr<SoemCsvMaster> master_;
   std::string ifname_;
-  std::string waypoint_topic_;
-  std::vector<std::string> joint_names_; // 一个vector动态数组，元素类型是字符串
-  std::vector<AxisConfig> axis_configs_;
   bool dry_run_{true};
 
+  // waypoint 配置
+  std::string waypoint_topic_;
+  std::string feedback_topic_;
+  std::vector<std::string> joint_names_;
+  std::vector<AxisConfig> axis_configs_;
+
+  // 控制器采样配置
   bool sample_from_controllers_{true};
   std::string left_state_topic_;
   std::string right_state_topic_;
   double sample_rate_hz_{10.0};
   double feedback_rate_hz_{20.0};
-
   std::mutex cache_mtx_;
-  std::map<std::string, double> ref_cache_;
+  std::map<std::string, double> ref_cache_;  // joint_name → reference.position
 
+  // ROS 话题/服务/定时器
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr waypoint_sub_;
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr waypoint_pub_;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr real_joint_state_pub_;
