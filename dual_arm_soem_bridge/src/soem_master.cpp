@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <pthread.h>
 
 #include "soem/soem.h"
 
@@ -147,6 +148,8 @@ bool SoemCsvMaster::configure(const std::string & ifname, const std::vector<Axis
   return configured_;
 }
 
+// 这个版本暂时没用
+
 bool SoemCsvMaster::configure(const std::string & ifname)
 {
   return configure(ifname, axis_configs_);
@@ -210,6 +213,14 @@ bool SoemCsvMaster::start()
 
   // 先起 RT 线程(它会等待 mapping_done)，再做 bringup。
   rt_thread_ = std::thread([this] { rt_loop(); });
+
+  // 设置实时调度：SCHED_FIFO，优先级 40（等价于 osal_thread_create_rt）
+  struct sched_param schparam;
+  memset(&schparam, 0, sizeof(schparam));
+  schparam.sched_priority = 40;
+  if (pthread_setschedparam(rt_thread_.native_handle(), SCHED_FIFO, &schparam) != 0) {
+    printf("[SOEM] 警告：设置实时调度失败（需要 root 权限或 CAP_SYS_NICE）\n");
+  }
 
   if (!ecat_bringup()) {
     printf("[SOEM] bringup 失败，回退\n");

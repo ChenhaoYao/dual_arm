@@ -1,10 +1,11 @@
 import os
 import yaml
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction
 from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
+from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -26,8 +27,17 @@ def generate_launch_description():
         description='硬件插件类型'
     )
 
+    # 是否启动 joint_state_broadcaster（发布 /joint_states）
+    # 使用 soem_bridge 时设为 false，避免 mock 数据覆盖真实编码器数据
+    use_broadcaster_arg = DeclareLaunchArgument(
+        'use_broadcaster',
+        default_value='true',
+        description='是否启动 joint_state_broadcaster'
+    )
+
     use_sim_time = LaunchConfiguration('use_sim_time')
     hw_plugin = LaunchConfiguration('hw_plugin')
+    use_broadcaster = LaunchConfiguration('use_broadcaster')
 
     # ========== 机器人描述 ==========
     robot_description_content = Command([
@@ -90,12 +100,17 @@ def generate_launch_description():
         ]
     )
 
-    # 节点 3: Joint State Broadcaster
-    joint_state_broadcaster_spawner = Node(
-        package='controller_manager',
-        executable='spawner',
-        arguments=['joint_state_broadcaster', '--controller-manager', '/controller_manager'],
-        output='screen'
+    # 节点 3: Joint State Broadcaster（可选）
+    joint_state_broadcaster_spawner = GroupAction(
+        condition=IfCondition(use_broadcaster),
+        actions=[
+            Node(
+                package='controller_manager',
+                executable='spawner',
+                arguments=['joint_state_broadcaster', '--controller-manager', '/controller_manager'],
+                output='screen'
+            )
+        ]
     )
 
     # 节点 4: Left Arm Controller
@@ -170,6 +185,7 @@ def generate_launch_description():
     return LaunchDescription([
         use_sim_time_arg,
         hw_plugin_arg,
+        use_broadcaster_arg,
         robot_state_publisher_node,
         ros2_control_node,
         joint_state_broadcaster_spawner,

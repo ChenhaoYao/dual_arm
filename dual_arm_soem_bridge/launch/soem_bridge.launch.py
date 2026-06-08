@@ -17,7 +17,7 @@ def generate_launch_description():
         executable='soem_bridge_node',
         name='soem_bridge_node',
         output='screen',
-        parameters=[config_file]
+        parameters=[config_file] # 把yaml加载到参数服务器
     )
 
     return LaunchDescription([
