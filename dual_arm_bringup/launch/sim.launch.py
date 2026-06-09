@@ -9,7 +9,7 @@ def generate_launch_description():
 
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='false',
+        default_value='true',
         description='使用仿真时钟'
     )
 
@@ -17,7 +17,7 @@ def generate_launch_description():
     # 使用 soem_bridge 时设为 false，避免 mock 数据覆盖真实编码器数据
     use_broadcaster_arg = DeclareLaunchArgument(
         'use_broadcaster',
-        default_value='false',
+        default_value='true',
         description='是否启动 joint_state_broadcaster'
     )
 

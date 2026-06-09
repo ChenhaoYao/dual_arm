@@ -34,9 +34,9 @@
  * ========================================================================== */
 #define ENC_BITS         19      /* 电机编码器位数 */
 #define GEAR_RATIO       100     /* 减速比 */
-#define TARGET_DEG       30      /* 输出端目标角度（°） */
-#define MOVE_DURATION_S  4       /* 期望走完时长（s）→ 决定速度/加速度 */
-#define MOTION_SLAVE_FIRST 1
+#define TARGET_DEG       -80.00      /* 输出端目标角度（°） */
+#define MOVE_DURATION_S  10       /* 期望走完时长（s）→ 决定速度/加速度 */
+#define MOTION_SLAVE_FIRST 5
 #define MAX_MOTION_AXES 1
 #define CYCLE_NS         1000000 /* RT 线程 PDO 周期：1 ms */
 #define LOG_DIV          100      /* 主循环每 N 周期打印一次（≈200ms） */
@@ -167,7 +167,7 @@ static int my_po2so_config(ecx_contextt *unused, uint16 slave)
       ecx_SDOwrite(&ctx, slave, 0x6081, 0x00, FALSE, sizeof(vel), &vel, EC_TIMEOUTRXM); // 最大速度
       ecx_SDOwrite(&ctx, slave, 0x6083, 0x00, FALSE, sizeof(acc), &acc, EC_TIMEOUTRXM); // 加速度
       ecx_SDOwrite(&ctx, slave, 0x6084, 0x00, FALSE, sizeof(acc), &acc, EC_TIMEOUTRXM); // 减速度
-      printf("[PRE-OP] slave%d PDO 映射 OK，target=%d counts (%d°), vel=%u, acc=%u\n",
+      printf("[PRE-OP] slave%d PDO 映射 OK，target=%d counts (%.2f°), vel=%u, acc=%u\n",
              slave, TARGET_COUNTS, TARGET_DEG, vel, acc);
    }
    return 1;
@@ -289,7 +289,7 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
          axis->base_pos = pos;
          axis->final_target = pos + TARGET_COUNTS;
          log_sep("PP MOTION");
-         printf("  cycle=%d  Op Enabled, base=%d -> final=%d (%d°)\n",
+         printf("  cycle=%d  Op Enabled, base=%d -> final=%d (%.2f°)\n",
                 cycle, axis->base_pos, axis->final_target, TARGET_DEG);
       }
 
@@ -307,7 +307,7 @@ static void axis_step(axis_state_t *axis, int sync_trigger, int idx, int loop_i)
          {
              cw = 0x003F;
              axis->pp_phase = 1;
-             printf("  cycle=%d  PP trigger -> %d counts (%d°)\n",
+             printf("  cycle=%d  PP trigger -> %d counts (%.2f°)\n",
                     cycle, tgt, TARGET_DEG);
          }
       }
@@ -511,7 +511,7 @@ int main(int argc, char *argv[])
 {
    setup_log();
    printf("\n═══════════════════════════════════════════════════════════\n");
-   printf("  SOEM ec_sample — PP 模式  |  目标 %d°\n", TARGET_DEG);
+   printf("  SOEM ec_sample — PP 模式  |  目标 %.2f°\n", TARGET_DEG);
    printf("═══════════════════════════════════════════════════════════\n");
    log_sep("BOOT");
 

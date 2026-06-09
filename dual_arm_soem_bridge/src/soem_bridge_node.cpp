@@ -65,7 +65,7 @@ public:
     // 真实电机反馈（可通过 feedback_topic 参数配置话题名）
     // 设为 "/joint_states" 可让 RViz 直接显示真实编码器数据
     real_joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>(
-      feedback_topic_, rclcpp::QoS(10));
+      feedback_topic_, rclcpp::QoS(10).best_effort());
 
     // 订阅左右臂 controller_state，直接处理并发送给电机
     left_state_sub_ = create_subscription<JTCState>(

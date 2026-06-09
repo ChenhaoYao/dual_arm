@@ -43,7 +43,7 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 1.5708 0" />
       <geometry>
         <cylinder length="0.1" radius="0.05" />
       </geometry>
@@ -51,10 +51,10 @@
   </link>
 
   <joint name="laxis1_joint" type="revolute">
-    <origin xyz="0.12844 -0.010901 0.9108" rpy="2.3441 0 -0.084669" />
+    <origin xyz="0.12844 -0.010901 0.9108" rpy="1.5941 0 -0.084669" />
     <parent link="base_link" />
     <child link="laxis1_link" />
-    <axis xyz="1 0 0" />
+    <axis xyz="-1 0 0" />
     <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
   </joint>
 
@@ -74,7 +74,7 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 1.5708 0" />
       <geometry>
         <cylinder length="0.1" radius="0.05" />
       </geometry>
@@ -82,7 +82,7 @@
   </link>
 
   <joint name="laxis2_joint" type="revolute">
-    <origin xyz="0.0774 -3.3783E-05 0.01715" rpy="-1.6846 -1.5688 -1.5708" />
+    <origin xyz="0.0774 -3.3783E-05 0.01715" rpy="-2.8 -1.5688 -1.5708" />
     <parent link="laxis1_link" />
     <child link="laxis2_link" />
     <axis xyz="1 0 0" />
@@ -175,7 +175,7 @@
   </link>
 
   <joint name="laxis5_joint" type="revolute">
-    <origin xyz="0.068269 -0.019 -0.082391" rpy="-2.2242 0.24666 1.8795" />
+    <origin xyz="0.068269 -0.019 -0.082391" rpy="-2.152377 0.398915 2.104409" />
     <parent link="laxis4_link" />
     <child link="laxis5_link" />
     <axis xyz="0 1 0" />
@@ -260,7 +260,7 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="-0.03 0 0" rpy="0 1.5708 0" />
       <geometry>
         <cylinder length="0.1" radius="0.05" />
       </geometry>
@@ -268,10 +268,10 @@
   </link>
 
   <joint name="raxis1_joint" type="revolute">
-    <origin xyz="-0.1541 0.013079 0.9108" rpy="2.2799 0 3.0569" />
+    <origin xyz="-0.1541 0.013079 0.9108" rpy="0.7964 0 3.0569" />
     <parent link="base_link" />
     <child link="raxis1_link" />
-    <axis xyz="1 0 0" />
+    <axis xyz="-1 0 0" />
     <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
   </joint>
 
@@ -291,7 +291,7 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 1.5708 0" />
       <geometry>
         <cylinder length="0.1" radius="0.05" />
       </geometry>
@@ -299,10 +299,10 @@
   </link>
 
   <joint name="raxis2_joint" type="revolute">
-    <origin xyz="0.051649 -0.012151 0.012103" rpy="-1.6846 -0.78343 -1.5708" />
+    <origin xyz="0.051649 -0.012151 0.012103" rpy="-2.8016 -0.78343 -1.5708" />
     <parent link="raxis1_link" />
     <child link="raxis2_link" />
-    <axis xyz="1 0 0" />
+    <axis xyz="-1 0 0" />
     <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
   </joint>
 
@@ -392,7 +392,7 @@
   </link>
 
   <joint name="raxis5_joint" type="revolute">
-    <origin xyz="0.068269 -0.019 -0.082391" rpy="-2.2242 0.24666 1.8795" />
+    <origin xyz="0.068269 -0.019 -0.082391" rpy="-0.995458 -0.408458 -1.021292" />
     <parent link="raxis4_link" />
     <child link="raxis5_link" />
     <axis xyz="0 1 0" />
@@ -471,49 +471,63 @@
     <joint name="laxis1_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="laxis2_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="laxis3_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="laxis4_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="laxis5_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="laxis6_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="laxis7_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
@@ -522,49 +536,63 @@
     <joint name="raxis1_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="raxis2_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="raxis3_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="raxis4_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="raxis5_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="raxis6_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
     <joint name="raxis7_joint">
       <command_interface name="position"/>
       <command_interface name="velocity"/>
-      <state_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>

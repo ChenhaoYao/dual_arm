@@ -167,7 +167,7 @@ int32_t SoemCsvMaster::rad_to_counts(const AxisConfig & cfg, double rad) const
 double SoemCsvMaster::counts_to_rad(const AxisConfig & cfg, int32_t counts) const
 {
   double scale = (double)((int64_t)1 << cfg.enc_bits) * cfg.gear_ratio / TWO_PI;
-  return ((double)(counts - cfg.zero_offset_counts) / scale) * cfg.direction;
+  return (double)(counts - cfg.zero_offset_counts) / scale * cfg.direction;
 }
 
 double SoemCsvMaster::counts_to_rad_vel(const AxisConfig & cfg, int32_t counts) const

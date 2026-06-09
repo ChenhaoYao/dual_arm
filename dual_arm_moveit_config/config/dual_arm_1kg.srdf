@@ -39,7 +39,7 @@
   启动时自动校准 -->
   <group_state name="home" group="left_arm">
     <joint name="laxis1_joint" value="0"/>
-    <joint name="laxis2_joint" value="0.5"/>
+    <joint name="laxis2_joint" value="0"/>
     <joint name="laxis3_joint" value="0"/>
     <joint name="laxis4_joint" value="0"/>
     <joint name="laxis5_joint" value="0"/>
@@ -49,7 +49,7 @@
 
   <group_state name="home" group="right_arm">
     <joint name="raxis1_joint" value="0"/>
-    <joint name="raxis2_joint" value="0.5"/>
+    <joint name="raxis2_joint" value="0"/>
     <joint name="raxis3_joint" value="0"/>
     <joint name="raxis4_joint" value="0"/>
     <joint name="raxis5_joint" value="0"/>
