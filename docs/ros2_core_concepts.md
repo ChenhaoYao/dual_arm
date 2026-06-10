@@ -285,3 +285,51 @@ move_group 崩溃：YAML 内容？OMPL 字段名？Octomap？
 ```
 
 四层都正确，Plan & Execute 才能成功。
+
+---
+
+## 硬件插件基础文件
+
+### visibility_control.h
+
+控制共享库（.so/.dll）的符号可见性，让 `pluginlib` 能在运行时加载插件。
+
+```cpp
+// Linux: 默认可见
+#define DUAL_ARM_CONTROL_PUBLIC __attribute__((visibility("default")))
+
+// Windows: 显式导出
+#define DUAL_ARM_CONTROL_PUBLIC __declspec(dllexport)
+```
+
+所有 ros2_control 硬件插件的**标准模板文件**，不需要修改。
+
+### 必要依赖（CMakeLists.txt + package.xml）
+
+硬件插件至少需要：
+
+```cmake
+# CMakeLists.txt
+find_package(ament_cmake REQUIRED)
+find_package(hardware_interface REQUIRED)
+find_package(pluginlib REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_lifecycle REQUIRED)
+
+ament_target_dependencies(my_plugin
+  hardware_interface pluginlib rclcpp rclcpp_lifecycle
+)
+
+pluginlib_export_plugin_description_file(
+  hardware_interface hardware_plugin_description.xml)
+```
+
+```xml
+<!-- package.xml -->
+<depend>hardware_interface</depend>
+<depend>pluginlib</depend>
+<depend>rclcpp</depend>
+<depend>rclcpp_lifecycle</depend>
+```
+
+如需订阅 sensor_msgs（如 /joint_states），还需添加 `sensor_msgs` 依赖。

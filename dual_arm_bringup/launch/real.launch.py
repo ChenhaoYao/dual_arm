@@ -30,6 +30,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'hw_plugin': 'dual_arm_control/DualArmHardware',
             'use_broadcaster': use_broadcaster,
+            'controllers_config': 'ros2_controllers_real.yaml',
         }.items()
     )
 

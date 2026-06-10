@@ -35,9 +35,17 @@ def generate_launch_description():
         description='是否启动 joint_state_broadcaster'
     )
 
+    # 控制器配置文件名（仿真用 ros2_controllers.yaml，实物用 ros2_controllers_real.yaml）
+    controllers_config_arg = DeclareLaunchArgument(
+        'controllers_config',
+        default_value='ros2_controllers.yaml',
+        description='控制器配置文件名'
+    )
+
     use_sim_time = LaunchConfiguration('use_sim_time')
     hw_plugin = LaunchConfiguration('hw_plugin')
     use_broadcaster = LaunchConfiguration('use_broadcaster')
+    controllers_config = LaunchConfiguration('controllers_config')
 
     # ========== 机器人描述 ==========
     robot_description_content = Command([
@@ -67,7 +75,7 @@ def generate_launch_description():
         ompl_planning_yaml = yaml.safe_load(f)
 
     # ========== 控制器配置文件 ==========
-    ros2_controllers_yaml = os.path.join(dual_arm_moveit_config_pkg, 'config', 'ros2_controllers.yaml')
+    ros2_controllers_yaml = PathJoinSubstitution([dual_arm_moveit_config_pkg, 'config', controllers_config])
     moveit_controllers_yaml = os.path.join(dual_arm_moveit_config_pkg, 'config', 'moveit_controllers.yaml')
     with open(moveit_controllers_yaml, 'r') as f:
         moveit_controllers = yaml.safe_load(f)
@@ -189,6 +197,7 @@ def generate_launch_description():
         use_sim_time_arg,
         hw_plugin_arg,
         use_broadcaster_arg,
+        controllers_config_arg,
         robot_state_publisher_node,
         ros2_control_node,
         joint_state_broadcaster_spawner,

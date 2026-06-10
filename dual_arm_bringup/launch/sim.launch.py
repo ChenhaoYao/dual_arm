@@ -30,6 +30,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'hw_plugin': 'mock_components/GenericSystem',
             'use_broadcaster': use_broadcaster,
+            'controllers_config': 'ros2_controllers.yaml',
         }.items()
     )
 
