@@ -60,6 +60,8 @@ ros2 topic list
 # 查看关节状态
 ros2 topic echo /joint_states --once
 
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic echo /joint_states"
+
 # 查看话题频率
 ros2 topic hz /joint_states
 

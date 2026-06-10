@@ -9,6 +9,9 @@
 //   ~/enable       使能/关闭电机控制
 //   ~/stop         紧急停止
 //   ~/clear_fault  故障复位(RT 线程自动处理，此服务仅回执)
+//
+// 测试话题：
+//   ~/test_axis    单电机测试 (std_msgs/Float64MultiArray: [joint_index, velocity_rad_s])
 
 #include <chrono>
 #include <map>
@@ -19,6 +22,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "control_msgs/msg/joint_trajectory_controller_state.hpp"
+#include "std_msgs/msg/float64_multi_array.hpp"
 #include "trajectory_msgs/msg/joint_trajectory.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "std_srvs/srv/set_bool.hpp"
@@ -95,6 +99,13 @@ public:
         handle_clear_fault(req, res);
       });
 
+    // 单电机测试话题：~/test_axis (std_msgs/Float64MultiArray: [joint_index, velocity_rad_s])
+    test_axis_sub_ = create_subscription<std_msgs::msg::Float64MultiArray>(
+      "~/test_axis", rclcpp::QoS(10),
+      [this](const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
+        on_test_axis(msg);
+      });
+
     // =====================================================================
     // 定时器
     // =====================================================================
@@ -169,9 +180,8 @@ private:
     // axis_directions: 旋转方向，1=正向，-1=反向，默认全 1
     auto directions = declare_parameter<std::vector<int64_t>>(
       "axis_directions", std::vector<int64_t>(n, 1));
-    // axis_zero_offsets: 零位偏移（编码器计数），用于校准机械臂零位与编码器零位的偏差
-    auto zero_offsets = declare_parameter<std::vector<int64_t>>(
-      "axis_zero_offsets", std::vector<int64_t>(n, 0));
+    // axis_zero_offsets: 零位偏移（角度），用于校准机械臂零位与编码器零位的偏差
+    auto zero_offsets = read_double_array("axis_zero_offsets", 0.0);
 
     // 遍历每个轴，组装完整的 AxisConfig
     axis_configs_.clear();
@@ -184,8 +194,12 @@ private:
       cfg.enc_bits = enc_bits;                             // 编码器位数，如 19
       cfg.gear_ratio = gear_ratios[i];                     // 减速比，如 100.0
       cfg.direction = (i < directions.size() && directions[i] < 0) ? -1 : 1;
-      cfg.zero_offset_counts =
-        (i < zero_offsets.size()) ? static_cast<int32_t>(zero_offsets[i]) : 0;
+      // 将角度转换为 counts: counts = round(deg * π/180 * scale)
+      // 其中 scale = 2^enc_bits * gear_ratio / (2π)
+      double scale = (double)((int64_t)1 << enc_bits) * gear_ratios[i] / (2.0 * M_PI);
+      double offset_deg = (i < zero_offsets.size()) ? zero_offsets[i] : 0.0;
+      cfg.zero_offset_counts = static_cast<int32_t>(
+        std::llround(offset_deg * M_PI / 180.0 * scale));
       // 软限位：rad → counts，确保 lo < hi
       int32_t lo = master_->rad_to_counts(cfg, pos_min_vec[i]);
       int32_t hi = master_->rad_to_counts(cfg, pos_max_vec[i]);
@@ -207,23 +221,34 @@ private:
     std::vector<CsvWaypoint> waypoints;
     CsvWaypoint waypoint;
     waypoint.joint_names = msg->joint_names;
-    waypoint.positions = msg->reference.positions;
-    // controller_state 通常没有速度信息，填 0（CSV 模式速度为 0 时电机保持位置）
-    waypoint.velocities.resize(msg->reference.positions.size(), 0.0);
+
+    // velocity 模式：使用 output.velocities (PID 输出的速度命令)
+    if (!msg->output.velocities.empty()) {
+      waypoint.velocities = msg->output.velocities;
+    } else {
+      // fallback: 如果没有 output.velocities，填 0
+      waypoint.velocities.resize(msg->joint_names.size(), 0.0);
+    }
+
+    // positions 用于反馈显示（非必需，但保持结构完整）
+    if (!msg->reference.positions.empty()) {
+      waypoint.positions = msg->reference.positions;
+    }
+
     waypoints.push_back(std::move(waypoint));
 
     // dry-run：打印首轴换算结果，便于核对标定参数
     if (dry_run_) {
-      int32_t c0 = 0;
+      int32_t v0 = 0;
       if (!msg->joint_names.empty() && !axis_configs_.empty() &&
-        !msg->reference.positions.empty())
+        !waypoint.velocities.empty())
       {
-        c0 = master_->rad_to_counts(axis_configs_[0], msg->reference.positions[0]);
+        v0 = master_->vel_to_counts(axis_configs_[0], msg->output.velocities[0]);
       }
       RCLCPP_INFO_THROTTLE(
         get_logger(), *get_clock(), 1000,
-        "dry-run: joints=%zu axis0_pos=%d",
-        msg->joint_names.size(), c0);
+        "dry-run: joints=%zu axis0_vel_counts=%d",
+        msg->joint_names.size(), v0);
       return;
     }
 
@@ -307,6 +332,44 @@ private:
                                  : "fault reset handled by RT state machine";
   }
 
+  // 单电机测试：~/test_axis (std_msgs/Float64MultiArray: [joint_index, velocity_rad_s])
+  void on_test_axis(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
+  {
+    if (msg->data.size() < 2) {
+      RCLCPP_WARN(get_logger(), "test_axis: need [joint_index, velocity_rad_s], got %zu values",
+                  msg->data.size());
+      return;
+    }
+
+    size_t idx = static_cast<size_t>(msg->data[0]);
+    double vel_rad_s = msg->data[1];
+
+    if (idx >= axis_configs_.size()) {
+      RCLCPP_WARN(get_logger(), "test_axis: index %zu out of range (max %zu)",
+                  idx, axis_configs_.size() - 1);
+      return;
+    }
+
+    if (!send_enabled_.load()) {
+      RCLCPP_WARN(get_logger(), "test_axis: send not enabled (call ~/enable first)");
+      return;
+    }
+
+    // 构造单轴 waypoint
+    std::vector<CsvWaypoint> waypoints;
+    CsvWaypoint wp;
+    wp.joint_names.push_back(axis_configs_[idx].joint_name);
+    wp.velocities.push_back(vel_rad_s);
+    waypoints.push_back(std::move(wp));
+
+    if (master_->submit_waypoints(waypoints)) {
+      RCLCPP_INFO(get_logger(), "test_axis: %s vel=%.3f rad/s",
+                  axis_configs_[idx].joint_name.c_str(), vel_rad_s);
+    } else {
+      RCLCPP_WARN(get_logger(), "test_axis: failed to submit");
+    }
+  }
+
   // =====================================================================
   // 成员变量
   // =====================================================================
@@ -331,6 +394,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr real_joint_state_pub_;
   rclcpp::Subscription<JTCState>::SharedPtr left_state_sub_;
   rclcpp::Subscription<JTCState>::SharedPtr right_state_sub_;
+  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr test_axis_sub_;
   rclcpp::TimerBase::SharedPtr feedback_timer_;
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enable_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_srv_;

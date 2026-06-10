@@ -22,7 +22,7 @@ left_arm_controller:
       - laxis6_joint
       - laxis7_joint
     command_interfaces:
-      - position
+      - velocity
     state_interfaces:
       - position
       - velocity
@@ -32,6 +32,14 @@ left_arm_controller:
     constraints:
       stopped_velocity_tolerance: 0.01
       goal_time: 0.0
+    gains:
+      laxis1_joint: {p: 5.0, i: 0.0, d: 0.1}
+      laxis2_joint: {p: 5.0, i: 0.0, d: 0.1}
+      laxis3_joint: {p: 5.0, i: 0.0, d: 0.1}
+      laxis4_joint: {p: 5.0, i: 0.0, d: 0.1}
+      laxis5_joint: {p: 5.0, i: 0.0, d: 0.1}
+      laxis6_joint: {p: 5.0, i: 0.0, d: 0.1}
+      laxis7_joint: {p: 5.0, i: 0.0, d: 0.1}
 
 right_arm_controller:
   ros__parameters:
@@ -44,7 +52,7 @@ right_arm_controller:
       - raxis6_joint
       - raxis7_joint
     command_interfaces:
-      - position
+      - velocity
     state_interfaces:
       - position
       - velocity
@@ -54,3 +62,11 @@ right_arm_controller:
     constraints:
       stopped_velocity_tolerance: 0.01
       goal_time: 0.0
+    gains:
+      raxis1_joint: {p: 5.0, i: 0.0, d: 0.1}
+      raxis2_joint: {p: 5.0, i: 0.0, d: 0.1}
+      raxis3_joint: {p: 5.0, i: 0.0, d: 0.1}
+      raxis4_joint: {p: 5.0, i: 0.0, d: 0.1}
+      raxis5_joint: {p: 5.0, i: 0.0, d: 0.1}
+      raxis6_joint: {p: 5.0, i: 0.0, d: 0.1}
+      raxis7_joint: {p: 5.0, i: 0.0, d: 0.1}

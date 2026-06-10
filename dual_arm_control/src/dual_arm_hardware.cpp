@@ -4,23 +4,32 @@ namespace dual_arm_control
 {
 
 hardware_interface::CallbackReturn DualArmHardware::on_init(
-  const hardware_interface::HardwareInfo & info)
+  const hardware_interface::HardwareComponentInterfaceParams & params)
 {
-  if (hardware_interface::SystemInterface::on_init(info) !=
+  if (hardware_interface::SystemInterface::on_init(params) !=
       hardware_interface::CallbackReturn::SUCCESS)
   {
     return hardware_interface::CallbackReturn::ERROR;
   }
 
+  const auto & info = params.hardware_info;
+
   // Resize storage based on joints defined in URDF
-  hw_position_commands_.resize(info_.joints.size(), 0.0);
-  hw_velocity_commands_.resize(info_.joints.size(), 0.0);
-  hw_position_states_.resize(info_.joints.size(), 0.0);
-  hw_velocity_states_.resize(info_.joints.size(), 0.0);
-  hw_effort_states_.resize(info_.joints.size(), 0.0);
+  hw_position_commands_.resize(info.joints.size(), 0.0);
+  hw_velocity_commands_.resize(info.joints.size(), 0.0);
+  hw_position_states_.resize(info.joints.size(), 0.0);
+  hw_velocity_states_.resize(info.joints.size(), 0.0);
+  hw_effort_states_.resize(info.joints.size(), 0.0);
+
+  // Store joint names from URDF
+  joint_names_.clear();
+  for (const auto & joint : info.joints)
+  {
+    joint_names_.push_back(joint.name);
+  }
 
   // Validate that all joints have the required interfaces
-  for (const auto & joint : info_.joints)
+  for (const auto & joint : info.joints)
   {
     for (const auto & cmd_interface : joint.command_interfaces)
     {
@@ -40,16 +49,24 @@ hardware_interface::CallbackReturn DualArmHardware::on_init(
 hardware_interface::CallbackReturn DualArmHardware::on_configure(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  // Here: open serial port, connect to motor controllers, etc.
-  // For real hardware: initialize CAN bus, EtherCAT, serial, etc.
-  RCLCPP_INFO(rclcpp::get_logger("DualArmHardware"), "Configuring hardware...");
+  // Create ROS2 node for subscribing to /joint_states
+  node_ = std::make_shared<rclcpp::Node>("dual_arm_hardware_node");
+
+  // Subscribe to /joint_states (published by soem_bridge_node)
+  joint_state_sub_ = node_->create_subscription<sensor_msgs::msg::JointState>(
+    "/joint_states", rclcpp::QoS(10),
+    [this](const sensor_msgs::msg::JointState::SharedPtr msg) {
+      joint_state_callback(msg);
+    });
+
+  RCLCPP_INFO(rclcpp::get_logger("DualArmHardware"),
+              "Configured: subscribing to /joint_states");
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
 hardware_interface::CallbackReturn DualArmHardware::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  // Enable motors, set initial positions
   RCLCPP_INFO(rclcpp::get_logger("DualArmHardware"), "Activating hardware...");
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -57,7 +74,6 @@ hardware_interface::CallbackReturn DualArmHardware::on_activate(
 hardware_interface::CallbackReturn DualArmHardware::on_deactivate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  // Disable motors safely
   RCLCPP_INFO(rclcpp::get_logger("DualArmHardware"), "Deactivating hardware...");
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -92,25 +108,50 @@ DualArmHardware::export_command_interfaces()
   return interfaces;
 }
 
+void DualArmHardware::joint_state_callback(
+  const sensor_msgs::msg::JointState::SharedPtr msg)
+{
+  // Update position states from /joint_states
+  for (size_t i = 0; i < joint_names_.size(); ++i)
+  {
+    for (size_t j = 0; j < msg->name.size(); ++j)
+    {
+      if (msg->name[j] == joint_names_[i])
+      {
+        hw_position_states_[i] = msg->position[j];
+        if (j < msg->velocity.size())
+        {
+          hw_velocity_states_[i] = msg->velocity[j];
+        }
+        if (j < msg->effort.size())
+        {
+          hw_effort_states_[i] = msg->effort[j];
+        }
+        break;
+      }
+    }
+  }
+}
+
 hardware_interface::return_type DualArmHardware::read(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  // REAL HARDWARE: read encoder positions from motor controllers
-  // SIMULATION: just copy commands to states (passthrough)
-  for (size_t i = 0; i < hw_position_states_.size(); ++i)
+  // Spin to process incoming /joint_states messages
+  if (node_)
   {
-    hw_position_states_[i] = hw_position_commands_[i];
-    hw_velocity_states_[i] = hw_velocity_commands_[i];
-    hw_effort_states_[i] = 0.0;
+    rclcpp::spin_some(node_);
   }
+
+  // Position states are updated in joint_state_callback
+  // No need to copy here - they are already in hw_position_states_
   return hardware_interface::return_type::OK;
 }
 
 hardware_interface::return_type DualArmHardware::write(
   const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  // REAL HARDWARE: send commands to motor controllers
-  // SIMULATION: no-op (read() already does passthrough)
+  // Commands are handled by soem_bridge_node via controller_state topic
+  // No direct hardware write needed here
   return hardware_interface::return_type::OK;
 }
 

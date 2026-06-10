@@ -1,11 +1,18 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
+#include "hardware_interface/types/hardware_component_interface_params.hpp"
 #include "rclcpp/macros.hpp"
+#include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/state.hpp"
+#include "sensor_msgs/msg/joint_state.hpp"
 #include "visibility_control.h"
 
 namespace dual_arm_control
@@ -18,7 +25,7 @@ public:
 
   // Lifecycle methods
   hardware_interface::CallbackReturn on_init(
-    const hardware_interface::HardwareInfo & info) override;
+    const hardware_interface::HardwareComponentInterfaceParams & params) override;
 
   hardware_interface::CallbackReturn on_configure(
     const rclcpp_lifecycle::State & previous_state) override;
@@ -48,6 +55,16 @@ protected:
   std::vector<double> hw_position_states_;
   std::vector<double> hw_velocity_states_;
   std::vector<double> hw_effort_states_;
+
+  // ROS2 node for subscribing to /joint_states
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
+
+  // Joint names (order must match URDF)
+  std::vector<std::string> joint_names_;
+
+  // Callback for /joint_states
+  void joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
 };
 
 }  // namespace dual_arm_control

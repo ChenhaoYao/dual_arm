@@ -151,6 +151,9 @@ def generate_launch_description():
                 'publish_state_updates': True,
                 'publish_transforms_updates': True,
                 'use_sim_time': use_sim_time,
+                'trajectory_execution': {
+                    'allowed_start_tolerance': 0.05,
+                },
                 'octomap_frame': '',
                 'octomap_resolution': 0.0,
                 'octomap_sensor_name': '',
