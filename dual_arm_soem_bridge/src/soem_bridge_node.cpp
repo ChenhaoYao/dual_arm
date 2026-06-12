@@ -13,10 +13,15 @@
 // 测试话题：
 //   ~/test_axis    单电机测试 (std_msgs/Float64MultiArray: [joint_index, velocity_rad_s])
 
+#include <algorithm>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <map>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -39,6 +44,14 @@ using JTCState = control_msgs::msg::JointTrajectoryControllerState;
 class SoemBridgeNode : public rclcpp::Node
 {
 public:
+  ~SoemBridgeNode()
+  {
+    if (trajectory_file_.is_open()) {
+      trajectory_file_.close();
+      RCLCPP_INFO(get_logger(), "Trajectory log file closed");
+    }
+  }
+
   SoemBridgeNode()
   : Node("soem_bridge_node"), master_(std::make_unique<SoemCsvMaster>())
   {
@@ -53,11 +66,15 @@ public:
     joint_names_ = declare_parameter<std::vector<std::string>>("joint_names", default_joint_names());
 
     // 控制器采样配置：从左右臂 controller_state 采样 reference.positions
+    active_arm_ = declare_parameter<std::string>("active_arm", "left");
     left_state_topic_ = declare_parameter<std::string>(
       "left_state_topic", "/left_arm_controller/controller_state");
     right_state_topic_ = declare_parameter<std::string>(
       "right_state_topic", "/right_arm_controller/controller_state");
     feedback_rate_hz_ = declare_parameter<double>("feedback_rate_hz", 20.0);
+
+    // 速度限制（正反转都限制）
+    max_velocity_ = declare_parameter<double>("max_velocity", 1.0);
 
     // 轴标定参数（每轴独立配置：从站号/方向/零点/减速比/限位）
     load_axis_configs();
@@ -71,13 +88,20 @@ public:
     real_joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>(
       feedback_topic_, rclcpp::QoS(10).best_effort());
 
-    // 订阅左右臂 controller_state，直接处理并发送给电机
-    left_state_sub_ = create_subscription<JTCState>(
-      left_state_topic_, rclcpp::QoS(10),
-      [this](JTCState::SharedPtr msg) { on_controller_state(msg); });
-    right_state_sub_ = create_subscription<JTCState>(
-      right_state_topic_, rclcpp::QoS(10),
-      [this](JTCState::SharedPtr msg) { on_controller_state(msg); });
+    // 根据 active_arm 参数只订阅一个臂，避免左右臂数据混合
+    if (active_arm_ == "left") {
+      left_state_sub_ = create_subscription<JTCState>(
+        left_state_topic_, rclcpp::QoS(10),
+        [this](JTCState::SharedPtr msg) { on_controller_state(msg); });
+      RCLCPP_INFO(get_logger(), "Subscribed to LEFT arm: %s", left_state_topic_.c_str());
+    } else if (active_arm_ == "right") {
+      right_state_sub_ = create_subscription<JTCState>(
+        right_state_topic_, rclcpp::QoS(10),
+        [this](JTCState::SharedPtr msg) { on_controller_state(msg); });
+      RCLCPP_INFO(get_logger(), "Subscribed to RIGHT arm: %s", right_state_topic_.c_str());
+    } else {
+      RCLCPP_ERROR(get_logger(), "Invalid active_arm: %s (must be 'left' or 'right')", active_arm_.c_str());
+    }
 
     // 使能/停止/故障复位服务
     enable_srv_ = create_service<std_srvs::srv::SetBool>(
@@ -116,19 +140,17 @@ public:
       std::chrono::duration<double>(1.0 / frate), [this] { publish_feedback(); });
 
     // =====================================================================
-    // dry_run=false 时自动启动 EtherCAT（用于读取编码器）
+    // 启动 EtherCAT（用于读取编码器，无论 dry_run 与否）
+    // dry_run=true 时只读编码器，不发送速度命令
     // =====================================================================
-    if (!dry_run_) 
-    {
-      if (ifname_.empty()) {
-        RCLCPP_ERROR(get_logger(), "dry_run=false but ifname is empty, cannot start EtherCAT");
-      } else if (!master_->configure(ifname_, axis_configs_)) {
-        RCLCPP_ERROR(get_logger(), "Failed to configure SOEM master");
-      } else if (!master_->start()) {
-        RCLCPP_ERROR(get_logger(), "Failed to start SOEM master");
-      } else {
-        RCLCPP_INFO(get_logger(), "EtherCAT started automatically (dry_run=false)");
-      }
+    if (ifname_.empty()) {
+      RCLCPP_WARN(get_logger(), "ifname is empty, EtherCAT not started");
+    } else if (!master_->configure(ifname_, axis_configs_)) {
+      RCLCPP_ERROR(get_logger(), "Failed to configure SOEM master");
+    } else if (!master_->start()) {
+      RCLCPP_ERROR(get_logger(), "Failed to start SOEM master");
+    } else {
+      RCLCPP_INFO(get_logger(), "EtherCAT started (dry_run=%s)", dry_run_ ? "true" : "false");
     }
 
     RCLCPP_INFO(
@@ -213,7 +235,7 @@ private:
   // =====================================================================
   // 控制器状态处理
   // 订阅左右臂 controller_state，直接将 reference.positions 转成电机指令。
-  // dry_run 模式下只打印换算结果，不发送给电机。
+  // dry_run 模式下保存轨迹到文件，不发送给电机。
   // =====================================================================
   void on_controller_state(const JTCState::SharedPtr msg)
   {
@@ -223,11 +245,19 @@ private:
     waypoint.joint_names = msg->joint_names;
 
     // velocity 模式：使用 output.velocities (PID 输出的速度命令)
+    // 保存原始速度用于日志
+    std::vector<double> raw_velocities;
     if (!msg->output.velocities.empty()) {
+      raw_velocities = msg->output.velocities;
       waypoint.velocities = msg->output.velocities;
+      // 速度限制（正反转都限制）
+      for (auto& vel : waypoint.velocities) {
+        vel = std::clamp(vel, -max_velocity_, max_velocity_);
+      }
     } else {
       // fallback: 如果没有 output.velocities，填 0
       waypoint.velocities.resize(msg->joint_names.size(), 0.0);
+      raw_velocities = waypoint.velocities;
     }
 
     // positions 用于反馈显示（非必需，但保持结构完整）
@@ -237,18 +267,11 @@ private:
 
     waypoints.push_back(std::move(waypoint));
 
-    // dry-run：打印首轴换算结果，便于核对标定参数
+    // 保存轨迹到文件（无论 dry_run 还是真实模式）
+    save_trajectory_to_file(msg, waypoint.velocities);
+
+    // dry-run：不发送给电机，直接返回
     if (dry_run_) {
-      int32_t v0 = 0;
-      if (!msg->joint_names.empty() && !axis_configs_.empty() &&
-        !waypoint.velocities.empty())
-      {
-        v0 = master_->vel_to_counts(axis_configs_[0], msg->output.velocities[0]);
-      }
-      RCLCPP_INFO_THROTTLE(
-        get_logger(), *get_clock(), 1000,
-        "dry-run: joints=%zu axis0_vel_counts=%d",
-        msg->joint_names.size(), v0);
       return;
     }
 
@@ -266,13 +289,87 @@ private:
   }
 
   // =====================================================================
+  // 保存轨迹到文件（保存左臂7个关节）
+  // 每次启动生成带时间戳的文件，避免覆盖
+  // 使用固定宽度文本格式，便于阅读
+  // =====================================================================
+  void save_trajectory_to_file(const JTCState::SharedPtr & msg, 
+                                const std::vector<double> & limited_velocities)
+  {
+    // 首次调用时打开文件
+    if (!trajectory_file_.is_open()) {
+      // 生成带时间戳的文件名
+      auto now = std::chrono::system_clock::now();
+      auto time_t = std::chrono::system_clock::to_time_t(now);
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+          now.time_since_epoch()) % 1000;
+      
+      std::stringstream ss;
+      ss << "/home/dell/dual_arm/dual_arm_soem_bridge/log/trajectory_"
+         << std::put_time(std::localtime(&time_t), "%Y%m%d_%H%M%S")
+         << "." << std::setfill('0') << std::setw(3) << ms.count()
+         << ".log";
+      std::string filename = ss.str();
+      
+      // 确保log目录存在
+      std::filesystem::create_directories("/home/dell/dual_arm/dual_arm_soem_bridge/log");
+      
+      trajectory_file_.open(filename, std::ios::out | std::ios::trunc);
+      if (!trajectory_file_.is_open()) {
+        RCLCPP_ERROR(get_logger(), "Failed to open trajectory log file: %s", filename.c_str());
+        return;
+      }
+      
+      // 写入表头（左臂7个关节）
+      // 固定宽度：每列12字符
+      trajectory_file_ << std::left 
+                       << std::setw(20) << "timestamp_ns"
+                       << std::setw(12) << "laxis1_ref" 
+                       << std::setw(12) << "laxis1_vel"
+                       << std::setw(12) << "laxis2_ref" 
+                       << std::setw(12) << "laxis2_vel"
+                       << std::setw(12) << "laxis3_ref" 
+                       << std::setw(12) << "laxis3_vel"
+                       << std::setw(12) << "laxis4_ref" 
+                       << std::setw(12) << "laxis4_vel"
+                       << std::setw(12) << "laxis5_ref" 
+                       << std::setw(12) << "laxis5_vel"
+                       << std::setw(12) << "laxis6_ref" 
+                       << std::setw(12) << "laxis6_vel"
+                       << std::setw(12) << "laxis7_ref" 
+                       << std::setw(12) << "laxis7_vel"
+                       << "\n";
+      
+      // 写入分隔线
+      trajectory_file_ << std::string(20 + 12 * 14, '-') << "\n";
+      
+      RCLCPP_INFO(get_logger(), "Trajectory logging to: %s", filename.c_str());
+    }
+
+    // 写入数据行（左臂7个关节）
+    trajectory_file_ << std::left << std::setw(20) 
+                     << (msg->header.stamp.sec * 1000000000LL + msg->header.stamp.nanosec);
+    
+    // 左臂关节索引：0-6
+    for (size_t i = 0; i < 7 && i < msg->joint_names.size(); i++) {
+      double ref_pos = (i < msg->reference.positions.size()) ? msg->reference.positions[i] : 0.0;
+      double out_vel = (i < limited_velocities.size()) ? limited_velocities[i] : 0.0;
+      trajectory_file_ << std::fixed << std::setprecision(4)
+                       << std::setw(12) << ref_pos
+                       << std::setw(12) << out_vel;
+    }
+    trajectory_file_ << "\n";
+    trajectory_file_.flush();
+  }
+
+  // =====================================================================
   // 电机反馈发布
   // 将 SoemCsvMaster 的反馈（位置/速度/力矩）发布到 feedback_topic。
   // dry_run=false 时自动启动 EtherCAT，无需 enable 即可读取编码器。
   // =====================================================================
   void publish_feedback()
   {
-    if (dry_run_ || !master_->enabled()) return;
+    if (!master_->enabled()) return;
     auto fb = master_->feedback();
     if (fb.empty()) return;
     sensor_msgs::msg::JointState js;
@@ -386,9 +483,16 @@ private:
   std::vector<AxisConfig> axis_configs_;
 
   // 控制器采样配置
+  std::string active_arm_;  // "left" 或 "right"
   std::string left_state_topic_;
   std::string right_state_topic_;
   double feedback_rate_hz_{20.0};
+
+  // 速度限制
+  double max_velocity_{1.0};  // rad/s
+
+  // dry_run 模式：轨迹日志文件
+  std::ofstream trajectory_file_;
 
   // ROS 话题/服务/定时器
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr real_joint_state_pub_;

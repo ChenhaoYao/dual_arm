@@ -9,9 +9,13 @@ colcon build
 # 编译单个包（更快）
 colcon build --packages-select dual_arm_soem_bridge
 
-# 编译 SOEM 示例
+# 编译 SOEM 示例（通过 colcon）
+colcon build --packages-select SOEM
+
+# 或者直接用 cmake（更快，不经过 colcon）
 cmake --build /home/dell/dual_arm/SOEM/build --target csv_test
 cmake --build /home/dell/dual_arm/SOEM/build --target ec_sample
+cmake --build /home/dell/dual_arm/SOEM/build --target slaveinfo
 ```
 
 ## 启动
@@ -26,15 +30,18 @@ ros2 launch dual_arm_bringup sim.launch.py
 ### 实物模式
 
 ```bash
-# 终端 1：MoveIt（关闭 broadcaster 和仿真时钟）
-sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_bringup sim.launch.py use_sim_time:=false use_broadcaster:=false"
+# 终端 1：MoveIt + ros2_control（real.launch.py 默认 use_broadcaster:=false）
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_bringup real.launch.py"
 
 # 终端 2：SOEM 桥接节点
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_soem_bridge soem_bridge.launch.py"
 
-# 终端 3：使能电机
-ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool "{data: true}"
+# 终端 3：使能电机（需要 sudo，因为 soem_bridge 以 root 运行，DDS 按用户隔离）
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool '{data: true}'"
+
+sudo bash -c 'source /home/dell/dual_arm/install/setup.bash && ros2 topic echo  /left_arm_controller/controller_state'
 ```
+
 
 ### SOEM 示例程序
 
@@ -99,16 +106,28 @@ ros2 run tf2_ros tf2_echo base_link laxis7_link
 
 ```bash
 # 使能电机
-ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool "{data: true}"
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool '{data: true}'"
 
 # 关闭电机
-ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool "{data: false}"
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool '{data: false}'"
 
 # 紧急停止
-ros2 service call /soem_bridge_node/stop std_srvs/srv/Trigger
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/stop std_srvs/srv/Trigger"
 
 # 故障复位
-ros2 service call /soem_bridge_node/clear_fault std_srvs/srv/Trigger
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/clear_fault std_srvs/srv/Trigger"
+```
+
+### 单电机测试
+
+```bash
+# 格式：ros2 topic pub /soem_bridge_node/test_axis std_msgs/msg/Float64MultiArray "{data: [joint_index, velocity_rad_s]}"
+
+# 示例：laxis1_joint (index=0) 以 0.5 rad/s 转动
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic pub /soem_bridge_node/test_axis std_msgs/msg/Float64MultiArray '{data: [0, 0.5]}'"
+
+# 停止
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic pub /soem_bridge_node/test_axis std_msgs/msg/Float64MultiArray '{data: [0, 0.0]}'"
 ```
 
 ### 参数查看

@@ -154,6 +154,27 @@ gains:
   laxis1_joint: {p: 5.0, i: 0.0, d: 0.1}
 ```
 
+### 仿真 vs 实物的命令接口选择
+
+**问题**：`ros2_controllers.yaml` 的 `command_interfaces` 设为 `velocity`，仿真时机械臂不动。
+
+**原因**：`mock_components/GenericSystem` 的 `write()` 是空操作，`read()` 只把命令值拷贝到同名状态接口。velocity 命令只更新 velocity 状态，**不会积分成位置**，所以 position 永远是初始值 0。
+
+**解决**：仿真用 `position` 命令接口，实物用 `velocity` 命令接口，通过 launch 参数区分：
+```yaml
+# ros2_controllers.yaml（仿真）
+command_interfaces: [position]
+
+# ros2_controllers_real.yaml（实物）
+command_interfaces: [velocity]
+```
+```python
+# demo.launch.py
+DeclareLaunchArgument('controllers_config', default_value='ros2_controllers.yaml')
+# sim.launch.py  → controllers_config: 'ros2_controllers.yaml'
+# real.launch.py → controllers_config: 'ros2_controllers_real.yaml'
+```
+
 ### controller_state 消息
 
 ```
@@ -161,6 +182,33 @@ reference.positions   → 期望位置
 reference.velocities  → 期望速度（前馈）
 output.velocities     → PID 输出（velocity 模式）
 ```
+
+### JTC 持续发布 controller_state
+
+**现象**：Execute 完成后，`/left_arm_controller/controller_state` 话题仍在持续发布。
+
+**原因**：这是 ROS2 控制器的正常行为。JTC 会持续发布 controller_state，即使轨迹执行完成。这是因为：
+- JTC 需要持续发布状态信息供其他节点监控
+- controller_state 包含当前位置、速度等信息
+
+**影响**：
+- 不影响轨迹执行
+- 但如果有多个控制器（左右臂），会同时发布到各自的话题
+- 如果同时订阅多个控制器的 controller_state，会导致数据混合
+
+**解决方案**：在 soem_bridge_node 中，根据 `active_arm` 参数只订阅一个臂的 controller_state：
+```yaml
+# soem_bridge.yaml
+active_arm: left  # 只订阅左臂
+```
+
+### 重复 Plan & Execute 不生效
+
+**现象**：起点终点不变，重新点击 Plan & Execute，controller_state 仍发布上一次的数据。
+
+**原因**：JTC 认为新轨迹与旧轨迹相同，跳过执行。
+
+**解决**：在 RViz Motion Planning 面板中点击 **Reset**，再重新 Plan & Execute。
 
 ---
 

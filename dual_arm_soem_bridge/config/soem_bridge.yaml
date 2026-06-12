@@ -2,7 +2,7 @@ soem_bridge_node:
   ros__parameters:
     # EtherCAT 网卡名；dry_run=true 时可以留空。
     ifname: "enp0s31f6"
-    # dry_run: true=干跑不连硬件, false=连接真实硬件。
+    # dry_run: true=只读编码器+保存轨迹, false=发送速度命令给电机。
     dry_run: false
     # 电机反馈话题。设为 "/joint_states" 可让 RViz 直接显示真实编码器数据。
     feedback_topic: /joint_states
@@ -24,9 +24,15 @@ soem_bridge_node:
       - raxis7_joint
 
     # ---- 控制器状态采样 ----
+    # dry_run 模式下只订阅一个臂，避免左右臂数据混合
+    active_arm: left  # left 或 right
     left_state_topic: /left_arm_controller/controller_state
     right_state_topic: /right_arm_controller/controller_state
     feedback_rate_hz: 20.0
+
+    # ---- 速度限制 ----
+    # 正反转都限制，单位 rad/s
+    max_velocity: 0.5
 
     # ---- 每轴标定参数(顺序对应 joint_names) ----
     # 关节 -> EtherCAT 从站编号映射(1-based)。
