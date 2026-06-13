@@ -43,6 +43,7 @@ struct AxisRuntime
   std::atomic<bool> has_target{false};          // 是否已收到过有效目标
   // 以下仅在 RT 线程内访问，无需原子。
   bool enabled_logged{false};
+  bool op_enabled{false};       // 是否已进入 Operation enabled
   int fr_low_cnt{0};       // fault reset 低电平计数
   int enable_wait_cnt{0};  // 使能后等待计数
   uint16_t prev_sw{0xFFFF};
@@ -86,6 +87,8 @@ public:
   bool enabled() const;
   // 读取各轴真实反馈(rad)，供 ROS 发布。
   std::vector<AxisFeedback> feedback() const;
+  // 设置逐个使能间隔时间(ms)。
+  void set_enable_delay_ms(int delay_ms);
   // 把单个关节角(rad)换算为该轴 counts，并应用方向/零点/软限位。
   int32_t rad_to_counts(const AxisConfig & cfg, double rad) const;
   double counts_to_rad(const AxisConfig & cfg, int32_t counts) const;
@@ -93,8 +96,6 @@ public:
   double counts_to_rad_vel(const AxisConfig & cfg, int32_t counts) const;
   // 把速度(rad/s)换算为 counts/s。
   int32_t vel_to_counts(const AxisConfig & cfg, double vel_rad_s) const;
-  // 供静态 PO2SOconfig 回调读取每轴配置。
-  const std::vector<AxisConfig> & axes_for_config() const;
   // 用于验证 SOEM 头文件和链接是否可用。
   std::size_t soem_context_size() const;
 
@@ -102,7 +103,7 @@ private:
   bool ecat_bringup();    // EtherCAT 初始化
   void ecat_teardown();   // 降级到 SAFE-OP/INIT
   void rt_loop();         // RT 线程
-  void axis_step(AxisRuntime & ax);  // 单轴 CSV 状态机
+  void axis_step(AxisRuntime & ax, int axis_idx);  // 单轴 CSV 状态机
 
   std::string ifname_;
   std::vector<AxisConfig> axis_configs_;
@@ -117,6 +118,11 @@ private:
   int expected_wkc_{0};
   int wkc_{0};
   uint64_t cycle_{0};
+  
+  // 逐个使能控制
+  int current_enabling_axis_{0};  // 当前正在使能的轴索引
+  bool all_enabled_{false};       // 所有轴是否都已使能
+  int enable_delay_ms_{100};      // 逐个使能间隔时间(ms)
 };
 
 }  // namespace dual_arm_soem_bridge

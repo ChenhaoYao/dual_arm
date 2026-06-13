@@ -134,11 +134,6 @@ SoemCsvMaster::~SoemCsvMaster()
   stop();
 }
 
-const std::vector<AxisConfig> & SoemCsvMaster::axes_for_config() const
-{
-  return axis_configs_;
-}
-
 bool SoemCsvMaster::configure(const std::string & ifname, const std::vector<AxisConfig> & axes)
 {
   ifname_ = ifname;
@@ -149,7 +144,6 @@ bool SoemCsvMaster::configure(const std::string & ifname, const std::vector<Axis
 }
 
 // 这个版本暂时没用
-
 bool SoemCsvMaster::configure(const std::string & ifname)
 {
   return configure(ifname, axis_configs_);
@@ -356,15 +350,45 @@ void SoemCsvMaster::rt_loop()
     wkc_ = ecx_receive_processdata(&g_ctx, EC_TIMEOUTRET);
     ecx_mbxhandler(&g_ctx, 0, 4);
 
-    for (auto & ax : axes_) {
-      axis_step(*ax);
+    // 逐个使能控制
+    if (!all_enabled_) {
+      // 只处理当前正在使能的轴
+      if (current_enabling_axis_ < (int)axes_.size()) {
+        axis_step(*axes_[current_enabling_axis_], current_enabling_axis_);
+        // 如果当前轴已进入Operation enabled，等待后再使能下一个轴
+        if (axes_[current_enabling_axis_]->op_enabled) {
+          printf("[ENABLE] axis%d (slave%d) enabled, waiting %dms before next\n", 
+                 current_enabling_axis_, axes_[current_enabling_axis_]->cfg.slave,
+                 enable_delay_ms_);
+          
+          // 等待指定时间，同时保持PDO通信
+          int wait_cycles = enable_delay_ms_;  // 1ms per cycle
+          for (int i = 0; i < wait_cycles; i++) {
+            add_time_ns(&ts, CYCLE_NS);
+            osal_monotonic_sleep(&ts);
+            ecx_receive_processdata(&g_ctx, EC_TIMEOUTRET);
+            ecx_send_processdata(&g_ctx);
+          }
+          
+          current_enabling_axis_++;
+          if (current_enabling_axis_ >= (int)axes_.size()) {
+            all_enabled_ = true;
+            printf("[ENABLE] All axes enabled\n");
+          }
+        }
+      }
+    } else {
+      // 所有轴已使能，正常处理
+      for (size_t i = 0; i < axes_.size(); i++) {
+        axis_step(*axes_[i], (int)i);
+      }
     }
 
     ecx_send_processdata(&g_ctx);
   }
 }
 
-void SoemCsvMaster::axis_step(AxisRuntime & ax)
+void SoemCsvMaster::axis_step(AxisRuntime & ax, int axis_idx)
 {
   uint16_t s = ax.cfg.slave;
   if (s < 1 || s > g_ctx.slavecount) return;
@@ -398,6 +422,7 @@ void SoemCsvMaster::axis_step(AxisRuntime & ax)
       cw = 0x0080;
       ax.fr_low_cnt = 0;
     }
+    ax.op_enabled = false;  // Fault时清除使能标志
   } else if ((sw & 0x004F) == 0x0040) {
     cw = 0x0006;
   } else if ((sw & 0x006F) == 0x0021) {
@@ -407,6 +432,7 @@ void SoemCsvMaster::axis_step(AxisRuntime & ax)
   } else if ((sw & 0x006F) == 0x0027) {
     // Operation enabled：执行 CSV 速度跟随。
     cw = 0x000F;
+    ax.op_enabled = true;  // 标记已进入Operation enabled
 
     if (!ax.enabled_logged) {
       ax.enabled_logged = true;
@@ -477,6 +503,11 @@ bool SoemCsvMaster::submit_waypoints(const std::vector<CsvWaypoint> & waypoints)
 bool SoemCsvMaster::enabled() const
 {
   return running_.load();
+}
+
+void SoemCsvMaster::set_enable_delay_ms(int delay_ms)
+{
+  enable_delay_ms_ = delay_ms;
 }
 
 std::vector<AxisFeedback> SoemCsvMaster::feedback() const

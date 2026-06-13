@@ -76,6 +76,9 @@ public:
     // 速度限制（正反转都限制）
     max_velocity_ = declare_parameter<double>("max_velocity", 1.0);
 
+    // 逐个使能间隔时间(ms)
+    axis_enable_interval_ms_ = declare_parameter<int>("axis_enable_interval_ms", 100);
+
     // 轴标定参数（每轴独立配置：从站号/方向/零点/减速比/限位）
     load_axis_configs();
 
@@ -147,10 +150,15 @@ public:
       RCLCPP_WARN(get_logger(), "ifname is empty, EtherCAT not started");
     } else if (!master_->configure(ifname_, axis_configs_)) {
       RCLCPP_ERROR(get_logger(), "Failed to configure SOEM master");
-    } else if (!master_->start()) {
-      RCLCPP_ERROR(get_logger(), "Failed to start SOEM master");
     } else {
-      RCLCPP_INFO(get_logger(), "EtherCAT started (dry_run=%s)", dry_run_ ? "true" : "false");
+      // 设置逐个使能间隔时间
+      master_->set_enable_delay_ms(axis_enable_interval_ms_);
+      if (!master_->start()) {
+        RCLCPP_ERROR(get_logger(), "Failed to start SOEM master");
+      } else {
+        RCLCPP_INFO(get_logger(), "EtherCAT started (dry_run=%s, axis_enable_interval=%dms)", 
+                    dry_run_ ? "true" : "false", axis_enable_interval_ms_);
+      }
     }
 
     RCLCPP_INFO(
@@ -490,6 +498,9 @@ private:
 
   // 速度限制
   double max_velocity_{1.0};  // rad/s
+
+  // 逐个使能间隔时间(ms)
+  int axis_enable_interval_ms_{100};
 
   // dry_run 模式：轨迹日志文件
   std::ofstream trajectory_file_;
