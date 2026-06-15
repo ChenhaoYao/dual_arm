@@ -13,6 +13,7 @@ install(FILES urdf.rviz
 
 install(PROGRAMS
   joint_control_panel.py
+  scripts/move_to_pose.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

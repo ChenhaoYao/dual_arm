@@ -32,11 +32,15 @@ soem_bridge_node:
 
     # ---- 速度限制 ----
     # 正反转都限制，单位 rad/s
-    max_velocity: 0.3
+    max_velocity: 0.1
 
     # ---- 逐个使能 ----
     # 前一个轴使能后，等待多久再使能下一个轴（单位 ms）
     axis_enable_interval_ms: 100
+
+    # ---- 轨迹日志 ----
+    # 保存间隔（单位 ms），100ms = 10Hz
+    log_interval_ms: 100
 
     # ---- 每轴标定参数(顺序对应 joint_names) ----
     # 关节 -> EtherCAT 从站编号映射(1-based)。

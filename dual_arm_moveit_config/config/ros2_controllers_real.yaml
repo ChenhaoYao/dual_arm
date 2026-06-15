@@ -33,13 +33,13 @@ left_arm_controller:
       stopped_velocity_tolerance: 0.01
       goal_time: 0.0
     gains:
-      laxis1_joint: {p: 5.0, i: 0.0, d: 0.1}
-      laxis2_joint: {p: 5.0, i: 0.0, d: 0.1}
-      laxis3_joint: {p: 5.0, i: 0.0, d: 0.1}
-      laxis4_joint: {p: 5.0, i: 0.0, d: 0.1}
-      laxis5_joint: {p: 5.0, i: 0.0, d: 0.1}
-      laxis6_joint: {p: 5.0, i: 0.0, d: 0.1}
-      laxis7_joint: {p: 5.0, i: 0.0, d: 0.1}
+      laxis1_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis2_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis3_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis4_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis5_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis6_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis7_joint: {p: 1.0, i: 0.0, d: 0.1}
 
 right_arm_controller:
   ros__parameters:
@@ -63,10 +63,10 @@ right_arm_controller:
       stopped_velocity_tolerance: 0.01
       goal_time: 0.0
     gains:
-      raxis1_joint: {p: 5.0, i: 0.0, d: 0.1}
-      raxis2_joint: {p: 5.0, i: 0.0, d: 0.1}
-      raxis3_joint: {p: 5.0, i: 0.0, d: 0.1}
-      raxis4_joint: {p: 5.0, i: 0.0, d: 0.1}
-      raxis5_joint: {p: 5.0, i: 0.0, d: 0.1}
-      raxis6_joint: {p: 5.0, i: 0.0, d: 0.1}
-      raxis7_joint: {p: 5.0, i: 0.0, d: 0.1}
+      raxis1_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis2_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis3_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis4_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis5_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis6_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis7_joint: {p: 1.0, i: 0.0, d: 0.1}

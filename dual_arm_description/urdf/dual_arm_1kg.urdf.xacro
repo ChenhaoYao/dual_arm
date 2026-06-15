@@ -54,7 +54,7 @@
     <origin xyz="0.12844 -0.010901 0.9108" rpy="1.5941 0 -0.084669" />
     <parent link="base_link" />
     <child link="laxis1_link" />
-    <axis xyz="-1 0 0" />
+    <axis xyz="1 0 0" />
     <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
   </joint>
 
@@ -113,7 +113,7 @@
   </link>
 
   <joint name="laxis3_joint" type="revolute">
-    <origin xyz="-0.016833 0.034747 0.1012" rpy="1.748 -0.28299 -2.1411" />
+    <origin xyz="-0.016833 0.034747 0.1012" rpy="1.393593 0.282990 1.000493" />
     <parent link="laxis2_link" />
     <child link="laxis3_link" />
     <axis xyz="0 1 0" />
@@ -175,7 +175,7 @@
   </link>
 
   <joint name="laxis5_joint" type="revolute">
-    <origin xyz="0.068269 -0.019 -0.082391" rpy="-2.152377 0.398915 2.104409" />
+    <origin xyz="0.068269 -0.019 -0.082391" rpy="-0.989216 -0.398915 -1.037184" />
     <parent link="laxis4_link" />
     <child link="laxis5_link" />
     <axis xyz="0 1 0" />
@@ -271,7 +271,7 @@
     <origin xyz="-0.1541 0.013079 0.9108" rpy="0.7964 0 3.0569" />
     <parent link="base_link" />
     <child link="raxis1_link" />
-    <axis xyz="-1 0 0" />
+    <axis xyz="1 0 0" />
     <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
   </joint>
 

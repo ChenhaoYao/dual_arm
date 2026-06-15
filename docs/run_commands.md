@@ -61,29 +61,36 @@ sudo /home/dell/dual_arm/SOEM/build/samples/ec_sample/ec_sample enp0s31f6
 ### 话题查看
 
 ```bash
-# 查看话题列表
-ros2 topic list
+# 查看话题列表（sudo）
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic list"
 
-# 查看关节状态
-ros2 topic echo /joint_states --once
+# 查看关节状态（sudo）
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic echo /joint_states --once"
 
+# 持续查看关节状态
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic echo /joint_states"
 
+# 查看控制器状态
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic echo /left_arm_controller/controller_state --once"
+
 # 查看话题频率
-ros2 topic hz /joint_states
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic hz /joint_states"
+
+# 查看话题发布者/订阅者数量
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic info /joint_states"
 
 # 查看话题 QoS 信息
-ros2 topic info /joint_states --verbose
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic info /joint_states --verbose"
 ```
 
 ### 节点查看
 
 ```bash
 # 查看运行中的节点
-ros2 node list
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 node list"
 
 # 查看节点信息（订阅/发布/服务）
-ros2 node info /soem_bridge_node
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 node info /soem_bridge_node"
 ```
 
 ### TF 查看
@@ -127,17 +134,17 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic pub /soem_bridge_node/test_axis std_msgs/msg/Float64MultiArray '{data: [0, 0.5]}'"
 
 # 停止
-sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic pub /soem_bridge_node/test_axis std_msgs/msg/Float64MultiArray '{data: [0, 0.0]}'"
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic pub /soem_bridge_node/test_axis std_msgs/msg/Float64MultiArray '{data: [1, 0.0]}'"
 ```
 
 ### 参数查看
 
 ```bash
 # 查看节点参数
-ros2 param dump /soem_bridge_node
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 param dump /soem_bridge_node"
 
 # 查看单个参数
-ros2 param get /robot_state_publisher use_sim_time
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 param get /soem_bridge_node max_velocity"
 ```
 
 ## 权限设置

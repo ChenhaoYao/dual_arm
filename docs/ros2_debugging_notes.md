@@ -236,6 +236,66 @@ read() {
 }
 ```
 
+### 实战案例：QoS 不兼容导致 JTC 失控（pid 恒等于 p×ref）
+
+**现象**：实物实验（`real.launch.py` + `soem_bridge.launch.py`），在 RViz Motion Planning 发指令后，所有关节匀速狂转停不下来。查 `controller_state` 日志发现：即使 `ref` 已接近真实反馈 `fb`，JTC 的 `output.velocities`（pid 列）依然是很大的速度。
+
+**定位的关键证据**：逐行核对日志，发现每个关节都满足
+```
+pid = 5.0 × ref      # 5.0 正是 ros2_controllers_real.yaml 里的 p 增益
+```
+即 `pid = p·(ref − measured)` 中 `measured ≡ 0`。说明 **JTC 看到的实际位置一直是 0**，误差永远等于 ref，输出永远是 `p×ref`，永不收敛。而真实编码器 `fb` 在不断变化（越过目标也不减速），证明 JTC 根本没收到反馈。
+
+**数据流**：
+```
+JTC ──output.velocities──> soem_bridge ──EtherCAT──> 电机
+                                              │
+电机编码器 ──/joint_states──> DualArmHardware::read() ──state_interface──> JTC
+```
+闭环靠最后这条 `/joint_states → DualArmHardware → JTC` 把真实位置喂回 JTC。
+
+**根因**：`/joint_states` 两端 QoS 不兼容。
+- 发布端 soem_bridge_node：`rclcpp::QoS(10).best_effort()`
+- 订阅端 DualArmHardware：`rclcpp::QoS(10)`（默认 **RELIABLE**）
+
+DDS 规则：**RELIABLE 订阅者无法接收 BEST_EFFORT 发布者的数据**，连接建立不起来，`joint_state_callback` 永不触发，`hw_position_states_` 永远停在 URDF 的 `initial_value=0.0`，闭环断开。
+
+**解决**：把订阅端改成 best_effort，与发布端对齐：
+```cpp
+// dual_arm_control/src/dual_arm_hardware.cpp on_configure()
+joint_state_sub_ = node_->create_subscription<sensor_msgs::msg::JointState>(
+  "/joint_states", rclcpp::QoS(10).best_effort(),   // 原为 rclcpp::QoS(10)
+  [this](const sensor_msgs::msg::JointState::SharedPtr msg) { joint_state_callback(msg); });
+```
+
+**验证**：
+```bash
+ros2 topic info /joint_states -v   # 订阅端 QoS 应为 BEST_EFFORT，无 incompatible 计数
+```
+RViz 发小幅运动，观察 pid 随 fb 接近 ref 而衰减到 ~0。
+
+**经验**：JTC 输出 `output.velocities ≡ p×ref`（正比于参考、与反馈无关）是"反馈没喂回控制器、measured 恒为 0"的典型特征——优先怀疑 state_interface 反馈链路（QoS、话题名、关节名匹配），而不是 PID 增益本身。
+
+### axis_directions 不会破坏 JTC 闭环（dir² 抵消）
+
+**疑问**：在 `soem_bridge.yaml` 用 `axis_directions` 统一各电机转向，又在 `soem_master.cpp` 的 rad/count 转换里多处乘了 `direction`，会不会让 JTC 出问题？
+
+**结论：不会。** `direction` 在闭环里出现两次正好抵消：
+- 命令路径（出）：`vel_to_counts` 中 `counts = vel × scale × direction`
+- 反馈路径（回）：`counts_to_rad` 中 `rad = counts / scale × direction`
+
+推导：JTC 在 ROS 坐标系发 `+v` →电机 `tgt = +v·scale·dir` →编码器 `d(counts)/dt = +v·scale·dir` →回报 `measured = counts/scale·dir` →
+```
+d(measured)/dt = v · dir² = v > 0   （dir² 恒为 1）
+```
+所以无论 dir 是 +1 还是 −1，"发 +速度 → 上报位置增大" 永远成立，闭环恒为稳定的负反馈。`direction` 只改变电机物理转向，不影响 ROS 层的环路一致性。`zero_offset` 同理（`rad_to_counts` 与 `counts_to_rad` 互为逆运算）。
+
+**唯一前提**：命令和反馈必须用同一个 `direction` 值（代码两处都读 `cfg.direction`，已满足）。
+
+**注意**：
+- 若闭环接通后仍有**单个轴**朝一个方向飞车，说明该轴 `direction` 与物理/编码器不符（变成正反馈），翻转该轴即可。
+- `axis_zero_offsets` 标错只会让机械臂驱到错误的绝对位姿，不会失控发散（属标定问题，与稳定性无关）。
+
 ---
 
 ## Launch 参数传递

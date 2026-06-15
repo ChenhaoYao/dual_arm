@@ -98,9 +98,11 @@ hardware_interface::CallbackReturn DualArmHardware::on_configure(
 
   // 订阅 /joint_states 话题
   // soem_bridge_node 发布真实编码器数据到这个话题
-  // QoS=10 表示队列大小为 10，使用默认 RELIABLE 模式
+  // QoS 必须与 soem_bridge_node 的 /joint_states 发布端一致(best_effort)，
+  // 否则 RELIABLE 订阅者无法接收 BEST_EFFORT 发布者的数据，
+  // 导致 hw_position_states_ 永远停在初始值 0，JTC 误差恒等于 ref、输出恒为 p*ref 失控。
   joint_state_sub_ = node_->create_subscription<sensor_msgs::msg::JointState>(
-    "/joint_states", rclcpp::QoS(10),
+    "/joint_states", rclcpp::QoS(10).best_effort(),
     [this](const sensor_msgs::msg::JointState::SharedPtr msg) {
       joint_state_callback(msg);
     });

@@ -79,6 +79,9 @@ public:
     // 逐个使能间隔时间(ms)
     axis_enable_interval_ms_ = declare_parameter<int>("axis_enable_interval_ms", 100);
 
+    // 轨迹日志保存间隔(ms)
+    log_interval_ms_ = declare_parameter<int>("log_interval_ms", 100);
+
     // 轴标定参数（每轴独立配置：从站号/方向/零点/减速比/限位）
     load_axis_configs();
 
@@ -273,10 +276,20 @@ private:
       waypoint.positions = msg->reference.positions;
     }
 
+    // 在 move 之前保存限速后的速度，用于日志记录
+    std::vector<double> limited_velocities = waypoint.velocities;
+
     waypoints.push_back(std::move(waypoint));
 
-    // 保存轨迹到文件（无论 dry_run 还是真实模式）
-    save_trajectory_to_file(msg, waypoint.velocities);
+    // 保存轨迹到文件（enable 后才保存，限频10Hz）
+    if (send_enabled_.load() || dry_run_) {
+      auto now = std::chrono::steady_clock::now();
+      auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_log_time_).count();
+      if (elapsed >= log_interval_ms_) {
+        save_trajectory_to_file(msg, raw_velocities, limited_velocities);
+        last_log_time_ = now;
+      }
+    }
 
     // dry-run：不发送给电机，直接返回
     if (dry_run_) {
@@ -299,9 +312,10 @@ private:
   // =====================================================================
   // 保存轨迹到文件（保存左臂7个关节）
   // 每次启动生成带时间戳的文件，避免覆盖
-  // 使用固定宽度文本格式，便于阅读
+  // 使用CSV格式，逗号分隔，固定宽度对齐
   // =====================================================================
   void save_trajectory_to_file(const JTCState::SharedPtr & msg, 
+                                const std::vector<double> & raw_velocities,
                                 const std::vector<double> & limited_velocities)
   {
     // 首次调用时打开文件
@@ -316,7 +330,7 @@ private:
       ss << "/home/dell/dual_arm/dual_arm_soem_bridge/log/trajectory_"
          << std::put_time(std::localtime(&time_t), "%Y%m%d_%H%M%S")
          << "." << std::setfill('0') << std::setw(3) << ms.count()
-         << ".log";
+         << ".csv";
       std::string filename = ss.str();
       
       // 确保log目录存在
@@ -328,30 +342,27 @@ private:
         return;
       }
       
-      // 写入表头（左臂7个关节）
-      // 固定宽度：每列12字符
+      // 写入表头（左臂7个关节，每个关节4列）
       trajectory_file_ << std::left 
-                       << std::setw(20) << "timestamp_ns"
-                       << std::setw(12) << "laxis1_ref" 
-                       << std::setw(12) << "laxis1_vel"
-                       << std::setw(12) << "laxis2_ref" 
-                       << std::setw(12) << "laxis2_vel"
-                       << std::setw(12) << "laxis3_ref" 
-                       << std::setw(12) << "laxis3_vel"
-                       << std::setw(12) << "laxis4_ref" 
-                       << std::setw(12) << "laxis4_vel"
-                       << std::setw(12) << "laxis5_ref" 
-                       << std::setw(12) << "laxis5_vel"
-                       << std::setw(12) << "laxis6_ref" 
-                       << std::setw(12) << "laxis6_vel"
-                       << std::setw(12) << "laxis7_ref" 
-                       << std::setw(12) << "laxis7_vel"
-                       << "\n";
-      
-      // 写入分隔线
-      trajectory_file_ << std::string(20 + 12 * 14, '-') << "\n";
+                       << std::setw(20) << "timestamp_ns";
+      for (int i = 1; i <= 7; i++) {
+        trajectory_file_ << "," << std::setw(12) << ("laxis" + std::to_string(i) + "_ref")
+                         << "," << std::setw(12) << ("laxis" + std::to_string(i) + "_pid")
+                         << "," << std::setw(12) << ("laxis" + std::to_string(i) + "_out")
+                         << "," << std::setw(12) << ("laxis" + std::to_string(i) + "_fb");
+      }
+      trajectory_file_ << "\n";
       
       RCLCPP_INFO(get_logger(), "Trajectory logging to: %s", filename.c_str());
+    }
+
+    // 获取真实电机位置反馈
+    std::vector<double> fb_positions(14, 0.0);
+    if (master_->enabled()) {
+      auto fb = master_->feedback();
+      for (size_t i = 0; i < fb.size() && i < fb_positions.size(); i++) {
+        fb_positions[i] = fb[i].position_rad;
+      }
     }
 
     // 写入数据行（左臂7个关节）
@@ -361,10 +372,14 @@ private:
     // 左臂关节索引：0-6
     for (size_t i = 0; i < 7 && i < msg->joint_names.size(); i++) {
       double ref_pos = (i < msg->reference.positions.size()) ? msg->reference.positions[i] : 0.0;
+      double pid_vel = (i < raw_velocities.size()) ? raw_velocities[i] : 0.0;
       double out_vel = (i < limited_velocities.size()) ? limited_velocities[i] : 0.0;
+      double fb_pos = (i < fb_positions.size()) ? fb_positions[i] : 0.0;
       trajectory_file_ << std::fixed << std::setprecision(4)
-                       << std::setw(12) << ref_pos
-                       << std::setw(12) << out_vel;
+                       << "," << std::setw(12) << ref_pos
+                       << "," << std::setw(12) << pid_vel
+                       << "," << std::setw(12) << out_vel
+                       << "," << std::setw(12) << fb_pos;
     }
     trajectory_file_ << "\n";
     trajectory_file_.flush();
@@ -416,6 +431,12 @@ private:
     send_enabled_.store(request->data);
     response->success = true;
     response->message = request->data ? "send enabled" : "send disabled";
+
+    // disable 时关闭轨迹日志文件
+    if (!request->data && trajectory_file_.is_open()) {
+      trajectory_file_.close();
+      RCLCPP_INFO(get_logger(), "Trajectory log file closed");
+    }
   }
 
   void handle_stop(
@@ -425,6 +446,12 @@ private:
     send_enabled_.store(false);
     response->success = true;
     response->message = "send disabled (stop)";
+
+    // 关闭轨迹日志文件
+    if (trajectory_file_.is_open()) {
+      trajectory_file_.close();
+      RCLCPP_INFO(get_logger(), "Trajectory log file closed");
+    }
   }
 
   // CiA402 fault 由 RT 线程自动复位，此服务仅回执。
@@ -504,6 +531,8 @@ private:
 
   // dry_run 模式：轨迹日志文件
   std::ofstream trajectory_file_;
+  std::chrono::steady_clock::time_point last_log_time_;
+  int log_interval_ms_{100};  // 日志保存间隔，默认100ms (10Hz)
 
   // ROS 话题/服务/定时器
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr real_joint_state_pub_;
