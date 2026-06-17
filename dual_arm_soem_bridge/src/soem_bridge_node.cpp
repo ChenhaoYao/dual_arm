@@ -65,8 +65,7 @@ public:
     feedback_topic_ = declare_parameter<std::string>("feedback_topic", "/joint_states");
     joint_names_ = declare_parameter<std::vector<std::string>>("joint_names", default_joint_names());
 
-    // 控制器采样配置：从左右臂 controller_state 采样 reference.positions
-    active_arm_ = declare_parameter<std::string>("active_arm", "left");
+    // 控制器采样配置：同时订阅左右臂 controller_state
     left_state_topic_ = declare_parameter<std::string>(
       "left_state_topic", "/left_arm_controller/controller_state");
     right_state_topic_ = declare_parameter<std::string>(
@@ -94,20 +93,16 @@ public:
     real_joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>(
       feedback_topic_, rclcpp::QoS(10).best_effort());
 
-    // 根据 active_arm 参数只订阅一个臂，避免左右臂数据混合
-    if (active_arm_ == "left") {
-      left_state_sub_ = create_subscription<JTCState>(
-        left_state_topic_, rclcpp::QoS(10),
-        [this](JTCState::SharedPtr msg) { on_controller_state(msg); });
-      RCLCPP_INFO(get_logger(), "Subscribed to LEFT arm: %s", left_state_topic_.c_str());
-    } else if (active_arm_ == "right") {
-      right_state_sub_ = create_subscription<JTCState>(
-        right_state_topic_, rclcpp::QoS(10),
-        [this](JTCState::SharedPtr msg) { on_controller_state(msg); });
-      RCLCPP_INFO(get_logger(), "Subscribed to RIGHT arm: %s", right_state_topic_.c_str());
-    } else {
-      RCLCPP_ERROR(get_logger(), "Invalid active_arm: %s (must be 'left' or 'right')", active_arm_.c_str());
-    }
+    // 同时订阅左右臂 controller_state，双臂独立控制
+    left_state_sub_ = create_subscription<JTCState>(
+      left_state_topic_, rclcpp::QoS(10),
+      [this](JTCState::SharedPtr msg) { on_controller_state(msg); });
+    RCLCPP_INFO(get_logger(), "Subscribed to LEFT arm: %s", left_state_topic_.c_str());
+
+    right_state_sub_ = create_subscription<JTCState>(
+      right_state_topic_, rclcpp::QoS(10),
+      [this](JTCState::SharedPtr msg) { on_controller_state(msg); });
+    RCLCPP_INFO(get_logger(), "Subscribed to RIGHT arm: %s", right_state_topic_.c_str());
 
     // 使能/停止/故障复位服务
     enable_srv_ = create_service<std_srvs::srv::SetBool>(
@@ -310,7 +305,7 @@ private:
   }
 
   // =====================================================================
-  // 保存轨迹到文件（保存左臂7个关节）
+  // 保存轨迹到文件（双臂 14 个关节）
   // 每次启动生成带时间戳的文件，避免覆盖
   // 使用CSV格式，逗号分隔，固定宽度对齐
   // =====================================================================
@@ -318,6 +313,10 @@ private:
                                 const std::vector<double> & raw_velocities,
                                 const std::vector<double> & limited_velocities)
   {
+    // 判断是左臂还是右臂（根据关节名前缀）
+    bool is_left = !msg->joint_names.empty() && msg->joint_names[0].find("laxis") == 0;
+    std::string prefix = is_left ? "laxis" : "raxis";
+
     // 首次调用时打开文件
     if (!trajectory_file_.is_open()) {
       // 生成带时间戳的文件名
@@ -342,14 +341,22 @@ private:
         return;
       }
       
-      // 写入表头（左臂7个关节，每个关节4列）
+      // 写入表头（双臂 14 个关节，每个关节 4 列）
       trajectory_file_ << std::left 
                        << std::setw(20) << "timestamp_ns";
+      // 左臂
       for (int i = 1; i <= 7; i++) {
         trajectory_file_ << "," << std::setw(12) << ("laxis" + std::to_string(i) + "_ref")
                          << "," << std::setw(12) << ("laxis" + std::to_string(i) + "_pid")
                          << "," << std::setw(12) << ("laxis" + std::to_string(i) + "_out")
                          << "," << std::setw(12) << ("laxis" + std::to_string(i) + "_fb");
+      }
+      // 右臂
+      for (int i = 1; i <= 7; i++) {
+        trajectory_file_ << "," << std::setw(12) << ("raxis" + std::to_string(i) + "_ref")
+                         << "," << std::setw(12) << ("raxis" + std::to_string(i) + "_pid")
+                         << "," << std::setw(12) << ("raxis" + std::to_string(i) + "_out")
+                         << "," << std::setw(12) << ("raxis" + std::to_string(i) + "_fb");
       }
       trajectory_file_ << "\n";
       
@@ -365,16 +372,23 @@ private:
       }
     }
 
-    // 写入数据行（左臂7个关节）
+    // 根据左右臂确定偏移量（左臂 0-6，右臂 7-13）
+    size_t offset = is_left ? 0 : 7;
+
+    // 写入数据行
     trajectory_file_ << std::left << std::setw(20) 
                      << (msg->header.stamp.sec * 1000000000LL + msg->header.stamp.nanosec);
     
-    // 左臂关节索引：0-6
-    for (size_t i = 0; i < 7 && i < msg->joint_names.size(); i++) {
-      double ref_pos = (i < msg->reference.positions.size()) ? msg->reference.positions[i] : 0.0;
-      double pid_vel = (i < raw_velocities.size()) ? raw_velocities[i] : 0.0;
-      double out_vel = (i < limited_velocities.size()) ? limited_velocities[i] : 0.0;
-      double fb_pos = (i < fb_positions.size()) ? fb_positions[i] : 0.0;
+    // 写入所有 14 个关节的数据（当前臂写实际值，另一臂填 0）
+    for (size_t i = 0; i < 14; i++) {
+      double ref_pos = 0.0, pid_vel = 0.0, out_vel = 0.0, fb_pos = 0.0;
+      if (i >= offset && i < offset + msg->joint_names.size()) {
+        size_t j = i - offset;
+        ref_pos = (j < msg->reference.positions.size()) ? msg->reference.positions[j] : 0.0;
+        pid_vel = (j < raw_velocities.size()) ? raw_velocities[j] : 0.0;
+        out_vel = (j < limited_velocities.size()) ? limited_velocities[j] : 0.0;
+      }
+      fb_pos = (i < fb_positions.size()) ? fb_positions[i] : 0.0;
       trajectory_file_ << std::fixed << std::setprecision(4)
                        << "," << std::setw(12) << ref_pos
                        << "," << std::setw(12) << pid_vel
@@ -518,7 +532,6 @@ private:
   std::vector<AxisConfig> axis_configs_;
 
   // 控制器采样配置
-  std::string active_arm_;  // "left" 或 "right"
   std::string left_state_topic_;
   std::string right_state_topic_;
   double feedback_rate_hz_{20.0};

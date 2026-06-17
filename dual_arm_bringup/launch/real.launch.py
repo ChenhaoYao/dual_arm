@@ -25,7 +25,7 @@ def generate_launch_description():
     use_broadcaster = LaunchConfiguration('use_broadcaster')
 
     moveit_demo_launch = IncludeLaunchDescription(
-        PathJoinSubstitution([dual_arm_moveit_config_pkg, 'launch', 'demo.launch.py']),
+        PathJoinSubstitution([dual_arm_moveit_config_pkg, 'launch', 'moveit.launch.py']),
         launch_arguments={
             'use_sim_time': use_sim_time,
             'hw_plugin': 'dual_arm_control/DualArmHardware',

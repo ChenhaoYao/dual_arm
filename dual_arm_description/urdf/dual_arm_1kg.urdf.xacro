@@ -43,9 +43,9 @@
       </material>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 1.5708 0" />
+      <origin xyz="-0.015 0 0" rpy="0 1.5708 0" />
       <geometry>
-        <cylinder length="0.1" radius="0.05" />
+        <cylinder length="0.08" radius="0.04" />
       </geometry>
     </collision>
   </link>
@@ -76,7 +76,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 1.5708 0" />
       <geometry>
-        <cylinder length="0.1" radius="0.05" />
+        <cylinder length="0.08" radius="0.04" />
       </geometry>
     </collision>
   </link>

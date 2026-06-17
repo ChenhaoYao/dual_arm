@@ -1,53 +1,77 @@
 #!/usr/bin/env python3
 """
-MoveIt 末端位姿控制（通过 /move_action 接口）。
+MoveIt 末端位姿控制（通过 /compute_ik + /move_action 接口）。
+先调用 IK 求解器验证，再发送规划目标。
+
 用法:
   ros2 run dual_arm_description move_to_pose.py --ros-args \
     -p x:=0.3 -p y:=0.0 -p z:=0.5 \
     -p roll:=0.0 -p pitch:=0.0 -p yaw:=0.0
 """
 
-# 导入标准库
-import math  # 数学函数，用于三角函数计算
-import sys   # 系统参数，用于获取命令行参数
+import math
+import sys
 
-# 导入ROS 2 Python客户端库
 import rclpy
-from rclpy.action import ActionClient  # ROS 2 Action客户端，用于与MoveIt action server通信
+from rclpy.action import ActionClient
+from rclpy.node import Node
 
-# 导入消息类型
-from geometry_msgs.msg import PoseStamped, Vector3  # 几何消息：带坐标系的位姿、三维向量
-from moveit_msgs.action import MoveGroup  # MoveIt动作类型：MoveGroup动作
-from moveit_msgs.msg import (           # MoveIt消息类型
-    MotionPlanRequest,       # 运动规划请求
-    PositionConstraint,      # 位置约束
-    OrientationConstraint,   # 姿态约束
-    Constraints,             # 约束集合
+from geometry_msgs.msg import PoseStamped, Vector3
+from moveit_msgs.action import MoveGroup
+from moveit_msgs.msg import (
+    MotionPlanRequest,
+    PositionConstraint,
+    OrientationConstraint,
+    Constraints,
+    MoveItErrorCodes,
+    RobotState,
 )
-from shape_msgs.msg import SolidPrimitive  # 形状消息：用于定义约束区域（球体）
-from sensor_msgs.msg import JointState     # 传感器消息：关节状态
+from moveit_msgs.srv import GetPositionIK
+from shape_msgs.msg import SolidPrimitive
+from sensor_msgs.msg import JointState
+
+# MoveIt 错误码映射表，用于将数字错误码转换为可读的字符串
+# 来源：moveit_msgs/msg/MoveItErrorCodes.msg
+MOVEIT_ERROR_CODES = {
+    1: "SUCCESS",                                    # 成功
+    0: "UNDEFINED",                                  # 未定义
+    99999: "FAILURE",                                # 通用失败（未指明原因）
+    -1: "PLANNING_FAILED",                           # 规划失败
+    -2: "INVALID_MOTION_PLAN",                       # 无效的运动规划
+    -3: "MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE",  # 环境变化导致规划失效
+    -4: "CONTROL_FAILED",                            # 控制执行失败
+    -5: "UNABLE_TO_AQUIRE_SENSOR_DATA",              # 无法获取传感器数据
+    -6: "TIMED_OUT",                                 # 超时
+    -7: "PREEMPTED",                                 # 被抢占
+    -10: "START_STATE_IN_COLLISION",                 # 起始状态碰撞
+    -11: "START_STATE_VIOLATES_PATH_CONSTRAINTS",    # 起始状态违反路径约束
+    -12: "GOAL_IN_COLLISION",                        # 目标状态碰撞
+    -13: "GOAL_VIOLATES_PATH_CONSTRAINTS",           # 目标违反路径约束
+    -14: "GOAL_CONSTRAINTS_VIOLATED",                # 目标约束不满足
+    -15: "INVALID_GROUP_NAME",                       # 无效的规划组名
+    -16: "INVALID_GOAL_CONSTRAINTS",                 # 无效的目标约束
+    -17: "INVALID_ROBOT_STATE",                      # 无效的机器人状态
+    -18: "INVALID_LINK_NAME",                        # 无效的 link 名称
+    -19: "INVALID_OBJECT_NAME",                      # 无效的物体名称
+    -21: "FRAME_TRANSFORM_FAILURE",                  # 坐标变换失败
+    -22: "COLLISION_CHECKING_UNAVAILABLE",           # 碰撞检测不可用
+    -23: "ROBOT_STATE_STALE",                        # 机器人状态过期
+    -24: "SENSOR_INFO_STALE",                        # 传感器信息过期
+    -25: "COMMUNICATION_FAILURE",                    # 通信失败
+    -26: "START_STATE_INVALID",                      # 起始状态无效
+    -27: "GOAL_STATE_INVALID",                       # 目标状态无效
+    -28: "UNRECOGNIZED_GOAL_TYPE",                   # 无法识别的目标类型
+    -29: "CRASH",                                    # 崩溃
+    -30: "ABORT",                                    # 中止
+    -31: "NO_IK_SOLUTION",                           # 无 IK 解
+}
 
 
 def rpy_to_quaternion(roll, pitch, yaw):
-    """将欧拉角（Roll, Pitch, Yaw）转换为四元数（qx, qy, qz, qw）。
-    
-    使用ZYX欧拉角顺序（先偏航，再俯仰，最后滚转）。
-    四元数用于表示旋转，避免万向锁问题。
-    
-    参数:
-        roll:  绕X轴的旋转角度（弧度）
-        pitch: 绕Y轴的旋转角度（弧度）
-        yaw:   绕Z轴的旋转角度（弧度）
-    
-    返回:
-        (qx, qy, qz, qw) 四元数元组
-    """
-    # 计算半角的三角函数值，用于四元数公式
+    """将欧拉角（Roll, Pitch, Yaw）转换为四元数（qx, qy, qz, qw）。"""
     cr, sr = math.cos(roll / 2), math.sin(roll / 2)
     cp, sp = math.cos(pitch / 2), math.sin(pitch / 2)
     cy, sy = math.cos(yaw / 2), math.sin(yaw / 2)
-    
-    # 四元数计算公式（ZYX顺序）
     return (
         sr * cp * cy - cr * sp * sy,  # qx
         cr * sp * cy + sr * cp * sy,  # qy
@@ -56,19 +80,75 @@ def rpy_to_quaternion(roll, pitch, yaw):
     )
 
 
+def check_ik(node: Node, group: str, ee_link: str, target: PoseStamped) -> bool:
+    """调用 /compute_ik 服务，直接查询 IK 求解器。
+
+    这个函数绕过 MoveGroup 的规划管道，直接调用 IK 求解器服务，
+    可以拿到 IK 求解器的原始返回值（成功/失败 + 关节角度解）。
+
+    参数:
+        node: ROS2 节点
+        group: 规划组名称（如 "left_arm"）
+        ee_link: 末端执行器 link 名称（如 "laxis7_link"）
+        target: 目标位姿（PoseStamped）
+
+    返回:
+        True 表示 IK 求解成功，False 表示失败
+    """
+    # 创建 /compute_ik 服务客户端
+    client = node.create_client(GetPositionIK, "/compute_ik")
+    node.get_logger().info("Waiting for /compute_ik service...")
+    if not client.wait_for_service(timeout_sec=10.0):
+        node.get_logger().error("/compute_ik service not available")
+        return False
+
+    # 构建 IK 请求
+    req = GetPositionIK.Request()
+    req.ik_request.group_name = group           # 规划组名
+    req.ik_request.ik_link_name = ee_link       # 末端执行器 link
+    req.ik_request.pose_stamped = target        # 目标位姿
+    req.ik_request.timeout = rclpy.duration.Duration(seconds=5.0).to_msg()  # IK 求解超时
+    req.ik_request.avoid_collisions = False     # 不做碰撞检测（只验证运动学）
+
+    # 异步调用服务
+    node.get_logger().info("Calling IK solver...")
+    future = client.call_async(req)
+    rclpy.spin_until_future_complete(node, future, timeout_sec=10.0)
+
+    if not future.done():
+        node.get_logger().error("Timed out waiting for /compute_ik response")
+        return False
+
+    # 解析响应
+    resp = future.result()
+    code = resp.error_code.val
+    name = MOVEIT_ERROR_CODES.get(code, f"UNKNOWN({code})")
+
+    if code == MoveItErrorCodes.SUCCESS:
+        # IK 成功，打印求解得到的关节角度
+        node.get_logger().info(f"IK SUCCESS: {name}")
+        node.get_logger().info(
+            f"  Joint values: {list(resp.solution.joint_state.position)}"
+        )
+        return True
+    else:
+        # IK 失败，打印原始错误码
+        node.get_logger().error(f"IK FAILED: error_code={code}: {name}")
+        return False
+
+
 def main():
-    """主函数：初始化ROS 2节点，设置MoveIt目标位姿，并发送规划请求。"""
-    
+    """主函数：先验证 IK，再发送规划目标。"""
+
     rclpy.init(args=sys.argv)
     node = rclpy.create_node("move_to_pose")
 
-    # ========== 声明ROS参数 ==========
-    # 这些参数可以通过命令行或配置文件设置
-    node.declare_parameter("group", "left_arm")      # 运动组名称（左臂/右臂）
-    node.declare_parameter("ee_link", "laxis7_link") # 末端执行器链接名称
-    node.declare_parameter("x", 0.3)                 # 目标X坐标（米）
-    node.declare_parameter("y", 0.0)                 # 目标Y坐标（米）
-    node.declare_parameter("z", 0.5)                 # 目标Z坐标（米）
+    # ========== 声明 ROS 参数 ==========
+    node.declare_parameter("group", "left_arm")      # 规划组名称
+    node.declare_parameter("ee_link", "laxis7_link") # 末端执行器 link
+    node.declare_parameter("x", 0.3)                 # 目标 X 坐标（米）
+    node.declare_parameter("y", 0.0)                 # 目标 Y 坐标（米）
+    node.declare_parameter("z", 0.5)                 # 目标 Z 坐标（米）
     node.declare_parameter("roll", 0.0)              # 滚转角（弧度）
     node.declare_parameter("pitch", 0.0)             # 俯仰角（弧度）
     node.declare_parameter("yaw", 0.0)               # 偏航角（弧度）
@@ -83,129 +163,101 @@ def main():
     pitch = node.get_parameter("pitch").value
     yaw = node.get_parameter("yaw").value
 
-    # 将欧拉角转换为四元数，用于ROS位姿消息
+    # 欧拉角转四元数
     qx, qy, qz, qw = rpy_to_quaternion(roll, pitch, yaw)
-
-    # 打印目标位姿信息到日志
     node.get_logger().info(
         f"Target: xyz=({x:.3f}, {y:.3f}, {z:.3f}) "
         f"quat=({qx:.3f}, {qy:.3f}, {qz:.3f}, {qw:.3f})"
     )
 
-    # ========== 等待/joint_states话题 ==========
-    # 确认move_group节点的状态监控正常工作
-    # 创建一个临时订阅者，监听/joint_states话题
-    js_sub = node.create_subscription(JointState, "/joint_states", lambda msg: None, 10)
-    node.get_logger().info("Waiting for /joint_states...")
-    
-    # 等待1秒，让订阅者接收至少一条消息
-    rclpy.spin_until_future_complete(node, rclpy.task.Future(), timeout_sec=1.0)
-    
-    # 销毁临时订阅者，因为我们只需要确认话题存在
-    node.destroy_subscription(js_sub)
-
-    # ========== 连接MoveIt Action Server ==========
-    # 创建MoveGroup动作客户端，连接到/move_action服务器
-    client = ActionClient(node, MoveGroup, "/move_action")
-    node.get_logger().info("Waiting for /move_action server...")
-    
-    # 阻塞等待，直到服务器可用
-    client.wait_for_server()
-    node.get_logger().info("Connected")
-
     # ========== 构建目标位姿 ==========
-    # 创建带时间戳和坐标系的位姿消息
     target = PoseStamped()
-    target.header.frame_id = "base_link"  # 位姿在base_link坐标系中定义
-    target.header.stamp = node.get_clock().now().to_msg()  # 设置当前时间戳
-    
-    # 设置目标位置（笛卡尔坐标）
+    target.header.frame_id = "base_link"  # 相对于 base_link 坐标系 # TODO 是否可以不用base link，抬高一点
+    target.header.stamp = node.get_clock().now().to_msg()
     target.pose.position.x = x
     target.pose.position.y = y
     target.pose.position.z = z
-    
-    # 设置目标姿态（四元数）
     target.pose.orientation.x = qx
     target.pose.orientation.y = qy
     target.pose.orientation.z = qz
     target.pose.orientation.w = qw
 
+    # ========== 第一步：直接调用 IK 求解器验证 ==========
+    # 绕过 MoveGroup 规划管道，直接查询 IK 求解器是否有解
+    # 失败时会打印 IK 求解器的原始错误码，便于排查
+    ik_ok = check_ik(node, group, ee_link, target)
+    if not ik_ok:
+        node.get_logger().error("IK check failed, aborting.")
+        rclpy.shutdown()
+        return
+
+    # ========== 第二步：发送规划目标 ==========
+    # IK 验证通过后，才发送完整的规划+执行请求
+
+    # 等待 /joint_states 话题可用（确认机器人状态正常）
+    js_sub = node.create_subscription(JointState, "/joint_states", lambda msg: None, 10)
+    node.get_logger().info("Waiting for /joint_states...")
+    rclpy.spin_until_future_complete(node, rclpy.task.Future(), timeout_sec=1.0)
+    node.destroy_subscription(js_sub)
+
+    # 连接 MoveGroup Action 服务器
+    client = ActionClient(node, MoveGroup, "/move_action")
+    node.get_logger().info("Waiting for /move_action server...")
+    client.wait_for_server()
+    node.get_logger().info("Connected")
+
     # ========== 设置位置约束 ==========
-    # 位置约束定义末端执行器必须到达的目标区域
+    # 定义末端执行器必须到达的目标区域（球体）
     pc = PositionConstraint()
-    pc.header = target.header  # 使用相同的坐标系和时间戳
-    pc.link_name = ee_link     # 被约束的链接名称
-    
-    # 目标点偏移（这里设为零偏移）
-    pc.target_point_offset = Vector3()
-    
-    # 定义约束区域：半径为0.05米的球体
+    pc.header = target.header
+    pc.link_name = ee_link
+    pc.target_point_offset = Vector3()  # 零偏移
     sphere = SolidPrimitive()
-    sphere.type = SolidPrimitive.SPHERE  # 球体类型
-    sphere.dimensions = [0.05]           # 球体半径（米）
-    
-    # 将球体添加到约束区域
+    sphere.type = SolidPrimitive.SPHERE
+    sphere.dimensions = [0.05]  # 球体半径 0.05 米
     pc.constraint_region.primitives = [sphere]
-    pc.constraint_region.primitive_poses = [target.pose]  # 球体中心在目标位姿
-    
-    # 约束权重（1.0为必须满足）
-    pc.weight = 1.0
+    pc.constraint_region.primitive_poses = [target.pose]
+    pc.weight = 1.0  # 权重 1.0，必须满足
 
     # ========== 设置姿态约束 ==========
-    # 姿态约束定义末端执行器的朝向要求
-    # 这里设置为宽松约束，允许一定范围内的姿态偏差
+    # 宽松的姿态约束，允许大范围的姿态偏差
     oc = OrientationConstraint()
     oc.header = target.header
     oc.link_name = ee_link
-    oc.orientation = target.pose.orientation  # 目标姿态
-    
-    # 姿态容差：允许绕各轴旋转π弧度（180度），非常宽松
-    oc.absolute_x_axis_tolerance = 3.14
-    oc.absolute_y_axis_tolerance = 3.14
-    oc.absolute_z_axis_tolerance = 3.14
-    
-    # 姿态约束权重（0.5，低于位置约束）
-    oc.weight = 0.5
+    oc.orientation = target.pose.orientation
+    oc.absolute_x_axis_tolerance = 3.14  # 允许绕 X 轴旋转 ±180°
+    oc.absolute_y_axis_tolerance = 3.14  # 允许绕 Y 轴旋转 ±180°
+    oc.absolute_z_axis_tolerance = 3.14  # 允许绕 Z 轴旋转 ±180°
+    oc.weight = 0.5  # 权重 0.5，低于位置约束
 
     # ========== 组合约束 ==========
-    # 将位置约束和姿态约束组合成一个约束集合
     gc = Constraints()
-    gc.position_constraints = [pc]      # 位置约束列表
-    gc.orientation_constraints = [oc]   # 姿态约束列表
+    gc.position_constraints = [pc]
+    gc.orientation_constraints = [oc]
 
     # ========== 构建运动规划请求 ==========
     req = MotionPlanRequest()
-    req.group_name = group              # 运动组名称
-    req.goal_constraints = [gc]         # 目标约束
+    req.group_name = group
+    req.goal_constraints = [gc]
     req.num_planning_attempts = 20      # 最大规划尝试次数
     req.allowed_planning_time = 10.0    # 允许的规划时间（秒）
-    
-    # 速度和加速度缩放因子（0.1表示最大速度/加速度的10%）
-    # 降低这些值可以使运动更平稳，但会变慢
-    req.max_velocity_scaling_factor = 0.1
-    req.max_acceleration_scaling_factor = 0.1
+    req.max_velocity_scaling_factor = 0.1    # 速度缩放因子（10%）
+    req.max_acceleration_scaling_factor = 0.1  # 加速度缩放因子（10%）
 
-    # ========== 发送目标到MoveIt ==========
-    # 创建MoveGroup动作目标
+    # ========== 发送目标到 MoveGroup ==========
     goal = MoveGroup.Goal()
-    goal.request = req                  # 设置规划请求
-    goal.planning_options.plan_only = False  # False表示规划后执行，True表示仅规划不执行
+    goal.request = req
+    goal.planning_options.plan_only = False  # False=规划后执行，True=仅规划
 
-    # 异步发送目标
     node.get_logger().info("Sending goal...")
     future = client.send_goal_async(goal)
-    
-    # 等待目标被接受（超时10秒）
     rclpy.spin_until_future_complete(node, future, timeout_sec=10.0)
     if not future.done():
         node.get_logger().error("Timed out waiting for goal acceptance")
         rclpy.shutdown()
         return
-    
-    # 获取目标句柄（用于后续获取结果）
-    goal_handle = future.result()
 
-    # 检查目标是否被接受
+    goal_handle = future.result()
     if not goal_handle.accepted:
         node.get_logger().error("Goal REJECTED by move_group")
         rclpy.shutdown()
@@ -213,8 +265,6 @@ def main():
 
     # ========== 等待规划和执行结果 ==========
     node.get_logger().info("Goal accepted, planning...")
-    
-    # 异步获取结果（超时30秒）
     result_future = goal_handle.get_result_async()
     rclpy.spin_until_future_complete(node, result_future, timeout_sec=30.0)
     if not result_future.done():
@@ -225,14 +275,13 @@ def main():
     # ========== 处理结果 ==========
     result = result_future.result()
     error_code = result.result.error_code.val
-    
-    # MoveIt错误代码：1表示成功
-    if error_code == 1:
-        node.get_logger().info("SUCCESS!")
-    else:
-        node.get_logger().error(f"FAILED: error_code={error_code}")
+    error_name = MOVEIT_ERROR_CODES.get(error_code, f"UNKNOWN({error_code})")
 
-    # 关闭ROS 2客户端
+    if error_code == 1:
+        node.get_logger().info(f"SUCCESS! (error_code={error_code}: {error_name})")
+    else:
+        node.get_logger().error(f"FAILED: error_code={error_code}: {error_name}")
+
     rclpy.shutdown()
 
 

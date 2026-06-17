@@ -169,7 +169,7 @@ command_interfaces: [position]
 command_interfaces: [velocity]
 ```
 ```python
-# demo.launch.py
+# moveit.launch.py
 DeclareLaunchArgument('controllers_config', default_value='ros2_controllers.yaml')
 # sim.launch.py  → controllers_config: 'ros2_controllers.yaml'
 # real.launch.py → controllers_config: 'ros2_controllers_real.yaml'
@@ -301,7 +301,7 @@ d(measured)/dt = v · dir² = v > 0   （dir² 恒为 1）
 ## Launch 参数传递
 
 ```python
-# sim.launch.py → demo.launch.py → URDF
+# sim.launch.py → moveit.launch.py → URDF
 hw_plugin: 'mock_components/GenericSystem'  # 仿真
 hw_plugin: 'dual_arm_control/DualArmHardware'  # 实物
 

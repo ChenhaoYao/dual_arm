@@ -1,6 +1,6 @@
 # Dual Arm MoveIt2 仿真话题与服务参考手册
 
-> 基于 `demo.launch.py` 启动的完整仿真环境（mock_components/GenericSystem）
+> 基于 `moveit.launch.py` 启动的完整仿真环境（mock_components/GenericSystem）
 
 ---
 

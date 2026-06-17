@@ -19,8 +19,8 @@
   </group>
 
   <!-- End effectors -->
-  <!-- <end_effector name="left_ee" parent_link="laxis7_link" group="left_arm"/>
-  <end_effector name="right_ee" parent_link="raxis7_link" group="right_arm"/> -->
+  <end_effector name="left_ee" parent_link="laxis7_link" group="left_arm"/>
+  <end_effector name="right_ee" parent_link="raxis7_link" group="right_arm"/>
 
   <!-- Named poses 预定义姿态 -->
   <!-- TODO 把真实机器人的位姿映射到仿真中

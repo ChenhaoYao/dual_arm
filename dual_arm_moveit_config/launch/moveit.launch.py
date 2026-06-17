@@ -161,6 +161,8 @@ def generate_launch_description():
                 'use_sim_time': use_sim_time,
                 'trajectory_execution': {
                     'allowed_start_tolerance': 0.05,
+                    'allowed_goal_duration_margin': 5.0,
+                    'execution_duration_monitoring': True,
                 },
                 'octomap_frame': '',
                 'octomap_resolution': 0.0,

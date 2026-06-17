@@ -156,6 +156,30 @@ sudo setcap cap_net_raw,cap_net_admin+ep /home/dell/dual_arm/install/dual_arm_so
 # 重新编译后需要重新执行
 ```
 
+### MoveIt 末端位姿控制（move_to_pose.py）
+
+```bash
+# 不用 sudo（move_group 以当前用户运行时可用）
+source install/setup.bash
+ros2 run dual_arm_description move_to_pose.py --ros-args \
+  -p x:=0.3 -p y:=0.0 -p z:=0.5 \
+  -p roll:=0.0 -p pitch:=0.0 -p yaw:=0.0
+
+# 用 sudo（move_group 以 root 运行时必须用 sudo，否则 DDS 发现不了）
+sudo bash -c "source /opt/ros/jazzy/setup.bash && source /home/dell/dual_arm/install/setup.bash && ros2 run dual_arm_description move_to_pose.py --ros-args -p x:=0.3 -p y:=0.0 -p z:=0.5 -p roll:=0.0 -p pitch:=0.0 -p yaw:=0.0"
+
+# 指定规划组和末端执行器（默认 left_arm / laxis7_link）
+ros2 run dual_arm_description move_to_pose.py --ros-args \
+  -p group:=right_arm -p ee_link:=raxis7_link \
+  -p x:=0.3 -p y:=-0.2 -p z:=0.4
+```
+
+参数说明：
+- `x/y/z`：目标位置（米），相对于 `base_link`
+- `roll/pitch/yaw`：目标姿态（弧度），ZYX 欧拉角
+- `group`：规划组名（`left_arm` / `right_arm` / `dual_arm`）
+- `ee_link`：末端执行器 link 名
+
 ## 日志查看
 
 ```bash

@@ -24,8 +24,7 @@ soem_bridge_node:
       - raxis7_joint
 
     # ---- 控制器状态采样 ----
-    # dry_run 模式下只订阅一个臂，避免左右臂数据混合
-    active_arm: left  # left 或 right
+    # 同时订阅左右臂 controller_state，双臂独立控制
     left_state_topic: /left_arm_controller/controller_state
     right_state_topic: /right_arm_controller/controller_state
     feedback_rate_hz: 20.0

@@ -13,8 +13,12 @@ install(FILES urdf.rviz
 
 install(PROGRAMS
   joint_control_panel.py
-  scripts/move_to_pose.py
   DESTINATION lib/${PROJECT_NAME}
 )
+
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
+  ${CMAKE_CURRENT_SOURCE_DIR}/scripts/move_to_pose.py
+  \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/move_to_pose.py
+)")
 
 ament_package()

@@ -76,7 +76,7 @@ MoveIt → JTC → controller_state → soem_bridge_node → EtherCAT → Motors
 
 These are hard-won lessons from debugging `move_group` crashes. See `DEBUGGING_NOTES.md` for the full story.
 
-- **YAML content, not paths**: `demo.launch.py` must pass parsed YAML dicts (via `yaml.safe_load()`) for `robot_description_kinematics`, `robot_description_planning`, `ompl`, and `moveit_simple_controller_manager`. Passing a file path string silently fails.
+- **YAML content, not paths**: `moveit.launch.py` must pass parsed YAML dicts (via `yaml.safe_load()`) for `robot_description_kinematics`, `robot_description_planning`, `ompl`, and `moveit_simple_controller_manager`. Passing a file path string silently fails.
 - **OMPL planning plugin field**: In MoveIt2 Jazzy, the field is `planning_plugins` (plural, list), not `planning_plugin` (singular). The ompl config must be namespaced under `ompl:` in the YAML.
 - **Joint acceleration limits required**: `joint_limits.yaml` must have `has_acceleration_limits: true` and a nonzero `max_acceleration` for every joint, or `AddTimeOptimalParameterization` fails.
 - **Collision geometry**: Large STL meshes (>10k vertices) crash MoveIt/FCL. base_link and laxis/raxis 1-2 already use box/cylinder primitives for collision. laxis/raxis 3-7 still use STL meshes for collision — if `move_group` crashes with "too many vertices", simplify those too.
