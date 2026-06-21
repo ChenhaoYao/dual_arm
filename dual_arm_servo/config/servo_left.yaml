@@ -1,0 +1,57 @@
+###############################################
+# MoveIt Servo 配置 - 左臂
+###############################################
+
+## 输出命令属性
+publish_period: 0.01            # 发布周期 [秒]，100Hz
+max_expected_latency: 0.1       # 命令发送到执行的延迟 [秒]
+
+## 输入命令类型
+# "unitless" → 范围 [-1:1]，类似摇杆输入
+# "speed_units" → 单位为 m/s 和 rad/s
+command_in_type: "speed_units"
+scale:
+  linear: 0.2                  # 最大线速度 [m/s]，仅笛卡尔命令
+  rotational: 0.8              # 最大角速度 [rad/s]，仅笛卡尔命令
+  joint: 0.5                   # 最大关节速度 [rad/s]，仅关节命令
+
+## 输出命令类型
+# trajectory_msgs/JointTrajectory → 发给 JTC
+# std_msgs/Float64MultiArray → 直接发关节速度
+command_out_type: trajectory_msgs/JointTrajectory
+
+## 发布内容
+publish_joint_positions: true
+publish_joint_velocities: true
+publish_joint_accelerations: false
+
+## 平滑滤波插件
+use_smoothing: true
+smoothing_filter_plugin_name: "online_signal_smoothing::AccelerationLimitedPlugin"
+
+## Planning Scene Monitor
+# 如果 move_group 已经在运行，设为 false 避免冲突
+is_primary_planning_scene_monitor: false
+check_octomap_collisions: false
+
+## MoveIt 规划组
+move_group_name: left_arm
+
+## 奇异点和关节限制配置
+lower_singularity_threshold: 10.0       # 条件数达到此值时开始减速
+hard_stop_singularity_threshold: 30.0   # 条件数达到此值时停止
+leaving_singularity_threshold_multiplier: 2.0
+joint_limit_margins: [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
+
+## 话题名称
+cartesian_command_in_topic: ~/delta_twist_cmds
+joint_command_in_topic: ~/delta_joint_cmds
+joint_topic: /joint_states
+status_topic: ~/status
+command_out_topic: /left_arm_controller/joint_trajectory
+
+## 碰撞检测
+check_collisions: false
+collision_check_rate: 10.0
+self_collision_proximity_threshold: 0.01
+scene_collision_proximity_threshold: 0.02

@@ -1,0 +1,52 @@
+###############################################
+# MoveIt Servo 配置 - 右臂
+###############################################
+
+## 输出命令属性
+publish_period: 0.01
+max_expected_latency: 0.1
+
+## 输入命令类型
+command_in_type: "speed_units"
+scale:
+  linear: 0.2
+  rotational: 0.8
+  joint: 0.5
+
+## 输出命令类型
+command_out_type: trajectory_msgs/JointTrajectory
+
+## 发布内容
+publish_joint_positions: true
+publish_joint_velocities: true
+publish_joint_accelerations: false
+
+## 平滑滤波插件
+use_smoothing: true
+smoothing_filter_plugin_name: "online_signal_smoothing::AccelerationLimitedPlugin"
+
+## Planning Scene Monitor
+is_primary_planning_scene_monitor: false
+check_octomap_collisions: false
+
+## MoveIt 规划组
+move_group_name: right_arm
+
+## 奇异点和关节限制配置
+lower_singularity_threshold: 10.0
+hard_stop_singularity_threshold: 30.0
+leaving_singularity_threshold_multiplier: 2.0
+joint_limit_margins: [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
+
+## 话题名称
+cartesian_command_in_topic: ~/delta_twist_cmds
+joint_command_in_topic: ~/delta_joint_cmds
+joint_topic: /joint_states
+status_topic: ~/status
+command_out_topic: /right_arm_controller/joint_trajectory
+
+## 碰撞检测
+check_collisions: false
+collision_check_rate: 10.0
+self_collision_proximity_threshold: 0.01
+scene_collision_proximity_threshold: 0.02

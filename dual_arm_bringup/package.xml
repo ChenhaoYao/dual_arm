@@ -12,6 +12,7 @@
   <depend>dual_arm_description</depend>
   <depend>dual_arm_moveit_config</depend>
   <depend>dual_arm_control</depend>
+  <depend>dual_arm_servo</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

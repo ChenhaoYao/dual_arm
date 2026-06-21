@@ -13,6 +13,7 @@ def generate_launch_description():
     # 获取包的共享目录路径
     dual_arm_description_pkg = get_package_share_directory('dual_arm_description')
     dual_arm_moveit_config_pkg = get_package_share_directory('dual_arm_moveit_config')
+    dual_arm_servo_pkg = get_package_share_directory('dual_arm_servo')
 
     # ========== 启动参数声明 ==========
     use_sim_time_arg = DeclareLaunchArgument(
@@ -42,10 +43,18 @@ def generate_launch_description():
         description='控制器配置文件名'
     )
 
+    # 控制模式：moveit（规划）或 servo（实时）
+    mode_arg = DeclareLaunchArgument(
+        'mode',
+        default_value='moveit',
+        description='控制模式: moveit（运动规划）或 servo（实时伺服）'
+    )
+
     use_sim_time = LaunchConfiguration('use_sim_time')
     hw_plugin = LaunchConfiguration('hw_plugin')
     use_broadcaster = LaunchConfiguration('use_broadcaster')
     controllers_config = LaunchConfiguration('controllers_config')
+    mode = LaunchConfiguration('mode')
 
     # ========== 机器人描述 ==========
     robot_description_content = Command([
@@ -80,9 +89,9 @@ def generate_launch_description():
     with open(moveit_controllers_yaml, 'r') as f:
         moveit_controllers = yaml.safe_load(f)
 
-    # ========== 节点定义 ==========
+    # ========== 共用节点（两种模式都需要） ==========
 
-    # 节点 1: Robot State Publisher
+    # Robot State Publisher
     robot_state_publisher_node = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
@@ -94,7 +103,7 @@ def generate_launch_description():
         }]
     )
 
-    # 节点 2: ros2_control_node
+    # ros2_control_node
     ros2_control_node = Node(
         package='controller_manager',
         executable='ros2_control_node',
@@ -108,7 +117,7 @@ def generate_launch_description():
         ]
     )
 
-    # 节点 3: Joint State Broadcaster（可选）
+    # Joint State Broadcaster（可选）
     joint_state_broadcaster_spawner = GroupAction(
         condition=IfCondition(use_broadcaster),
         actions=[
@@ -121,7 +130,7 @@ def generate_launch_description():
         ]
     )
 
-    # 节点 4: Left Arm Controller
+    # Left Arm Controller
     left_arm_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
@@ -129,7 +138,7 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 节点 5: Right Arm Controller
+    # Right Arm Controller
     right_arm_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
@@ -137,7 +146,9 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 节点 6: Move Group (MoveIt2 核心规划节点)
+    # ========== MoveIt 规划模式节点 ==========
+
+    # Move Group (MoveIt2 核心规划节点)
     move_group_node = Node(
         package='moveit_ros_move_group',
         executable='move_group',
@@ -174,10 +185,11 @@ def generate_launch_description():
                 'ompl': ompl_planning_yaml
             },
             moveit_controllers,
-        ]
+        ],
+        condition=IfCondition(LaunchConfiguration('mode', default='moveit'))
     )
 
-    # 节点 7: RViz2
+    # RViz2
     rviz_config_file = os.path.join(dual_arm_moveit_config_pkg, 'config', 'moveit.rviz')
     rviz_node = Node(
         package='rviz2',
@@ -195,16 +207,62 @@ def generate_launch_description():
         ]
     )
 
+    # ========== Servo 实时模式节点 ==========
+
+    # MoveIt Servo - 左臂
+    # 输入: ~/delta_twist_cmds (TwistStamped) 或 ~/delta_joint_cmds (JointJog)
+    # 输出: /left_arm_controller/joint_trajectory → JTC → controller_state → soem_bridge
+    servo_left_node = Node(
+        package='moveit_servo',
+        executable='servo_node',
+        name='servo_left',
+        parameters=[
+            os.path.join(dual_arm_servo_pkg, 'config', 'servo_left.yaml'),
+            {
+                'robot_description': robot_description,
+                'robot_description_semantic': robot_description_semantic,
+                'robot_description_kinematics': kinematics_yaml,
+                'use_sim_time': use_sim_time,
+            }
+        ],
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('mode', default='servo'))
+    )
+
+    # MoveIt Servo - 右臂
+    servo_right_node = Node(
+        package='moveit_servo',
+        executable='servo_node',
+        name='servo_right',
+        parameters=[
+            os.path.join(dual_arm_servo_pkg, 'config', 'servo_right.yaml'),
+            {
+                'robot_description': robot_description,
+                'robot_description_semantic': robot_description_semantic,
+                'robot_description_kinematics': kinematics_yaml,
+                'use_sim_time': use_sim_time,
+            }
+        ],
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('mode', default='servo'))
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         hw_plugin_arg,
         use_broadcaster_arg,
         controllers_config_arg,
+        mode_arg,
+        # 共用节点
         robot_state_publisher_node,
         ros2_control_node,
         joint_state_broadcaster_spawner,
         left_arm_controller_spawner,
         right_arm_controller_spawner,
+        # MoveIt 模式节点
         move_group_node,
         rviz_node,
+        # Servo 模式节点
+        servo_left_node,
+        servo_right_node,
     ])

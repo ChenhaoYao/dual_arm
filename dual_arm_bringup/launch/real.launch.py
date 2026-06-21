@@ -21,8 +21,16 @@ def generate_launch_description():
         description='是否启动 joint_state_broadcaster'
     )
 
+    # 控制模式：moveit（规划）或 servo（实时）
+    mode_arg = DeclareLaunchArgument(
+        'mode',
+        default_value='moveit',
+        description='控制模式: moveit（运动规划）或 servo（实时伺服）'
+    )
+
     use_sim_time = LaunchConfiguration('use_sim_time')
     use_broadcaster = LaunchConfiguration('use_broadcaster')
+    mode = LaunchConfiguration('mode')
 
     moveit_demo_launch = IncludeLaunchDescription(
         PathJoinSubstitution([dual_arm_moveit_config_pkg, 'launch', 'moveit.launch.py']),
@@ -31,11 +39,13 @@ def generate_launch_description():
             'hw_plugin': 'dual_arm_control/DualArmHardware',
             'use_broadcaster': use_broadcaster,
             'controllers_config': 'ros2_controllers_real.yaml',
+            'mode': mode,
         }.items()
     )
 
     return LaunchDescription([
         use_sim_time_arg,
         use_broadcaster_arg,
+        mode_arg,
         moveit_demo_launch,
     ])
