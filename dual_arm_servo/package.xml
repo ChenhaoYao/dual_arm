@@ -10,6 +10,9 @@
 
   <exec_depend>moveit_servo</exec_depend>
   <exec_depend>moveit_ros_planning_interface</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

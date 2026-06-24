@@ -2,6 +2,11 @@
 # MoveIt Servo 配置 - 右臂
 ###############################################
 
+## 坐标系配置
+planning_frame: base_link
+ee_frame_name: raxis7_link
+robot_link_command_frame: base_link
+
 ## 输出命令属性
 publish_period: 0.01
 max_expected_latency: 0.1
@@ -22,8 +27,8 @@ publish_joint_velocities: true
 publish_joint_accelerations: false
 
 ## 平滑滤波插件
-use_smoothing: true
-smoothing_filter_plugin_name: "online_signal_smoothing::AccelerationLimitedPlugin"
+use_smoothing: false
+smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
 
 ## Planning Scene Monitor
 is_primary_planning_scene_monitor: false
@@ -33,8 +38,8 @@ check_octomap_collisions: false
 move_group_name: right_arm
 
 ## 奇异点和关节限制配置
-lower_singularity_threshold: 10.0
-hard_stop_singularity_threshold: 30.0
+lower_singularity_threshold: 200.0
+hard_stop_singularity_threshold: 400.0
 leaving_singularity_threshold_multiplier: 2.0
 joint_limit_margins: [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
 
@@ -46,7 +51,7 @@ status_topic: ~/status
 command_out_topic: /right_arm_controller/joint_trajectory
 
 ## 碰撞检测
-check_collisions: false
+check_collisions: false  # FIXME: STL meshes too large for FCL, simplify first
 collision_check_rate: 10.0
 self_collision_proximity_threshold: 0.01
 scene_collision_proximity_threshold: 0.02

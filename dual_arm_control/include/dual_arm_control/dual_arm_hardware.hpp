@@ -25,7 +25,6 @@
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
-#include "hardware_interface/types/hardware_component_interface_params.hpp"
 
 // ROS2 核心
 #include "rclcpp/macros.hpp"
@@ -75,7 +74,7 @@ public:
    * @param params 硬件参数（包含 URDF 解析信息和 executor）
    */
   hardware_interface::CallbackReturn on_init(
-    const hardware_interface::HardwareComponentInterfaceParams & params) override;
+    const hardware_interface::HardwareInfo & hardware_info) override;
 
   /**
    * @brief 配置回调

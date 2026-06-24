@@ -2,7 +2,7 @@ import os
 import yaml
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
@@ -186,7 +186,7 @@ def generate_launch_description():
             },
             moveit_controllers,
         ],
-        condition=IfCondition(LaunchConfiguration('mode', default='moveit'))
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration('mode', default='moveit'), "' == 'moveit'"]))
     )
 
     # RViz2
@@ -209,42 +209,47 @@ def generate_launch_description():
 
     # ========== Servo 实时模式节点 ==========
 
+    # 加载 servo YAML 配置
+    servo_left_yaml_file = os.path.join(dual_arm_servo_pkg, 'config', 'servo_left.yaml')
+    with open(servo_left_yaml_file, 'r') as f:
+        servo_left_params = {'moveit_servo': yaml.safe_load(f)}
+
+    servo_right_yaml_file = os.path.join(dual_arm_servo_pkg, 'config', 'servo_right.yaml')
+    with open(servo_right_yaml_file, 'r') as f:
+        servo_right_params = {'moveit_servo': yaml.safe_load(f)}
+
     # MoveIt Servo - 左臂
-    # 输入: ~/delta_twist_cmds (TwistStamped) 或 ~/delta_joint_cmds (JointJog)
-    # 输出: /left_arm_controller/joint_trajectory → JTC → controller_state → soem_bridge
     servo_left_node = Node(
         package='moveit_servo',
-        executable='servo_node',
+        executable='servo_node_main',
         name='servo_left',
         parameters=[
-            os.path.join(dual_arm_servo_pkg, 'config', 'servo_left.yaml'),
+            servo_left_params,
             {
                 'robot_description': robot_description,
                 'robot_description_semantic': robot_description_semantic,
-                'robot_description_kinematics': kinematics_yaml,
                 'use_sim_time': use_sim_time,
             }
         ],
         output='screen',
-        condition=IfCondition(LaunchConfiguration('mode', default='servo'))
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration('mode', default='servo'), "' == 'servo'"]))
     )
 
     # MoveIt Servo - 右臂
     servo_right_node = Node(
         package='moveit_servo',
-        executable='servo_node',
+        executable='servo_node_main',
         name='servo_right',
         parameters=[
-            os.path.join(dual_arm_servo_pkg, 'config', 'servo_right.yaml'),
+            servo_right_params,
             {
                 'robot_description': robot_description,
                 'robot_description_semantic': robot_description_semantic,
-                'robot_description_kinematics': kinematics_yaml,
                 'use_sim_time': use_sim_time,
             }
         ],
         output='screen',
-        condition=IfCondition(LaunchConfiguration('mode', default='servo'))
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration('mode', default='servo'), "' == 'servo'"]))
     )
 
     return LaunchDescription([
