@@ -2,6 +2,11 @@
 # MoveIt Servo 配置 - 左臂
 ###############################################
 
+## 坐标系配置
+planning_frame: base_link          # MoveIt 规划坐标系
+ee_frame_name: laxis7_link         # 末端执行器 link 名
+robot_link_command_frame: base_link  # 速度指令参考的坐标系
+
 ## 输出命令属性
 publish_period: 0.01            # 发布周期 [秒]，100Hz
 max_expected_latency: 0.1       # 命令发送到执行的延迟 [秒]
@@ -26,8 +31,8 @@ publish_joint_velocities: true
 publish_joint_accelerations: false
 
 ## 平滑滤波插件
-use_smoothing: true
-smoothing_filter_plugin_name: "online_signal_smoothing::AccelerationLimitedPlugin"
+use_smoothing: false
+smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
 
 ## Planning Scene Monitor
 # 如果 move_group 已经在运行，设为 false 避免冲突
@@ -38,8 +43,8 @@ check_octomap_collisions: false
 move_group_name: left_arm
 
 ## 奇异点和关节限制配置
-lower_singularity_threshold: 10.0       # 条件数达到此值时开始减速
-hard_stop_singularity_threshold: 30.0   # 条件数达到此值时停止
+lower_singularity_threshold: 200.0      # 条件数达到此值时开始减速
+hard_stop_singularity_threshold: 400.0  # 条件数达到此值时停止
 leaving_singularity_threshold_multiplier: 2.0
 joint_limit_margins: [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
 
@@ -51,7 +56,7 @@ status_topic: ~/status
 command_out_topic: /left_arm_controller/joint_trajectory
 
 ## 碰撞检测
-check_collisions: false
+check_collisions: false  # FIXME: STL meshes too large for FCL, simplify first
 collision_check_rate: 10.0
 self_collision_proximity_threshold: 0.01
 scene_collision_proximity_threshold: 0.02

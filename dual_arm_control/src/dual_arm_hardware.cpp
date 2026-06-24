@@ -32,17 +32,17 @@ namespace dual_arm_control
  * @return SUCCESS 或 ERROR
  */
 hardware_interface::CallbackReturn DualArmHardware::on_init(
-  const hardware_interface::HardwareComponentInterfaceParams & params)
+  const hardware_interface::HardwareInfo & hardware_info)
 {
   // 调用父类初始化，必须成功才能继续
-  if (hardware_interface::SystemInterface::on_init(params) !=
+  if (hardware_interface::SystemInterface::on_init(hardware_info) !=
       hardware_interface::CallbackReturn::SUCCESS)
   {
     return hardware_interface::CallbackReturn::ERROR;
   }
 
   // 从 URDF 解析的硬件信息
-  const auto & info = params.hardware_info;
+  const auto & info = hardware_info;
 
   // 根据关节数量分配存储空间
   // hw_xxx_commands_: 存储 JTC 输出的命令（本项目中只用 velocity）
