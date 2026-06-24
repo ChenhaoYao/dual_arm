@@ -2,7 +2,7 @@ import os
 import yaml
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction
-from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.conditions import IfCondition
@@ -186,7 +186,7 @@ def generate_launch_description():
             },
             moveit_controllers,
         ],
-        condition=IfCondition(LaunchConfiguration('mode', default='moveit'))
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration('mode', default='moveit'), "' == 'moveit'"]))
     )
 
     # RViz2
@@ -226,7 +226,7 @@ def generate_launch_description():
             }
         ],
         output='screen',
-        condition=IfCondition(LaunchConfiguration('mode', default='servo'))
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration('mode', default='servo'), "' == 'servo'"]))
     )
 
     # MoveIt Servo - 右臂
@@ -244,7 +244,7 @@ def generate_launch_description():
             }
         ],
         output='screen',
-        condition=IfCondition(LaunchConfiguration('mode', default='servo'))
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration('mode', default='servo'), "' == 'servo'"]))
     )
 
     return LaunchDescription([
