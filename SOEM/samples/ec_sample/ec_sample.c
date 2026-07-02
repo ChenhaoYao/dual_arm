@@ -34,9 +34,9 @@
  * ========================================================================== */
 #define ENC_BITS         19      /* 电机编码器位数 */
 #define GEAR_RATIO       100     /* 减速比 */
-#define TARGET_DEG       150.00      /* 输出端目标角度（°） */
+#define TARGET_DEG       5.00      /* 输出端目标角度（°） */
 #define MOVE_DURATION_S  15       /* 期望走完时长（s）→ 决定速度/加速度 */
-#define MOTION_SLAVE_FIRST 3
+#define MOTION_SLAVE_FIRST 1
 #define MAX_MOTION_AXES 1
 #define CYCLE_NS         1000000 /* RT 线程 PDO 周期：1 ms */
 #define LOG_DIV          100      /* 主循环每 N 周期打印一次（≈200ms） */

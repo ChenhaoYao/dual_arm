@@ -1,11 +1,12 @@
 import os
 import yaml
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler
+from launch.event_handlers import OnProcessExit
 from launch.substitutions import LaunchConfiguration, Command, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -118,32 +119,63 @@ def generate_launch_description():
     )
 
     # Joint State Broadcaster（可选）
-    joint_state_broadcaster_spawner = GroupAction(
+    joint_state_broadcaster_spawner = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster', '--controller-manager', '/controller_manager'],
+        output='screen',
         condition=IfCondition(use_broadcaster),
-        actions=[
-            Node(
-                package='controller_manager',
-                executable='spawner',
-                arguments=['joint_state_broadcaster', '--controller-manager', '/controller_manager'],
-                output='screen'
-            )
-        ]
     )
 
-    # Left Arm Controller
-    left_arm_controller_spawner = Node(
+    # Controller spawners are serialized to avoid ros2_control's global spawner lock contention.
+    left_arm_controller_spawner_after_broadcaster = Node(
         package='controller_manager',
         executable='spawner',
         arguments=['left_arm_controller', '--controller-manager', '/controller_manager'],
         output='screen'
     )
 
-    # Right Arm Controller
-    right_arm_controller_spawner = Node(
+    left_arm_controller_spawner_without_broadcaster = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['left_arm_controller', '--controller-manager', '/controller_manager'],
+        output='screen',
+        condition=UnlessCondition(use_broadcaster),
+    )
+
+    right_arm_controller_spawner_after_broadcaster = Node(
         package='controller_manager',
         executable='spawner',
         arguments=['right_arm_controller', '--controller-manager', '/controller_manager'],
         output='screen'
+    )
+
+    right_arm_controller_spawner_without_broadcaster = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['right_arm_controller', '--controller-manager', '/controller_manager'],
+        output='screen'
+    )
+
+    spawn_left_after_broadcaster = RegisterEventHandler(
+        OnProcessExit(
+            target_action=joint_state_broadcaster_spawner,
+            on_exit=[left_arm_controller_spawner_after_broadcaster],
+        )
+    )
+
+    spawn_right_after_left_with_broadcaster = RegisterEventHandler(
+        OnProcessExit(
+            target_action=left_arm_controller_spawner_after_broadcaster,
+            on_exit=[right_arm_controller_spawner_after_broadcaster],
+        )
+    )
+
+    spawn_right_after_left_without_broadcaster = RegisterEventHandler(
+        OnProcessExit(
+            target_action=left_arm_controller_spawner_without_broadcaster,
+            on_exit=[right_arm_controller_spawner_without_broadcaster],
+        )
     )
 
     # ========== MoveIt 规划模式节点 ==========
@@ -209,15 +241,22 @@ def generate_launch_description():
 
     # ========== Servo 实时模式节点 ==========
 
+    # 加载 servo YAML 配置
+    servo_left_yaml_file = os.path.join(dual_arm_servo_pkg, 'config', 'servo_left.yaml')
+    with open(servo_left_yaml_file, 'r') as f:
+        servo_left_params = {'moveit_servo': yaml.safe_load(f)}
+
+    servo_right_yaml_file = os.path.join(dual_arm_servo_pkg, 'config', 'servo_right.yaml')
+    with open(servo_right_yaml_file, 'r') as f:
+        servo_right_params = {'moveit_servo': yaml.safe_load(f)}
+
     # MoveIt Servo - 左臂
-    # 输入: ~/delta_twist_cmds (TwistStamped) 或 ~/delta_joint_cmds (JointJog)
-    # 输出: /left_arm_controller/joint_trajectory → JTC → controller_state → soem_bridge
     servo_left_node = Node(
         package='moveit_servo',
         executable='servo_node',
         name='servo_left',
         parameters=[
-            os.path.join(dual_arm_servo_pkg, 'config', 'servo_left.yaml'),
+            servo_left_params,
             {
                 'robot_description': robot_description,
                 'robot_description_semantic': robot_description_semantic,
@@ -235,7 +274,7 @@ def generate_launch_description():
         executable='servo_node',
         name='servo_right',
         parameters=[
-            os.path.join(dual_arm_servo_pkg, 'config', 'servo_right.yaml'),
+            servo_right_params,
             {
                 'robot_description': robot_description,
                 'robot_description_semantic': robot_description_semantic,
@@ -257,8 +296,10 @@ def generate_launch_description():
         robot_state_publisher_node,
         ros2_control_node,
         joint_state_broadcaster_spawner,
-        left_arm_controller_spawner,
-        right_arm_controller_spawner,
+        left_arm_controller_spawner_without_broadcaster,
+        spawn_left_after_broadcaster,
+        spawn_right_after_left_with_broadcaster,
+        spawn_right_after_left_without_broadcaster,
         # MoveIt 模式节点
         move_group_node,
         rviz_node,

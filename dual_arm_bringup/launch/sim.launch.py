@@ -9,8 +9,8 @@ def generate_launch_description():
 
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
-        default_value='true',
-        description='使用仿真时钟'
+        default_value='false',
+        description='使用仿真时钟（有 Gazebo 时设为 true）'
     )
 
     # 是否启动 joint_state_broadcaster（发布 /joint_states）

@@ -49,6 +49,56 @@ ros2 run tf2_tools view_frames    # 查看 TF 树
 ros2 topic echo /tf --once        # 检查 TF 数据
 ```
 
+### 实战案例：RViz Robot Description 报错 + axis link 全部 no transform
+
+**现象**：
+- 运行 `ros2 launch dual_arm_bringup sim.launch.py` 后，RViz 的 RobotModel/Robot Description 报错。
+- `laxis*_link`、`raxis*_link` 等活动关节 link 显示 `No transform`。
+- 终端可能伴随 `controller_manager/spawner` 卡住、`Failed to acquire lock` 或控制器未激活。
+
+**关键链路**：
+```
+joint_state_broadcaster → /joint_states → robot_state_publisher → /tf → RViz
+```
+
+只要 `joint_state_broadcaster` 没有成功 `Configured and activated`，`robot_state_publisher` 就没有关节位置输入，只能发布固定关节相关 TF；所有依赖活动关节的 axis link 都会缺 TF。
+
+**本次根因**：
+1. 三个 controller spawner 并发启动，同时竞争 ros2_control 的全局 spawner lock，导致 controller 启动不稳定。
+2. 本机存在一个残留的旧 `controller_manager/spawner joint_state_broadcaster` 进程，一直占用或干扰 lock。
+3. RViz 的 RobotModel 订阅 `/robot_description` 时 durability 是 `Volatile`，容易错过 `robot_state_publisher` 已发布的 transient robot description。
+4. 无 Gazebo 时默认 `use_sim_time=true` 会在没有 `/clock` 时造成时间相关显示/TF 问题；mock 仿真默认应使用 wall time。
+
+**修复**：
+- 在 `dual_arm_moveit_config/launch/moveit.launch.py` 中串行启动 spawner：
+  `joint_state_broadcaster -> left_arm_controller -> right_arm_controller`。
+- 在 `dual_arm_moveit_config/config/moveit.rviz` 中把 RobotModel 的 `/robot_description` topic durability 改为 `Transient Local`。
+- 在 `dual_arm_bringup/launch/sim.launch.py` 中把 `use_sim_time` 默认值设为 `false`；只有 Gazebo 提供 `/clock` 时才设为 `true`。
+- 清理残留 spawner 进程：
+```bash
+ps -ef | grep controller_manager/spawner
+kill <stale_spawner_pid>
+```
+
+**验证标准**：
+```bash
+source install/setup.bash
+ros2 launch dual_arm_bringup sim.launch.py
+```
+
+终端应出现：
+```text
+Configured and activated joint_state_broadcaster
+Configured and activated left_arm_controller
+Configured and activated right_arm_controller
+Loaded robot model 'dual_arm_1kg'
+```
+
+**非根因日志**：
+- `base_link has an inertia ... KDL does not support a root link with an inertia`：URDF 根 link 惯量警告，不会导致 axis link 无 TF。
+- `No 3D sensor plugin(s) defined for octomap updates`：未配置 3D 传感器时的 MoveIt 非致命日志，不会导致 TF 缺失。
+- `Action server: /recognize_objects not available`：RViz object recognition 相关功能不可用，不影响 robot model 和 TF。
+
 ---
 
 ## ROS2 参数系统
