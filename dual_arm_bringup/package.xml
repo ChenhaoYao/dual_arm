@@ -13,6 +13,8 @@
   <depend>dual_arm_moveit_config</depend>
   <depend>dual_arm_control</depend>
   <depend>dual_arm_servo</depend>
+  <depend>ros_tcp_endpoint</depend>
+  <depend>vr_teleop_bridge</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

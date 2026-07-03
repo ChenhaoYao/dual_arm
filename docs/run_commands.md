@@ -27,6 +27,17 @@ source install/setup.bash
 ros2 launch dual_arm_bringup sim.launch.py
 ```
 
+### VR 遥操作仿真模式（mock 硬件）
+
+```bash
+source install/setup.bash
+ros2 launch dual_arm_bringup sim.launch.py \
+  mode:=servo \
+  enable_vr_teleop:=true \
+  enable_ros_tcp_endpoint:=true \
+  ros_tcp_port:=10000
+```
+
 ### 实物模式
 
 ```bash
@@ -42,6 +53,43 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call
 sudo bash -c 'source /home/dell/dual_arm/install/setup.bash && ros2 topic echo  /left_arm_controller/controller_state'
 ```
 
+### VR 遥操作实物模式
+
+```bash
+# 终端 1：MoveIt Servo + 真实硬件接口 + Unity TCP Endpoint + VR bridge
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_bringup real.launch.py mode:=servo enable_vr_teleop:=true enable_ros_tcp_endpoint:=true ros_tcp_port:=10000"
+
+# 终端 2：SOEM 桥接节点
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_soem_bridge soem_bridge.launch.py"
+
+# 终端 3：使能电机
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool '{data: true}'"
+
+# 如 Servo 未自动开始，手动启动左右 Servo
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /servo_left/start_servo std_srvs/srv/Trigger '{}'"
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /servo_right/start_servo std_srvs/srv/Trigger '{}'"
+```
+
+### 只启动 Unity ROS TCP Endpoint
+
+```bash
+source install/setup.bash
+ros2 launch ros_tcp_endpoint endpoint.py
+```
+
+### 只启动 VR bridge（Endpoint 和 MoveIt Servo 已经运行时）
+
+```bash
+source install/setup.bash
+ros2 launch vr_teleop_bridge vr_teleop_bridge.launch.py
+```
+
+### 启动 Unity ROS TCP Endpoint + VR bridge（MoveIt Servo 已经运行时）
+
+```bash
+source install/setup.bash
+ros2 launch vr_teleop_bridge vr_with_tcp_endpoint.launch.py ros_tcp_port:=10000
+```
 
 ### SOEM 示例程序
 
@@ -63,6 +111,15 @@ sudo /home/dell/dual_arm/SOEM/build/samples/ec_sample/ec_sample enp0s31f6
 ```bash
 # 查看话题列表（sudo）
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic list"
+
+# 查看 VR 手柄输入
+ros2 topic echo /vr/left_hand/pose --once
+ros2 topic echo /vr/right_hand/pose --once
+ros2 topic echo /vr/status --once
+
+# 查看 VR 到 Servo 的输出
+ros2 topic echo /servo_left/delta_twist_cmds --once
+ros2 topic echo /servo_right/delta_twist_cmds --once
 
 # 查看关节状态（sudo）
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic echo /joint_states --once"
@@ -91,6 +148,12 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 node list"
 
 # 查看节点信息（订阅/发布/服务）
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 node info /soem_bridge_node"
+
+# 查看 Unity TCP Endpoint
+ros2 node info /UnityEndpoint
+
+# 查看 VR bridge
+ros2 node info /vr_pose_to_servo_node
 ```
 
 ### TF 查看
@@ -123,6 +186,14 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call
 
 # 故障复位
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/clear_fault std_srvs/srv/Trigger"
+
+# 启动 MoveIt Servo
+ros2 service call /servo_left/start_servo std_srvs/srv/Trigger "{}"
+ros2 service call /servo_right/start_servo std_srvs/srv/Trigger "{}"
+
+# 暂停 MoveIt Servo
+ros2 service call /servo_left/pause_servo std_srvs/srv/Trigger "{}"
+ros2 service call /servo_right/pause_servo std_srvs/srv/Trigger "{}"
 ```
 
 ### 单电机测试

@@ -12,8 +12,8 @@ ros2 launch dual_arm_bringup sim.launch.py   # simulation (mock hardware)
 
 For real hardware:
 ```bash
-# Terminal 1: Start MoveIt (without joint_state_broadcaster to avoid conflict)
-ros2 launch dual_arm_bringup sim.launch.py use_broadcaster:=false
+# Terminal 1: Start MoveIt/ros2_control with the real hardware interface
+ros2 launch dual_arm_bringup real.launch.py
 
 # Terminal 2: Start SOEM bridge (auto-connects to motors, reads encoders)
 ros2 launch dual_arm_soem_bridge soem_bridge.launch.py
@@ -35,7 +35,7 @@ There is no test suite, lint config, or CI. No typecheck or formatter is configu
 dual_arm_description   ← URDF/xacro, meshes, rviz config
 dual_arm_control       ← C++ ros2_control hardware interface plugin (not currently used)
 dual_arm_moveit_config ← MoveIt2 config: SRDF, kinematics, controllers, launch
-dual_arm_bringup       ← top-level launch: sim.launch.py (real.launch.py deprecated)
+dual_arm_bringup       ← top-level launch: sim.launch.py (mock) and real.launch.py (hardware)
 dual_arm_soem_bridge   ← ROS2 ↔ SOEM EtherCAT bridge node (CSV velocity mode)
 SOEM/                  ← vendored third-party EtherCAT master library (built by soem_bridge)
 ```
@@ -90,7 +90,8 @@ These are hard-won lessons from debugging `move_group` crashes. See `DEBUGGING_N
 - Wheels are defined in URDF but have no functional joints or meshes.
 - The `dual_arm_description/AGENTS.md` has package-specific details on layout, robot structure, and build.
 - Mesh paths use `package://dual_arm_description/meshes/` — the package name must match exactly.
-- `sim.launch.py` passes `mock_components/GenericSystem`. `real.launch.py` is deprecated — use `sim.launch.py` + `soem_bridge_node` instead.
+- `sim.launch.py` passes `mock_components/GenericSystem` with `ros2_controllers.yaml` position controllers.
+- `real.launch.py` passes `dual_arm_control/DualArmHardware` with `ros2_controllers_real.yaml` velocity controllers.
 - Standalone joint control GUI (not a launch file): `python3 dual_arm_description/joint_control_panel.py`
 - `ros2_controllers.yaml` uses only `position` command interface, even though the URDF defines both position and velocity. This is intentional — velocity commands are unused.
 - `README.md` says `fake_components/GenericSystem` — the actual xacro and launch files use `mock_components/GenericSystem`. Trust the code, not the README.
