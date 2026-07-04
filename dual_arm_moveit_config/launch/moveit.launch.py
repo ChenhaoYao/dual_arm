@@ -252,6 +252,14 @@ def generate_launch_description():
         condition=IfCondition(PythonExpression(["'", LaunchConfiguration('mode', default='servo'), "' == 'servo'"]))
     )
 
+    trajectory_bridge_node = Node(
+        package='dual_arm_servo',
+        executable='trajectory_bridge.py',
+        name='trajectory_bridge',
+        output='screen',
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration('mode', default='servo'), "' == 'servo'"]))
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         hw_plugin_arg,
@@ -270,4 +278,5 @@ def generate_launch_description():
         # Servo 模式节点
         servo_left_node,
         servo_right_node,
+        trajectory_bridge_node,
     ])

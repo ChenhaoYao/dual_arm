@@ -1,6 +1,8 @@
 # dual_arm — ROS 2 Dual-Arm Robot Workspace
 
-Colcon workspace with 5 ament_cmake packages for a dual-arm mobile robot (two 7-DOF arms on a wheeled chassis), plus a vendored SOEM library for EtherCAT. Target ROS 2 distro: **Jazzy**.
+Repository-wide instructions for Codex and other agents live here. Keep shared repo guidance in this file instead of adding a parallel `.codex/` init file.
+
+Colcon workspace with 6 ament_cmake packages for a dual-arm mobile robot (two 7-DOF arms on a wheeled chassis), plus a vendored SOEM library for EtherCAT. Target ROS 2 distro: **Humble**.
 
 ## Build & launch
 
@@ -8,6 +10,8 @@ Colcon workspace with 5 ament_cmake packages for a dual-arm mobile robot (two 7-
 colcon build                          # build all packages
 source install/setup.bash             # required before any ros2 command
 ros2 launch dual_arm_bringup sim.launch.py   # simulation (mock hardware)
+ros2 launch dual_arm_bringup sim.launch.py mode:=servo   # servo keyboard teleop mode
+ros2 run dual_arm_servo keyboard_teleop.py
 ```
 
 For real hardware:
@@ -37,6 +41,7 @@ dual_arm_control       ← C++ ros2_control hardware interface plugin (not curre
 dual_arm_moveit_config ← MoveIt2 config: SRDF, kinematics, controllers, launch
 dual_arm_bringup       ← top-level launch: sim.launch.py (real.launch.py deprecated)
 dual_arm_soem_bridge   ← ROS2 ↔ SOEM EtherCAT bridge node (CSV velocity mode)
+dual_arm_servo         ← Servo config + keyboard teleop
 SOEM/                  ← vendored third-party EtherCAT master library (built by soem_bridge)
 ```
 

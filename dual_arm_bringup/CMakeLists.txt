@@ -7,4 +7,9 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  scripts/start_dual_arm
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

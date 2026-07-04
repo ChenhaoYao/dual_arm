@@ -41,14 +41,14 @@ move_group_name: right_arm
 lower_singularity_threshold: 200.0
 hard_stop_singularity_threshold: 400.0
 leaving_singularity_threshold_multiplier: 2.0
-joint_limit_margins: [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
+joint_limit_margin: 0.12
 
 ## 话题名称
 cartesian_command_in_topic: ~/delta_twist_cmds
 joint_command_in_topic: ~/delta_joint_cmds
 joint_topic: /joint_states
 status_topic: ~/status
-command_out_topic: /right_arm_controller/joint_trajectory
+command_out_topic: /servo_right/raw_joint_trajectory
 
 ## 碰撞检测
 check_collisions: false  # FIXME: STL meshes too large for FCL, simplify first

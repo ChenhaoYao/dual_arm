@@ -43,17 +43,17 @@ check_octomap_collisions: false
 move_group_name: left_arm
 
 ## 奇异点和关节限制配置
-lower_singularity_threshold: 200.0      # 条件数达到此值时开始减速
-hard_stop_singularity_threshold: 400.0  # 条件数达到此值时停止
+lower_singularity_threshold: 200.0      # 当前机械臂初始位姿下需要更宽松阈值，避免频繁停机
+hard_stop_singularity_threshold: 400.0  # 与现有项目调通经验保持一致
 leaving_singularity_threshold_multiplier: 2.0
-joint_limit_margins: [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
+joint_limit_margin: 0.12
 
 ## 话题名称
 cartesian_command_in_topic: ~/delta_twist_cmds
 joint_command_in_topic: ~/delta_joint_cmds
 joint_topic: /joint_states
 status_topic: ~/status
-command_out_topic: /left_arm_controller/joint_trajectory
+command_out_topic: /servo_left/raw_joint_trajectory
 
 ## 碰撞检测
 check_collisions: false  # FIXME: STL meshes too large for FCL, simplify first

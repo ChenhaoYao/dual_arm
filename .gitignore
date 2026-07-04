@@ -22,3 +22,5 @@ COLCON_IGNORE
 DEBUGGING_NOTES.md
 OPENCODE_KEYBINDS.md
 
+# Local notes (tuning guide, personal docs — not for upstream)
+notes/
