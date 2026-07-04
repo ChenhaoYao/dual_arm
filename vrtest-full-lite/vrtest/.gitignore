@@ -1,0 +1,44 @@
+# Unity generated folders
+/Library/
+/Temp/
+/Obj/
+/Build/
+/Builds/
+/Logs/
+/MemoryCaptures/
+/Recordings/
+
+# Unity generated project files
+/*.csproj
+/*.sln
+/*.suo
+/*.user
+/*.userprefs
+/*.pidb
+/*.booproj
+/*.svd
+/*.pdb
+/*.mdb
+/*.opendb
+/*.VC.db
+
+# Unity crash and diagnostics
+/sysinfo.txt
+/crashlytics-build.properties
+
+# Build outputs
+/*.apk
+/*.aab
+/*.unitypackage
+
+# IDE and OS local state
+/.vscode/
+/.idea/
+/.vs/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Local-only Unity settings
+/UserSettings/
