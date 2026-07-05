@@ -88,6 +88,13 @@ def generate_launch_description():
         ])),
     )
 
+    vr_move_group_bridge_launch = IncludeLaunchDescription(
+        PathJoinSubstitution([vr_teleop_bridge_pkg, 'launch', 'vr_move_group_bridge.launch.py']),
+        condition=IfCondition(PythonExpression([
+            "'", enable_vr_teleop, "' == 'true' and '", mode, "' == 'moveit'"
+        ])),
+    )
+
     ros_tcp_endpoint_node = Node(
         package='ros_tcp_endpoint',
         executable='default_server_endpoint',
@@ -111,5 +118,6 @@ def generate_launch_description():
         ros_tcp_port_arg,
         moveit_demo_launch,
         ros_tcp_endpoint_node,
+        vr_move_group_bridge_launch,
         vr_teleop_bridge_launch,
     ])

@@ -32,7 +32,7 @@ ros2 launch dual_arm_bringup sim.launch.py
 ```bash
 source install/setup.bash
 ros2 launch dual_arm_bringup sim.launch.py \
-  mode:=servo \
+  mode:=moveit \
   enable_vr_teleop:=true \
   enable_ros_tcp_endpoint:=true \
   ros_tcp_port:=10000
