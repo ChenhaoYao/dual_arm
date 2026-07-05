@@ -8,6 +8,18 @@ Unity 项目路径：
 /home/dell/dual_arm/vrtest-full-lite/vrtest
 ```
 
+## Codex / 沙箱执行注意事项
+
+以下命令需要真实主机环境，不要先在沙箱中试跑：
+
+- `ros2 topic ...`、`ros2 node ...`、`ros2 daemon ...`、`ros2 run ...`、`ros2 launch ...`
+- `adb devices`、`adb shell ...`、`adb logcat ...`、`adb reverse ...`
+- `ip addr`、`ip route`、`ip neigh`、`ss`、`ping`
+- `sudo ufw ...`
+- 启动或验证需要保留在主机上的 `ros_tcp_endpoint`
+
+原因是沙箱无法完整访问 ROS 2 DDS/local sockets、USB ADB server、netlink 网络状态和主机防火墙状态。遇到这些命令应直接在真实主机环境执行。
+
 ## 组件关系
 
 ### Unity Hub
@@ -239,6 +251,148 @@ CommonUsages.deviceRotation
 geometry_msgs/msg/PoseStamped
 ```
 
+## 排错记录：PICO 应用列表找不到 Build And Run 安装的应用
+
+日期：2026-07-04
+
+### 现象
+
+Unity Hub / Unity Editor 已经对项目执行过 `Build And Run`，APK 也被安装到 PICO，但在 PICO 应用列表中找不到预期的 `vrtest`。
+
+### 检查方法
+
+先确认 PICO 是否通过 ADB 连接：
+
+```bash
+adb devices -l
+```
+
+再列出相关包名：
+
+```bash
+adb shell pm list packages | rg -i 'dualarm|vrtest|vrtext|defaultcompany'
+```
+
+当时查到旧包实际已经安装：
+
+```text
+package:com.DefaultCompany.vrtext
+```
+
+也可以直接检查某个包是否存在：
+
+```bash
+adb shell pm path com.DefaultCompany.vrtext
+```
+
+旧包的入口 Activity 是：
+
+```text
+com.DefaultCompany.vrtext/com.unity3d.player.UnityPlayerActivity
+```
+
+可以用 ADB 直接启动：
+
+```bash
+adb shell am start -n com.DefaultCompany.vrtext/com.unity3d.player.UnityPlayerActivity
+```
+
+### 根因
+
+Unity 项目配置里应用显示名拼错了：
+
+```yaml
+companyName: DefaultCompany
+productName: vrtext
+applicationIdentifier: {}
+overrideDefaultApplicationIdentifier: 0
+```
+
+因此 Unity 使用默认规则生成了包名：
+
+```text
+com.DefaultCompany.vrtext
+```
+
+PICO 应用列表里也会按 Unity 的 `productName` 显示为 `vrtext`，而不是项目目录名 `vrtest`。
+
+另外，通过 Unity `Build And Run` / ADB 安装的 APK 属于侧载应用。PICO 系统里这类应用可能出现在“未知来源”“开发者应用”或类似分类里，不一定和商店应用放在同一个普通应用列表中。
+
+### 修复方案
+
+显式修正 Unity PlayerSettings：
+
+```text
+vrtest-full-lite/vrtest/ProjectSettings/ProjectSettings.asset
+```
+
+关键字段应为：
+
+```yaml
+companyName: DualArm
+productName: vrtest
+applicationIdentifier:
+  Android: com.dualarm.vrtest
+overrideDefaultApplicationIdentifier: 1
+```
+
+同时同步修正残留拼写：
+
+```yaml
+metroPackageName: vrtest
+metroApplicationDescription: vrtest
+```
+
+这样下次 `Build And Run` 后，PICO 上安装的新应用应为：
+
+```text
+包名: com.dualarm.vrtest
+显示名: vrtest
+```
+
+### 旧包处理
+
+修改包名后，Android/PICO 会把旧包和新包视为两个完全不同的应用：
+
+```text
+旧包: com.DefaultCompany.vrtext
+新包: com.dualarm.vrtest
+```
+
+正常情况下应删除旧包，避免应用列表里出现两个相似应用：
+
+```bash
+adb uninstall com.DefaultCompany.vrtext
+```
+
+注意：卸载旧包会删除该旧包的数据目录。当前项目没有需要保留的旧应用数据时，删除旧包是推荐做法。
+
+### 验证结果
+
+重新 `Build And Run` 后，确认 PICO 当前运行的是新包：
+
+```bash
+adb shell dumpsys activity activities | rg -n 'topResumedActivity|com\.dualarm\.vrtest|UnityPlayerActivity'
+```
+
+正常会看到：
+
+```text
+com.dualarm.vrtest/com.unity3d.player.UnityPlayerActivity
+```
+
+也可以检查安装包列表：
+
+```bash
+adb shell pm list packages | rg -i 'dualarm|vrtest|vrtext|defaultcompany'
+```
+
+正常只应保留：
+
+```text
+package:com.dualarm.vrtest
+```
+
 ## 排错记录：PICO 无法收到/发布 ROS 手柄位姿
 
 日期：2026-07-05
@@ -389,21 +543,73 @@ ros2 topic hz /vr/right_hand/pose
 
 ### 当前推荐运行顺序
 
-1. USB 连接 PICO，并确认 ADB 可见：
+如果 PICO 和 PC 所在 Wi-Fi 允许客户端互通，优先使用局域网直连。当前可达的 PC Wi-Fi IP 是：
 
-```bash
-adb devices -l
+```text
+10.235.51.46
 ```
 
-2. 建立 ADB reverse：
+此时 `ROSConnectionPrefab.prefab` 应配置为：
 
-```bash
-adb reverse tcp:10000 tcp:10000
+```yaml
+m_RosIPAddress: 10.235.51.46
+m_RosPort: 10000
 ```
 
-3. 启动 ROS TCP endpoint：
+如果更换网络导致该 DHCP 地址变化，需要同步修改 prefab 并重新 Build And Run。
+
+1. 清理残留 ROS 进程并启动 endpoint：
 
 ```bash
+cd /home/dell/dual_arm
+tools/clean_ros_runtime.sh --start-endpoint
+```
+
+这个脚本会停止残留的 `ros_tcp_endpoint`、当前工作空间安装出的 ROS 可执行进程、常见 `ros2 launch/run` 包装进程，并停止 ROS 2 daemon，避免旧 endpoint 状态导致 ROS 图不刷新。
+
+2. 确认防火墙状态。
+
+当前机器人开发主机只接内部网使用，已关闭 `ufw`：
+
+```bash
+sudo ufw status
+```
+
+正常应显示：
+
+```text
+Status: inactive
+```
+
+如果以后重新启用防火墙，需要允许 PICO 访问 PC 的 `10000/tcp`。可以使用下面的备用规则。
+
+当前 PICO Wi-Fi IP 是：
+
+```text
+10.235.51.61
+```
+
+备用 UFW 放行规则：
+
+```bash
+sudo ufw allow from 10.235.51.61 to any port 10000 proto tcp comment 'ROS TCP endpoint for PICO'
+sudo ufw status numbered
+```
+
+如果 PICO 的 DHCP 地址变化，需要更新这条规则。当前 `ufw` 已关闭时不需要这条规则。
+
+3. 如果不使用清理脚本，也可以手动启动 PC 端 ROS TCP endpoint：
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /home/dell/dual_arm/install/setup.bash
+ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p tcp_port:=10000
+```
+
+如果 endpoint 是之前长时间运行、经历过断连/探测连接的旧进程，ROS 图可能不刷新。这时重启 endpoint：
+
+```bash
+pkill -f default_server_endpoint
 source /opt/ros/jazzy/setup.bash
 source /home/dell/dual_arm/install/setup.bash
 ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p tcp_port:=10000
@@ -419,6 +625,64 @@ ros2 topic echo /vr/status --once
 ros2 topic echo /vr/left_hand/pose --once
 ros2 topic echo /vr/right_hand/pose --once
 ```
+
+如果当前 Wi-Fi 阻止 PICO 到 PC 的直连，再回退到 USB ADB reverse 方案：
+
+```bash
+adb reverse tcp:10000 tcp:10000
+```
+
+并将 prefab 改为：
+
+```yaml
+m_RosIPAddress: 127.0.0.1
+m_RosPort: 10000
+```
+
+### Wi-Fi 直连验证结果
+
+日期：2026-07-05
+
+在新网络下：
+
+```text
+PC:   10.235.51.46
+PICO: 10.235.51.61
+```
+
+双向 ping 成功。PICO 端 Unity 日志最初报：
+
+```text
+Connection to 10.235.51.46:10000 failed - System.Net.Sockets.SocketException: Connection timed out
+```
+
+原因是 PC 上 `ufw` 已启用，但没有放行 `10000/tcp`。添加只允许当前 PICO IP 的规则后：
+
+```bash
+sudo ufw allow from 10.235.51.61 to any port 10000 proto tcp comment 'ROS TCP endpoint for PICO'
+```
+
+PICO 能通过 Wi-Fi 建立 TCP 连接：
+
+```text
+10.235.51.46:10000 <-> 10.235.51.61
+```
+
+ROS 2 侧可收到：
+
+```text
+/vr/left_hand/pose [geometry_msgs/msg/PoseStamped]
+/vr/right_hand/pose [geometry_msgs/msg/PoseStamped]
+/vr/status [std_msgs/msg/String]
+```
+
+状态：
+
+```text
+data: left=connected right=connected
+```
+
+左右手位姿频率约 `44-45 Hz`。
 
 ## `.asset` 和 `.prefab`
 

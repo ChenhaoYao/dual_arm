@@ -19,7 +19,7 @@ PICO headset -> `VRHandPublisher.cs` -> ROS TCP Connector (TCP:10000) -> `ros_tc
 ### Key Files
 
 - `Assets/VRHandPublisher.cs` — publishes `PoseStamped` on `/vr/left_hand/pose` and `/vr/right_hand/pose` at 50 Hz, plus `String` status on `/vr/status`
-- `Assets/Resources/ROSConnectionPrefab.prefab` — connection config (`127.0.0.1:10000` via `adb reverse tcp:10000 tcp:10000`). Must be in scene for ROS to work.
+- `Assets/Resources/ROSConnectionPrefab.prefab` — connection config (`10.235.51.46:10000`, the current PC Wi-Fi IP). Must be in scene for ROS to work.
 
 ### Running on Device
 
@@ -27,14 +27,12 @@ PICO headset -> `VRHandPublisher.cs` -> ROS TCP Connector (TCP:10000) -> `ros_tc
 2. Start endpoint: `ros2 run ros_tcp_endpoint default_server_endpoint --ros-args -p tcp_port:=10000`
 3. Start subscriber: `python3 /home/yao/ROS-TCP-Connector-main/scripts/vr_hand_subscriber.py`
 4. Build APK via Unity Editor (File > Build Settings > Android > Build and Run)
-5. Forward the headset loopback port to this PC: `adb reverse tcp:10000 tcp:10000`
-6. Build APK via Unity Editor (File > Build Settings > Android > Build and Run)
-7. ADB path: `/home/dell/Unity/Hub/Editor/2022.3.62f3/Editor/Data/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb`
+5. ADB path: `/home/dell/Unity/Hub/Editor/2022.3.62f3/Editor/Data/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb`
 
 ### Gotchas
 
 - **`ROSConnectionPrefab` must be in the scene** and `VRHandPublisher` must be attached to a GameObject. Without both, the publisher silently does nothing.
-- **Use ADB reverse for ROS TCP**: the current Wi-Fi network blocks Pico-to-PC client traffic, so the prefab uses `127.0.0.1:10000` and requires `adb reverse tcp:10000 tcp:10000` while the headset is connected over USB.
+- **ROS TCP address must match the reachable PC address**: on the current LAN the prefab uses the PC Wi-Fi IP `10.235.51.46:10000`. If this DHCP address changes, update the prefab and rebuild the APK. If Wi-Fi client isolation blocks Pico-to-PC traffic, use the fallback `127.0.0.1:10000` plus `adb reverse tcp:10000 tcp:10000`.
 - **`BuiltinInterfaces` namespace**: use `new TimeMsg` not `new BuiltinInterfaces.TimeMsg` — the `using` directive already imports it.
 - **PICO SDK path is local**: `com.unity.xr.picoxr` resolves from `file:/home/yao/...`. Project won't build on other machines without this path.
 - **Build scene is `DemoScene.unity`** (XRI Starter Assets sample), not a custom scene. Custom scenes in `Assets/Scenes/` are not in the build list.

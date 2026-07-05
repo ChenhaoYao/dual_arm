@@ -29,6 +29,24 @@ colcon build --packages-select dual_arm_soem_bridge
 
 There is no test suite, lint config, or CI. No typecheck or formatter is configured.
 
+## Codex command execution notes
+
+Some diagnostics and runtime commands must be run outside the sandbox. Do not first try them in the sandbox and then rerun after failure; request escalated execution directly for these classes:
+
+- ROS 2 graph/daemon/DDS commands: `ros2 topic ...`, `ros2 node ...`, `ros2 service ...`, `ros2 daemon ...`, and runtime `ros2 run` / `ros2 launch` checks. The sandbox blocks local sockets/network paths ROS 2 uses.
+- ADB/PICO commands: `adb devices`, `adb shell ...`, `adb logcat ...`, `adb reverse ...`, `adb install/uninstall ...`. These need USB/device access and the host ADB server.
+- Network interface and connection diagnostics: `ip addr`, `ip route`, `ip neigh`, `ss`, `ping`, and similar commands. The sandbox may not have netlink or real network visibility.
+- Firewall/system service commands: `sudo ufw ...` and other persistent host network policy checks/changes.
+- Long-running or host-visible runtime processes that must survive the command session, especially `ros_tcp_endpoint`. Use the real host environment for start/stop verification.
+
+For the PICO VR teleop path, prefer:
+
+```bash
+cd /home/dell/dual_arm
+tools/clean_ros_runtime.sh --start-endpoint
+ros2 topic list -t --no-daemon
+```
+
 ## Package map
 
 ```
