@@ -8,7 +8,9 @@
 - `dual_arm_moveit_config/config/dual_arm_1kg.srdf`
 - `dual_arm_moveit_config/config/kinematics.yaml`
 - `dual_arm_moveit_config/config/moveit.rviz`
-- `dual_arm_moveit_config/launch/moveit.launch.py`（被 `dual_arm_bringup sim.launch.py` 调用）
+- `dual_arm_moveit_config/launch/move_group.launch.py`
+- `dual_arm_moveit_config/launch/rviz.launch.py`
+- `dual_arm_bringup/launch/sim.launch.py`（`mode:=moveit` 时同时 include MoveGroup 和 RViz）
 
 ---
 

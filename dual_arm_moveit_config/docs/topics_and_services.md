@@ -1,6 +1,7 @@
 # Dual Arm MoveIt2 仿真话题与服务参考手册
 
-> 基于 `moveit.launch.py` 启动的完整仿真环境（mock_components/GenericSystem）
+> 基于 `dual_arm_bringup sim.launch.py mode:=moveit` 启动的完整仿真环境（mock_components/GenericSystem）。
+> `mode:=servo` 也会启动 RViz 和 ros2_control，但不会启动 `move_group`；MoveIt 规划相关话题/服务只适用于 `mode:=moveit`。
 
 ---
 

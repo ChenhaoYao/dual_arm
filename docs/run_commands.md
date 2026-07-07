@@ -32,16 +32,18 @@ ros2 launch dual_arm_bringup sim.launch.py
 ```bash
 source install/setup.bash
 ros2 launch dual_arm_bringup sim.launch.py \
-  mode:=moveit \
+  mode:=servo \
   enable_vr_teleop:=true \
   enable_ros_tcp_endpoint:=true \
   ros_tcp_port:=10000
 ```
 
+注意：Servo 模式不会启动 `move_group`。当前仍复用 `moveit.rviz`，RViz MotionPlanning 面板连接不到 MoveGroup 属于预期现象。
+
 ### 实物模式
 
 ```bash
-# 终端 1：MoveIt + ros2_control（real.launch.py 默认 use_broadcaster:=false）
+# 终端 1：MoveGroup + ros2_control + RViz（real.launch.py 默认 mode:=moveit, use_broadcaster:=false）
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_bringup real.launch.py"
 
 # 终端 2：SOEM 桥接节点

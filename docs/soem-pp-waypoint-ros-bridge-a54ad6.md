@@ -63,7 +63,7 @@ RViz 末端位姿目标
 
 - 新增独立 launch，例如 `soem_bridge.launch.py` 或 `sim_with_real_mirror.launch.py`。
 - 默认不启动真实硬件，必须通过参数显式开启：`enable_soem:=true ifname:=enp...`。
-- 保持原 `sim.launch.py` 不变，确保 RViz/MoveIt 仿真仍可单独运行。
+- 保持 `sim.launch.py` 的默认 `mode:=moveit` 行为可用，确保 RViz/MoveIt 仿真仍可单独运行。
 
 ### 6. 分阶段验证
 

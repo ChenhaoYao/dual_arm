@@ -52,13 +52,14 @@ ros2 topic list -t --no-daemon
 ```
 dual_arm_description   ← URDF/xacro, meshes, rviz config
 dual_arm_control       ← C++ ros2_control hardware interface plugin (not currently used)
-dual_arm_moveit_config ← MoveIt2 config: SRDF, kinematics, controllers, launch
+dual_arm_moveit_config ← MoveIt2 config: SRDF, kinematics, controllers, MoveGroup/RViz launch
+dual_arm_servo         ← MoveIt Servo config and launch (no MoveGroup)
 dual_arm_bringup       ← top-level launch: sim.launch.py (mock) and real.launch.py (hardware)
 dual_arm_soem_bridge   ← ROS2 ↔ SOEM EtherCAT bridge node (CSV velocity mode)
 SOEM/                  ← vendored third-party EtherCAT master library (built by soem_bridge)
 ```
 
-Dependency chain: `bringup → moveit_config → description`, `soem_bridge → SOEM/`.
+Dependency chain: `bringup → moveit_config/servo/control → description`, `soem_bridge → SOEM/`.
 
 ## Key architecture: soem_bridge_node
 
@@ -94,7 +95,7 @@ MoveIt → JTC → controller_state → soem_bridge_node → EtherCAT → Motors
 
 These are hard-won lessons from debugging `move_group` crashes. See `DEBUGGING_NOTES.md` for the full story.
 
-- **YAML content, not paths**: `moveit.launch.py` must pass parsed YAML dicts (via `yaml.safe_load()`) for `robot_description_kinematics`, `robot_description_planning`, `ompl`, and `moveit_simple_controller_manager`. Passing a file path string silently fails.
+- **YAML content, not paths**: `dual_arm_moveit_config/launch/move_group.launch.py` must pass parsed YAML dicts (via `yaml.safe_load()`) for `robot_description_kinematics`, `robot_description_planning`, `ompl`, and `moveit_simple_controller_manager`. Passing a file path string silently fails.
 - **OMPL planning plugin field**: In MoveIt2 Jazzy, the field is `planning_plugins` (plural, list), not `planning_plugin` (singular). The ompl config must be namespaced under `ompl:` in the YAML.
 - **Joint acceleration limits required**: `joint_limits.yaml` must have `has_acceleration_limits: true` and a nonzero `max_acceleration` for every joint, or `AddTimeOptimalParameterization` fails.
 - **Collision geometry**: Large STL meshes (>10k vertices) crash MoveIt/FCL. base_link and laxis/raxis 1-2 already use box/cylinder primitives for collision. laxis/raxis 3-7 still use STL meshes for collision — if `move_group` crashes with "too many vertices", simplify those too.
@@ -110,6 +111,6 @@ These are hard-won lessons from debugging `move_group` crashes. See `DEBUGGING_N
 - Mesh paths use `package://dual_arm_description/meshes/` — the package name must match exactly.
 - `sim.launch.py` passes `mock_components/GenericSystem` with `ros2_controllers.yaml` position controllers.
 - `real.launch.py` passes `dual_arm_control/DualArmHardware` with `ros2_controllers_real.yaml` velocity controllers.
+- `sim.launch.py` / `real.launch.py` use startup-time exclusive `mode:=moveit|servo`. Both modes start RViz; only `moveit` starts `move_group`, only `servo` starts the two MoveIt Servo nodes.
 - Standalone joint control GUI (not a launch file): `python3 dual_arm_description/joint_control_panel.py`
 - `ros2_controllers.yaml` uses only `position` command interface, even though the URDF defines both position and velocity. This is intentional — velocity commands are unused.
-- `README.md` says `fake_components/GenericSystem` — the actual xacro and launch files use `mock_components/GenericSystem`. Trust the code, not the README.

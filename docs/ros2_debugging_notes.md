@@ -70,7 +70,7 @@ joint_state_broadcaster → /joint_states → robot_state_publisher → /tf → 
 4. 无 Gazebo 时默认 `use_sim_time=true` 会在没有 `/clock` 时造成时间相关显示/TF 问题；mock 仿真默认应使用 wall time。
 
 **修复**：
-- 在 `dual_arm_moveit_config/launch/moveit.launch.py` 中串行启动 spawner：
+- 在 `dual_arm_bringup/launch/control_base.launch.py` 中串行启动 spawner：
   `joint_state_broadcaster -> left_arm_controller -> right_arm_controller`。
 - 在 `dual_arm_moveit_config/config/moveit.rviz` 中把 RobotModel 的 `/robot_description` topic durability 改为 `Transient Local`。
 - 在 `dual_arm_bringup/launch/sim.launch.py` 中把 `use_sim_time` 默认值设为 `false`；只有 Gazebo 提供 `/clock` 时才设为 `true`。
@@ -219,7 +219,7 @@ command_interfaces: [position]
 command_interfaces: [velocity]
 ```
 ```python
-# moveit.launch.py
+# control_base.launch.py
 DeclareLaunchArgument('controllers_config', default_value='ros2_controllers.yaml')
 # sim.launch.py  → controllers_config: 'ros2_controllers.yaml'
 # real.launch.py → controllers_config: 'ros2_controllers_real.yaml'
@@ -351,12 +351,12 @@ d(measured)/dt = v · dir² = v > 0   （dir² 恒为 1）
 ## Launch 参数传递
 
 ```python
-# sim.launch.py → moveit.launch.py → URDF
+# sim.launch.py / real.launch.py → control_base.launch.py / move_group.launch.py / servo.launch.py / rviz.launch.py → URDF
 hw_plugin: 'mock_components/GenericSystem'  # 仿真
 hw_plugin: 'dual_arm_control/DualArmHardware'  # 实物
 
 # 条件启动 broadcaster
-GroupAction(condition=IfCondition(use_broadcaster), ...)
+Node(condition=IfCondition(use_broadcaster), ...)
 ```
 
 ---

@@ -19,7 +19,7 @@ MoveIt → JTC (PID) → controller_state.output.velocities → soem_bridge → 
 | `real.launch.py` | 添加 `use_broadcaster` 参数（默认 false） |
 | `dual_arm_hardware.hpp` | 添加 ROS2 节点和订阅者成员变量 |
 | `dual_arm_hardware.cpp` | 订阅 `/joint_states`，read() 中更新state_interface |
-| `ros2_controllers.yaml` | command_interfaces 改为 velocity，添加 PID 参数 |
+| `ros2_controllers_real.yaml` | command_interfaces 改为 velocity，添加 PID 参数 |
 | `soem_bridge_node.cpp` | 读取 `output.velocities`，添加单电机测试话题 |
 | `CMakeLists.txt` | 添加 sensor_msgs 依赖 |
 | `package.xml` | 添加 sensor_msgs 依赖 |
@@ -27,7 +27,7 @@ MoveIt → JTC (PID) → controller_state.output.velocities → soem_bridge → 
 ## 启动命令
 
 ```bash
-# Terminal 1: MoveIt + ros2_control
+# Terminal 1: MoveGroup + ros2_control + RViz
 ros2 launch dual_arm_bringup real.launch.py
 
 # Terminal 2: soem_bridge
