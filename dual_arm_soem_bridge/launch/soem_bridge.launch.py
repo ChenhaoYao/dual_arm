@@ -1,3 +1,11 @@
+"""Start only the SOEM EtherCAT bridge node.
+
+This launch loads dual_arm_soem_bridge/config/soem_bridge.yaml and starts
+soem_bridge_node. It does not start MoveGroup, MoveIt Servo, ros2_control, RViz,
+or motor enable services; use dual_arm_bringup real.launch.py in another
+terminal for the robot stack.
+"""
+
 import os
 
 from ament_index_python.packages import get_package_share_directory

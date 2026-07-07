@@ -1,3 +1,13 @@
+"""Start only the VR-to-MoveIt-Servo bridge node.
+
+This launch converts Unity/PICO controller poses into MoveIt Servo twist
+commands. It expects MoveIt Servo to already be running, normally through:
+  ros2 launch dual_arm_bringup sim.launch.py mode:=servo enable_vr_teleop:=true
+
+It does not start MoveIt Servo, MoveGroup, ros2_control, RViz, or the Unity TCP
+endpoint.
+"""
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument

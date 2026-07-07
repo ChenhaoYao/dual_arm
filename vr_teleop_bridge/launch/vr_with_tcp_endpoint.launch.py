@@ -1,3 +1,13 @@
+"""Start the Unity TCP endpoint plus the VR-to-Servo bridge.
+
+Use this when MoveIt Servo is already running and you only need the Unity/PICO
+network endpoint and the pose-to-Servo adapter.
+
+It does not start MoveIt Servo, MoveGroup, ros2_control, RViz, or arm
+controllers. For the normal all-in-one Servo path, prefer the dual_arm_bringup
+launch files with enable_ros_tcp_endpoint:=true and enable_vr_teleop:=true.
+"""
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument

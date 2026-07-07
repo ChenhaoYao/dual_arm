@@ -1,3 +1,13 @@
+"""Start only the VR-to-MoveGroup bridge node.
+
+This launch converts relative Unity/PICO controller motion into sparse
+MoveGroup pose goals. It expects move_group to already be running, normally via
+dual_arm_bringup sim.launch.py/real.launch.py with mode:=moveit.
+
+It does not start MoveGroup, MoveIt Servo, ros2_control, RViz, or the Unity TCP
+endpoint.
+"""
+
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument

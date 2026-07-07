@@ -1,3 +1,10 @@
+"""Standalone URDF display launch for description-only inspection.
+
+Starts robot_state_publisher, joint_state_publisher_gui, and RViz using the
+description package's fixed URDF/RViz config. It does not start MoveIt,
+ros2_control, controllers, Servo, or hardware bridges.
+"""
+
 import os
 import launch
 from launch import LaunchDescription
