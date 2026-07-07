@@ -1,6 +1,7 @@
 vr_pose_to_move_group_node:
   ros__parameters:
     planning_frame: base_link
+    combined_group: dual_arm
 
     left_pose_topic: /vr/left_hand/pose
     right_pose_topic: /vr/right_hand/pose
@@ -12,6 +13,22 @@ vr_pose_to_move_group_node:
     right_group: right_arm
     left_ee_link: laxis7_link
     right_ee_link: raxis7_link
+    left_joints:
+      - laxis1_joint
+      - laxis2_joint
+      - laxis3_joint
+      - laxis4_joint
+      - laxis5_joint
+      - laxis6_joint
+      - laxis7_joint
+    right_joints:
+      - raxis1_joint
+      - raxis2_joint
+      - raxis3_joint
+      - raxis4_joint
+      - raxis5_joint
+      - raxis6_joint
+      - raxis7_joint
 
     # Use the first received controller pose as the VR reference. Controller
     # motion after that is applied as a relative offset from the current robot
@@ -29,6 +46,8 @@ vr_pose_to_move_group_node:
     orientation_tolerance: 3.14
     allowed_planning_time: 5.0
     num_planning_attempts: 10
+    ik_timeout: 0.5
+    joint_tolerance: 0.01
     velocity_scale: 0.1
     acceleration_scale: 0.1
 
