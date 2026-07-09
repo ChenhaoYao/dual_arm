@@ -10,8 +10,6 @@ MoveIt Servo 双臂实时伺服控制包。提供两个独立的 Servo 节点（
 ### 终端 1 — 启动完整 Servo 仿真栈
 
 ```bash
-cd /home/float/ws
-source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 launch dual_arm_bringup sim.launch.py mode:=servo
 ```
@@ -21,8 +19,6 @@ ros2 launch dual_arm_bringup sim.launch.py mode:=servo
 ### 终端 2 — 启动键盘遥操作
 
 ```bash
-cd /home/float/ws
-source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 run dual_arm_servo keyboard_teleop
 ```
@@ -32,7 +28,6 @@ ros2 run dual_arm_servo keyboard_teleop
 ### 终端 3 — 监控关节状态（可选）
 
 ```bash
-source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 topic echo /joint_states --field position
 ```
