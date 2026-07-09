@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>dual_arm_soem_bridge</name>
+  <version>0.1.0</version>
+  <!-- ROS2 与 SOEM EtherCAT 之间的桥接包：负责把 MoveIt 轨迹转成 CSV waypoint。 -->
+  <description>ROS2 bridge between MoveIt trajectories and SOEM EtherCAT CSV control</description>
+  <maintainer email="user@todo.todo">user</maintainer>
+  <license>BSD</license>
+
+  <!-- 使用 ament_cmake 构建 C++ ROS2 节点。 -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- rclcpp 提供 ROS2 C++ 节点、参数、话题和服务能力。 -->
+  <depend>rclcpp</depend>
+  <!-- trajectory_msgs::JointTrajectory 作为低频 CSV waypoint 输入消息。 -->
+  <depend>trajectory_msgs</depend>
+  <!-- sensor_msgs::JointState 后续用于发布真实机械臂反馈状态。 -->
+  <depend>sensor_msgs</depend>
+  <!-- std_srvs 用于 enable/stop/clear_fault 等简单控制服务。 -->
+  <depend>std_srvs</depend>
+  <!-- control_msgs 后续用于订阅 joint_trajectory_controller 状态或扩展 action 桥接。 -->
+  <depend>control_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

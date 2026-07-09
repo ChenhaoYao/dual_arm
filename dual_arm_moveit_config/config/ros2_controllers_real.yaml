@@ -1,0 +1,72 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    left_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    right_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+left_arm_controller:
+  ros__parameters:
+    joints:
+      - laxis1_joint
+      - laxis2_joint
+      - laxis3_joint
+      - laxis4_joint
+      - laxis5_joint
+      - laxis6_joint
+      - laxis7_joint
+    command_interfaces:
+      - velocity
+    state_interfaces:
+      - position
+      - velocity
+    state_publish_rate: 100.0
+    action_monitor_rate: 20.0
+    allow_partial_joints_goal: false
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    gains:
+      laxis1_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis2_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis3_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis4_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis5_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis6_joint: {p: 1.0, i: 0.0, d: 0.1}
+      laxis7_joint: {p: 1.0, i: 0.0, d: 0.1}
+
+right_arm_controller:
+  ros__parameters:
+    joints:
+      - raxis1_joint
+      - raxis2_joint
+      - raxis3_joint
+      - raxis4_joint
+      - raxis5_joint
+      - raxis6_joint
+      - raxis7_joint
+    command_interfaces:
+      - velocity
+    state_interfaces:
+      - position
+      - velocity
+    state_publish_rate: 100.0
+    action_monitor_rate: 20.0
+    allow_partial_joints_goal: false
+    constraints:
+      stopped_velocity_tolerance: 0.01
+      goal_time: 0.0
+    gains:
+      raxis1_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis2_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis3_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis4_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis5_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis6_joint: {p: 1.0, i: 0.0, d: 0.1}
+      raxis7_joint: {p: 1.0, i: 0.0, d: 0.1}

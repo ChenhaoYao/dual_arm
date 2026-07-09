@@ -1,0 +1,14 @@
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<h1>404 Not Found</h1>
+<ul>
+<li>Code: NoSuchKey</li>
+<li>Message: The specified key does not exist.</li>
+<li>Key: hub/prod/UnityHub.AppImage</li>
+<li>RequestId: KTEKYTK3VEJ9C663</li>
+<li>HostId: 6csdrbUFNnVo3q/O0o64GSJzp8dhyL+1owyHiljArtT3Hv+Tz2L9Fwodd9WN4nqyrKul5dkVmscJO4qtiyu34RG2xNna4dRG</li>
+</ul>
+<hr/>
+</body>
+</html>

@@ -1,0 +1,601 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="dual_arm_1kg" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Hardware plugin parameter: default to mock simulation -->
+  <xacro:arg name="hw_plugin" default="mock_components/GenericSystem" />
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="-1.7653E-05 0.1789 0.00018456" rpy="0 0 0" />
+      <mass value="10.998" />
+      <inertia ixx="0.3066" ixy="1.7304E-06" ixz="-1.0288E-05" iyy="0.26623" iyz="7.2468E-05" izz="0.2251" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/base_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="0.4 0.4 0.2" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="laxis1_link">
+    <inertial>
+      <origin xyz="-0.0063819 3.8724E-06 0.0020017" rpy="0 0 0" />
+      <mass value="0.21943" />
+      <inertia ixx="0.00016599" ixy="-2.3484E-07" ixz="2.0611E-07" iyy="0.00012603" iyz="-1.1767E-05" izz="0.0001292" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis1_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.79216 0.81961 0.93333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.015 0 0" rpy="0 1.5708 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.04" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laxis1_joint" type="revolute">
+    <origin xyz="0.12844 -0.010901 0.9108" rpy="1.5941 0 -0.084669" />
+    <parent link="base_link" />
+    <child link="laxis1_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="laxis2_link">
+    <inertial>
+      <origin xyz="-0.0151642205461063 0.00516950311812192 0.0148909964476645" rpy="0 0 0" />
+      <mass value="0.213592778567682" />
+      <inertia ixx="0.00018235790796228" ixy="5.37132222500932E-08" ixz="5.64047925806823E-07" iyy="0.000132556511272666" iyz="-2.24184763708786E-05" izz="7.53948619611351E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis2_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 1.5708 0" />
+      <geometry>
+        <cylinder length="0.08" radius="0.04" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laxis2_joint" type="revolute">
+    <origin xyz="0.0774 -3.3783E-05 0.01715" rpy="-2.8 -1.5688 -1.5708" />
+    <parent link="laxis1_link" />
+    <child link="laxis2_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="laxis3_link">
+    <inertial>
+      <origin xyz="0.0118441133081597 0.0448173893054227 0.0199281435559954" rpy="0 0 0" />
+      <mass value="0.0182957033092308" />
+      <inertia ixx="7.87114328237778E-06" ixy="-6.20827217800596E-08" ixz="8.30755431500317E-07" iyy="5.37647483228574E-06" iyz="-1.02401812672426E-07" izz="8.73776705364907E-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis3_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis3_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laxis3_joint" type="revolute">
+    <origin xyz="-0.016833 0.034747 0.1012" rpy="1.393593 0.282990 1.000493" />
+    <parent link="laxis2_link" />
+    <child link="laxis3_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="laxis4_link">
+    <inertial>
+      <origin xyz="0.0390421839077606 -0.0250129243501748 -0.0471342611946032" rpy="0 0 0" />
+      <mass value="0.0616311590596033" />
+      <inertia ixx="4.92339431179852E-05" ixy="3.8209283942534E-08" ixz="3.14550717978551E-05" iyy="7.55120020959109E-05" iyz="-4.61125036476071E-08" izz="3.73333488789559E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis4_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis4_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laxis4_joint" type="revolute">
+    <origin xyz="0.0098406 0.07055 0.016623" rpy="1.9399 0.41064 0.76965" />
+    <parent link="laxis3_link" />
+    <child link="laxis4_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="laxis5_link">
+    <inertial>
+      <origin xyz="-0.0177232598229944 0.0448173893054237 0.0144455274141042" rpy="0 0 0" />
+      <mass value="0.0182957033092307" />
+      <inertia ixx="8.49343226329802E-06" ixy="9.28243029832125E-08" ixz="-9.17715334217635E-07" iyy="5.37647483228573E-06" iyz="-7.56574144277642E-08" izz="8.11547807272879E-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis5_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis5_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laxis5_joint" type="revolute">
+    <origin xyz="0.068269 -0.019 -0.082391" rpy="-0.989216 -0.398915 -1.037184" />
+    <parent link="laxis4_link" />
+    <child link="laxis5_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="laxis6_link">
+    <inertial>
+      <origin xyz="-0.0339956627845139 0.000603513294191727 0.00364359012406729" rpy="0 0 0" />
+      <mass value="0.0306349253916363" />
+      <inertia ixx="1.26835540628772E-05" ixy="-2.67323256579739E-07" ixz="-5.89188492528862E-08" iyy="1.04375646006907E-05" iyz="2.73962589384525E-08" izz="1.21146824475075E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis6_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis6_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laxis6_joint" type="revolute">
+    <origin xyz="-0.014851 0.070309 0.012309" rpy="2.4552 0.079108 -1.6355" />
+    <parent link="laxis5_link" />
+    <child link="laxis6_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="laxis7_link">
+    <inertial>
+      <origin xyz="0.121269049640641 -0.435142426901518 0.685643187482132" rpy="0 0 0" />
+      <mass value="12.1217453298508" />
+      <inertia ixx="1.52363058130509" ixy="-0.0377682920302424" ixz="-0.0826026602861309" iyy="1.42942310844602" iyz="-0.339016068416828" izz="0.51577930701864" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis7_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/laxis7_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="laxis7_joint" type="revolute">
+    <origin xyz="-0.098673 -0.019251 0.010129" rpy="2.8661 1.1866 -1.8271" />
+    <parent link="laxis6_link" />
+    <child link="laxis7_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="raxis1_link">
+    <inertial>
+      <origin xyz="-0.0063819 3.8724E-06 0.0020017" rpy="0 0 0" />
+      <mass value="0.21943" />
+      <inertia ixx="0.00016599" ixy="-2.3484E-07" ixz="2.0611E-07" iyy="0.00012603" iyz="-1.1767E-05" izz="0.0001292" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis1_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="-0.03 0 0" rpy="0 1.5708 0" />
+      <geometry>
+        <cylinder length="0.1" radius="0.05" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="raxis1_joint" type="revolute">
+    <origin xyz="-0.1541 0.013079 0.9108" rpy="0.7964 0 3.0569" />
+    <parent link="base_link" />
+    <child link="raxis1_link" />
+    <axis xyz="1 0 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="raxis2_link">
+    <inertial>
+      <origin xyz="-0.0135829266625127 0.0049600143853062 0.0137183768489762" rpy="0 0 0" />
+      <mass value="0.224824025857165" />
+      <inertia ixx="0.000194483151460783" ixy="5.50607221353687E-08" ixz="5.53204099003949E-07" iyy="0.00014024241041905" iyz="-2.20538985705619E-05" izz="7.99268291278131E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis2_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 1.5708 0" />
+      <geometry>
+        <cylinder length="0.1" radius="0.05" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="raxis2_joint" type="revolute">
+    <origin xyz="0.051649 -0.012151 0.012103" rpy="-2.8016 -0.78343 -1.5708" />
+    <parent link="raxis1_link" />
+    <child link="raxis2_link" />
+    <axis xyz="-1 0 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="raxis3_link">
+    <inertial>
+      <origin xyz="0.0118441133081594 0.0448173893054226 0.019928143555995" rpy="0 0 0" />
+      <mass value="0.0182957033092306" />
+      <inertia ixx="7.87114328237767E-06" ixy="-6.20827217800463E-08" ixz="8.30755431500304E-07" iyy="5.37647483228571E-06" iyz="-1.0240181267241E-07" izz="8.73776705364897E-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis3_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis3_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="raxis3_joint" type="revolute">
+    <origin xyz="-0.016833 0.034747 0.1012" rpy="1.748 -0.28299 -2.1411" />
+    <parent link="raxis2_link" />
+    <child link="raxis3_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="raxis4_link">
+    <inertial>
+      <origin xyz="0.0390421832632567 -0.0250129212766904 -0.0471342604671557" rpy="0 0 0" />
+      <mass value="0.0616311576943978" />
+      <inertia ixx="4.9233941619484E-05" ixy="3.82096445631055E-08" ixz="3.14550705061862E-05" iyy="7.55119995175738E-05" iyz="-4.61129422819847E-08" izz="3.73333477929218E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis4_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis4_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="raxis4_joint" type="revolute">
+    <origin xyz="0.0098406 0.07055 0.016623" rpy="1.9399 0.41064 0.76965" />
+    <parent link="raxis3_link" />
+    <child link="raxis4_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="raxis5_link">
+    <inertial>
+      <origin xyz="-0.0177232598229943 0.0448173893054233 0.0144455274141044" rpy="0 0 0" />
+      <mass value="0.0182957033092307" />
+      <inertia ixx="8.493432263298E-06" ixy="9.28243029832134E-08" ixz="-9.17715334217627E-07" iyy="5.37647483228571E-06" iyz="-7.56574144277652E-08" izz="8.11547807272879E-06" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis5_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis5_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="raxis5_joint" type="revolute">
+    <origin xyz="0.068269 -0.019 -0.082391" rpy="-0.995458 -0.408458 -1.021292" />
+    <parent link="raxis4_link" />
+    <child link="raxis5_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="raxis6_link">
+    <inertial>
+      <origin xyz="-0.0339956627845134 0.000603513294192171 0.00364359012406797" rpy="0 0 0" />
+      <mass value="0.0306349253916362" />
+      <inertia ixx="1.26835540628772E-05" ixy="-2.67323256579738E-07" ixz="-5.89188492528661E-08" iyy="1.04375646006907E-05" iyz="2.73962589384556E-08" izz="1.21146824475075E-05" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis6_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis6_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="raxis6_joint" type="revolute">
+    <origin xyz="-0.014851 0.070309 0.012309" rpy="2.4552 0.079108 -1.6355" />
+    <parent link="raxis5_link" />
+    <child link="raxis6_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <link name="raxis7_link">
+    <inertial>
+      <origin xyz="-0.302167148563779 -0.618500704965407 0.605751449374939" rpy="0 0 0" />
+      <mass value="12.1217453298508" />
+      <inertia ixx="1.17417086774541" ixy="0.00811410119519612" ixz="0.527879311234981" iyy="1.53867726117563" iyz="-0.0310569472971539" izz="0.755984867848713" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis7_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://dual_arm_description/meshes/raxis7_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="raxis7_joint" type="revolute">
+    <origin xyz="-0.098673 -0.019251 0.010129" rpy="2.8661 1.1866 -1.8271" />
+    <parent link="raxis6_link" />
+    <child link="raxis7_link" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.0" />
+  </joint>
+
+  <!-- ros2_control hardware interface -->
+  <ros2_control name="DualArmSystem" type="system">
+    <hardware>
+      <plugin>$(arg hw_plugin)</plugin>
+    </hardware>
+
+    <!-- Left arm joints -->
+    <joint name="laxis1_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.3</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="laxis2_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="laxis3_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">1.2</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="laxis4_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">1.2</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="laxis5_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="laxis6_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="laxis7_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+
+    <!-- Right arm joints -->
+    <joint name="raxis1_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.3</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="raxis2_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="raxis3_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">1.2</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="raxis4_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">1.2</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="raxis5_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="raxis6_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="raxis7_joint">
+      <command_interface name="position"/>
+      <command_interface name="velocity"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </ros2_control>
+
+</robot>

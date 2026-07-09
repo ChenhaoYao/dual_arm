@@ -1,0 +1,244 @@
+planning_plugin: ompl_interface/OMPLPlanner
+request_adapters: >-
+  default_planner_request_adapters/ResolveConstraintFrames
+  default_planner_request_adapters/FixWorkspaceBounds
+  default_planner_request_adapters/FixStartStateBounds
+  default_planner_request_adapters/FixStartStateCollision
+  default_planner_request_adapters/FixStartStatePathConstraints
+  default_planner_request_adapters/AddTimeOptimalParameterization
+
+ompl:
+  # Planning time limit (seconds) - 减少规划超时
+  planning_time: 2.0
+
+  # Maximum number of planning attempts
+  max_planning_threads: 2
+
+  # Maximum number of solutions to return (减少重试次数提升响应速度)
+  max_num_planning_attempts: 5
+
+  # Simplification settings (0.3 = keep ~30% waypoints, balance speed vs smoothness)
+  simplify_solutions: true
+  simplify_fraction: 0.3
+
+  # Interpolation settings
+  interpolation_fraction: 0.1
+
+  # Projection evaluator
+  projection_evaluator: joint(joint1,joint2) #将高维空间投影到2D平面，便于规划算法搜索路径
+  
+  left_arm:
+    default_planner_config: RRTConnect
+    planner_configs:
+      - RRTConnect
+      - RRTstar
+      - RRMstar
+      - RRT
+      # - EST
+      # - PRM
+      # - PRMstar
+      # - BiEST
+      # - BiRRT
+      # - BiTRRT
+      # - FMT
+      # - BFMT
+      # - LazyRRT
+      # - LazyPRM
+      # - LazyPRMstar
+      # - LBKPIECE
+      # - BKPIECE
+      # - KPIECE
+      # - PDST
+      # - ProjEST
+      # - SBL
+      # - SPARS
+      # - SPARStwo
+      # - STRIDE
+      # - TRRT
+
+  right_arm:
+    default_planner_config: RRTConnect
+    planner_configs:
+      - RRTConnect
+      - RRTstar
+      - RRMstar
+      - RRT
+      # - EST
+      # - PRM
+      # - PRMstar
+      # - BiEST
+      # - BiRRT
+      # - BiTRRT
+      # - FMT
+      # - BFMT
+      # - LazyRRT
+      # - LazyPRM
+      # - LazyPRMstar
+      # - LBKPIECE
+      # - BKPIECE
+      # - KPIECE
+      # - PDST
+      # - ProjEST
+      # - SBL
+      # - SPARS
+      # - SPARStwo
+      # - STRIDE
+      # - TRRT
+  dual_arm:
+    default_planner_config: RRTConnect
+    planner_configs:
+      - RRTConnect
+      - RRTstar
+      - RRMstar
+      - RRT
+      # - EST
+      # - PRM
+      # - PRMstar
+      # - BiEST
+      # - BiRRT
+      # - BiTRRT
+      # - FMT
+      # - BFMT
+      # - LazyRRT
+      # - LazyPRM
+      # - LazyPRMstar
+      # - LBKPIECE
+      # - BKPIECE
+      # - KPIECE
+      # - PDST
+      # - ProjEST
+      # - SBL
+      # - SPARS
+      # - SPARStwo
+      # - STRIDE
+      # - TRRT
+  # Individual planner parameters — defaults from MoveIt2
+  RRTConnect:
+    type: geometric::RRTConnect
+    range: 0.0  # 0 = use default from state space
+
+  RRTstar:
+    type: geometric::RRTstar
+    range: 0.0
+    goal_bias: 0.05
+    delay_collision_checking: 1
+
+  RRT:
+    type: geometric::RRT
+    range: 0.0
+    goal_bias: 0.05
+
+  EST:
+    type: geometric::EST
+    range: 0.0
+    goal_bias: 0.05
+
+  PRM:
+    type: geometric::PRM
+    max_nearest_neighbors: 10
+
+  PRMstar:
+    type: geometric::PRMstar
+
+  BiEST:
+    type: geometric::BiEST
+    range: 0.0
+
+  BiRRT:
+    type: geometric::BiRRT
+    range: 0.0
+
+  BiTRRT:
+    type: geometric::BiTRRT
+    range: 0.0
+    goal_bias: 0.05
+
+  FMT:
+    type: geometric::FMT
+    num_samples: 1000
+
+  BFMT:
+    type: geometric::BFMT
+    num_samples: 1000
+    balanced: 0
+    optimality: 1
+    radius_multiplier: 1.0
+    nearest_k: 1
+
+  LazyRRT:
+    type: geometric::LazyRRT
+    range: 0.0
+
+  LazyPRM:
+    type: geometric::LazyPRM
+    range: 0.0
+
+  LazyPRMstar:
+    type: geometric::LazyPRMstar
+
+  LBKPIECE:
+    type: geometric::LBKPIECE
+    range: 0.0
+    border_fraction: 0.9
+    min_valid_path_fraction: 0.5
+
+  BKPIECE:
+    type: geometric::BKPIECE
+    range: 0.0
+    border_fraction: 0.9
+    failed_expansion_score_factor: 0.5
+    min_valid_path_fraction: 0.5
+
+  KPIECE:
+    type: geometric::KPIECE
+    range: 0.0
+    goal_bias: 0.05
+    border_fraction: 0.9
+    failed_expansion_score_factor: 0.5
+    min_valid_path_fraction: 0.5
+
+  PDST:
+    type: geometric::PDST
+
+  ProjEST:
+    type: geometric::ProjEST
+    range: 0.0
+    goal_bias: 0.05
+
+  SBL:
+    type: geometric::SBL
+    range: 0.0
+
+  SPARS:
+    type: geometric::SPARS
+    dense_delta_fraction: 0.001
+    sparse_delta_fraction: 0.25
+    stretch_factor: 3.0
+
+  SPARStwo:
+    type: geometric::SPARStwo
+    dense_delta_fraction: 0.001
+    sparse_delta_fraction: 0.25
+    stretch_factor: 3.0
+
+  STRIDE:
+    type: geometric::STRIDE
+    range: 0.0
+    goal_bias: 0.05
+    use_projected_distance: 0
+    degree: 16
+    max_degree: 18
+    min_degree: 12
+    max_pts_per_leaf: 4
+    min_valid_path_fraction: 0.2
+    est: 0
+
+  TRRT:
+    type: geometric::TRRT
+    range: 0.0
+    goal_bias: 0.05
+    max_states_failed: 10
+    frountier_threshold: 0.0
+    temp_change_factor: 2.0
+    min_temperature: 1e-10
+    init_temperature: 1e-6

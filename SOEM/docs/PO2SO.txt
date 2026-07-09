@@ -1,0 +1,293 @@
+============================================================
+SOEM 学习笔记：PO2SOconfig 钩子 与 PDO 配置流程
+============================================================
+整理时间：2026-05
+对应代码：src/ec_config.c (ecx_map_coe_soe)
+         include/soem/ec_main.h (ec_slavet 结构体)
+
+
+============================================================
+一、PO2SOconfig 是什么
+============================================================
+
+1. 它是 ec_slavet 结构体里的一个函数指针成员：
+       int (*PO2SOconfig)(ecx_contextt *context, uint16 slave);
+
+2. 名字含义：PO2SO = Pre-Op to Safe-Op，
+   即"从 PRE-OP 切换到 SAFE-OP 之前"被自动调用的回调。
+
+3. 它是"钩子"(hook)：
+   - SOEM 在固定流程点预留一个插入用户代码的位置
+   - 用户不赋值 → 指针为 NULL → SOEM 跳过
+   - 用户赋值 → SOEM 自动调用
+
+4. 调用位置：src/ec_config.c, ecx_map_coe_soe 函数
+       if (context->slavelist[slave].PO2SOconfig)
+       {
+           context->slavelist[slave].PO2SOconfig(context, slave);
+       }
+
+
+============================================================
+二、ecx_map_coe_soe 的完整步骤
+============================================================
+
+步骤1：等待从站进入 PRE-OP
+       ecx_statecheck(context, slave, EC_STATE_PRE_OP, EC_TIMEOUTSTATE)
+       原因：只有 PRE-OP 才能用邮箱；INIT 邮箱未开启；
+            SAFE-OP/OP 不允许改 PDO 映射。
+
+步骤2：如果加载了 ENI XML，下发 PS 阶段初始化命令
+       通过邮箱执行 ENI 中定义的 SDO 写序列。
+
+步骤3：执行用户注册的 PO2SOconfig 钩子   ← 用户主战场
+       这是修改 PDO 映射、写 SDO 参数的标准时机。
+
+步骤4：读取从站当前 PDO 映射结构
+       优先级：CoE (CA 完整访问) → CoE (普通) → SoE
+       结果存到 Osize / Isize。
+
+步骤5：把位大小写入 slavelist[].Obits / Ibits
+       供后续 ecx_config_map_group 进行 IOmap 布局
+       与 FMMU 配置时使用。
+
+
+============================================================
+三、如何挂自己的 PO2SOconfig 回调
+============================================================
+
+时序约束（非常关键）：
+    ecx_init                       打开网卡
+    ecx_config_init                扫描总线，slavelist[] 才有效
+    ↓ 这里才能赋值 PO2SOconfig ↓
+    ecx_config_map_group           内部自动调用回调
+
+伪代码：
+    /* 1. 写一个回调 */
+    int my_servo_config(ecx_contextt *ctx, uint16 slave) {
+        int8 mode = 9;   /* CSV 速度模式 */
+        ecx_SDOwrite(ctx, slave, 0x6060, 0x00,
+                     FALSE, sizeof(mode), &mode, EC_TIMEOUTRXM);
+        return 1;
+    }
+
+    /* 2. 在 main 里绑定 */
+    ecx_init(&ctx, ifname);
+    ecx_config_init(&ctx);
+    for (int s = 1; s <= ctx.slavecount; s++)
+        ctx.slavelist[s].PO2SOconfig = my_servo_config;
+    ecx_config_map_group(&ctx, IOmap, 0);
+
+要点：
+- 回调签名必须严格匹配：返回 int，参数 (ecx_contextt*, uint16)
+- 回调里只能用 SDO，因为 PDO 还没建立
+- 回调耗时不要太长，会阻塞 PS 状态转换
+- 每个从站可以挂不同的回调（适合混合从站）
+- 也可以走 ENI XML 路线（步骤2），与回调二选一或并存
+
+
+============================================================
+四、PDO 映射的"清零 - 重建"流程
+============================================================
+
+不是所有 SDO 写都要清零！区分两类对象：
+
+(A) 普通参数对象（直接写一次）
+    例：0x6040 Control Word
+        0x6060 Modes of Operation
+        0x607A Target Position
+        0x60FF Target Velocity
+
+(B) 带子索引列表的对象（必须清零-重建）
+    例：0x1C12 RxPDO Assign       ← 哪些 PDO 被分配到 SM2
+        0x1C13 TxPDO Assign       ← 哪些 PDO 被分配到 SM3
+        0x1600 RxPDO Mapping      ← PDO 内部具体映射哪些字段
+        0x1A00 TxPDO Mapping
+
+为什么 (B) 要清零：
+    伺服固件做了"事务一致性"保护：
+    - 当 :00 != 0 时，子索引列表被锁定，写 :01 :02 会被拒
+      （SDO Abort 0x06010000）
+    - 必须先 :00 = 0 → 改子项 → :00 = N 提交事务
+
+标准重建流程（以把 Target Velocity 加入 RxPDO 为例）：
+
+    /* 1) 清空 RxPDO Assign */
+    0x1C12:0x00 = 0
+
+    /* 2) 清空映射对象自身 */
+    0x1600:0x00 = 0
+
+    /* 3) 重新填映射条目 */
+    0x1600:0x01 = 0x60400010   /* Control Word, 16 bit */
+    0x1600:0x02 = 0x60FF0020   /* Target Velocity, 32 bit */
+    0x1600:0x03 = 0x60600008   /* Modes of Operation, 8 bit */
+
+    /* 4) 提交映射数量 */
+    0x1600:0x00 = 3
+
+    /* 5) 把 0x1600 重新挂到 SM2 */
+    0x1C12:0x01 = 0x1600
+    0x1C12:0x00 = 1
+
+条目编码格式：0xIIIISSLL
+    II II = 对象索引   (16 bit)
+    SS    = 子索引     (8 bit)
+    LL    = 位长度     (8 bit)
+
+
+============================================================
+五、SDO 写入 vs SM 配置 ─ 概念区分
+============================================================
+
+SDO 写入到底写到哪里？
+    ──────────────────────
+    答：写到伺服 MCU 内部的"对象字典 RAM"，
+       不是直接写 ESC 的 SM 寄存器！
+
+数据流：
+    主站 ─邮箱(走 SM0)─> ESC 邮箱缓冲区
+                          │ 中断
+                          ▼
+                       MCU 固件
+                          │ 解析"写 0x6060 = 9"
+                          ▼
+                       对象字典 RAM 里的 0x6060
+
+SM 寄存器是怎么配置的？
+    ──────────────────────
+    由 SOEM 主站直接用 EtherCAT 数据报 (FPWR) 写
+    ESC 芯片寄存器 (0x0800+)。
+    时机：ecx_config_map_group 内部，
+         读完 PDO 映射结构后自动算出 SM 长度并下发。
+
+三类不同操作的对照：
+    操作                  协议           目的地
+    ─────────────────────────────────────────────────
+    SDO 读写              邮箱 + CoE     伺服 MCU 对象字典
+    PDO 周期 IO           LRW/LRD/LWR    ESC 物理过程数据 RAM
+    配置 SM/FMMU          FPWR           ESC 寄存器
+    读 EEPROM             APRD + 命令位  EEPROM (经 ESC SII)
+
+记忆口诀：
+    SDO          = 跟伺服"固件"说话      （动态参数）
+    APRD/FPWR    = 跟 ESC "芯片"说话    （硬件寄存器）
+    LRW/LRD/LWR  = 周期搬运过程数据      （IOmap ↔ ESC RAM）
+
+
+============================================================
+六、修改 PDO 后 SM 长度怎么自动跟着变
+============================================================
+
+    PO2SOconfig 里 SDO 改完 0x1C12 / 0x1600
+            │
+            ▼
+    返回 ecx_map_coe_soe 步骤4
+            │
+            ▼
+    ecx_readPDOmapCA / ecx_readPDOmap
+    重新读当前 0x1C12 / 0x1600，得到新 Osize/Isize
+            │
+            ▼
+    步骤5 写入 slavelist[].Obits / Ibits
+            │
+            ▼
+    上层 ecx_config_map_group 据此：
+      - 计算 SM2/SM3 长度
+      - FPWR 写 SM 寄存器
+      - 配置 FMMU
+      - 分配 IOmap 缓冲区
+
+结论：用户只管在回调里改对象字典，
+     SM 长度、FMMU、IOmap 全部由 SOEM 自动重算。
+
+
+============================================================
+七、伺服内部的三层存储（理解配置持久化的基础）
+============================================================
+
+   ① ESC 寄存器区  (易失，上电重置)
+      - LAN9252 / ET1100 等芯片内部 RAM
+      - 存 SM、FMMU、AL Status、DC 时钟…
+
+   ② SII / EEPROM  (掉电保留)
+      - 独立 I²C/SPI EEPROM 芯片
+      - 上电时由 ESC 自动加载到 ① 的对应寄存器
+      - 存 Vendor/Product/Rev、邮箱默认 SM、
+        默认 PDO Assign、字符串…
+
+   ③ MCU Flash + RAM  (Flash 持久, RAM 易失)
+      - 伺服主控固件
+      - 完整 CiA402 对象字典在这里
+      - SDO 改的是 RAM 里的对象字典副本
+
+
+============================================================
+八、断电后 PDO 配置会不会保留
+============================================================
+
+场景 1：PO2SOconfig 里只 SDO 改 PDO，没写 0x1010
+       → 改的只是 RAM 里的对象字典
+       → 断电丢失
+       → 新主站上电读到的是出厂默认 PDO
+
+场景 2：改完后写 0x1010:01 = "save" (0x65766173)
+       → 伺服把 RAM 参数固化到内部 Flash
+       → 下次上电该新配置就是默认值
+
+场景 3 (推荐做法)：
+       不依赖 0x1010 持久化，而是让主站每次启动
+       都通过 PO2SOconfig 重新下发一次。
+       优点：
+         - 配置可被 git 版本管理
+         - 换驱动器不用每台都先去保存
+         - 避免 Flash 写次数耗尽（约 10 万次）
+         - 多人协作不会互相覆盖
+
+恢复出厂默认：
+    0x1011:01 = "load" (0x64616F6C)
+
+
+============================================================
+九、踩坑提醒
+============================================================
+
+1. PO2SOconfig 必须在 ecx_config_init 之后赋值
+   （之前 slavelist 是空的）
+
+2. PO2SOconfig 必须在 ecx_config_map_group 之前赋值
+   （后者会读取这个指针）
+
+3. 回调里只能用 SDO，不要碰 PDO（IOmap 还没分配）
+
+4. 改 0x1C12 / 0x1600 时一定要 :00=0 → 改子项 → :00=N
+
+5. 不区分对象类型乱清零 → 普通参数也写 :00=0 是错的，
+   有些从站会返回 SDO Abort
+
+6. 改完后不要在用户代码里手动改 SM 长度，
+   ecx_readPDOmap 会重新算
+
+7. 写 0x1010 持久化要慎用，Flash 有寿命
+
+8. 如果同时存在 ENI 文件和 PO2SOconfig：
+   ENI 命令先执行（步骤2），回调后执行（步骤3），
+   后者可以覆盖前者的设置
+
+
+============================================================
+十、相关文件位置
+============================================================
+
+- 钩子调用点：     src/ec_config.c       ecx_map_coe_soe
+- 函数指针定义：   include/soem/ec_main.h ec_slavet.PO2SOconfig
+- PDO 映射读取：   src/ec_coe.c          ecx_readPDOmap / ecx_readPDOmapCA
+- SM/FMMU 配置：   src/ec_config.c       ecx_config_map_group 系列
+- DC 配置：        src/ec_dc.c           ecx_configdc
+- ENI 处理：       src/ec_eoe.c / ENI 解析相关
+- 示例：           samples/ec_sample/ec_sample.c
+                  samples/simple_ng/simple_ng.c
+
+============================================================
+END
+============================================================

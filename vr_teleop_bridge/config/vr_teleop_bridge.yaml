@@ -1,0 +1,32 @@
+vr_pose_to_servo_node:
+  ros__parameters:
+    control_frame: base_link
+
+    left_pose_topic: /vr/left_hand/pose
+    right_pose_topic: /vr/right_hand/pose
+    left_enable_topic: /vr/left_hand/enabled
+    right_enable_topic: /vr/right_hand/enabled
+    status_topic: /vr/status
+
+    left_twist_topic: /servo_left/delta_twist_cmds
+    right_twist_topic: /servo_right/delta_twist_cmds
+
+    left_enabled: true
+    right_enabled: true
+    require_enable_signal: false
+
+    linear_scale: 0.5
+    angular_scale: 1.0
+    max_linear_speed: 0.15
+    max_angular_speed: 0.5
+    deadband_position: 0.005
+    deadband_rotation: 0.02
+    command_timeout: 0.2
+    publish_rate: 50.0
+    auto_start_servo: true
+
+    # Unity/XR coordinates are commonly x=right, y=up, z=forward.
+    # ROS base_link is x=forward, y=left, z=up.
+    # Mapping below: ros = [unity_z, -unity_x, unity_y].
+    unity_to_ros_axis_map: [2, 0, 1]
+    unity_to_ros_axis_sign: [1.0, -1.0, 1.0]

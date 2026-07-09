@@ -1,0 +1,10 @@
+<library path="dual_arm_control">
+  <class name="dual_arm_control/DualArmHardware"
+         type="dual_arm_control::DualArmHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Hardware interface for the dual-arm mobile robot.
+      Reads encoder positions and writes motor commands for 14 joints.
+    </description>
+  </class>
+</library>

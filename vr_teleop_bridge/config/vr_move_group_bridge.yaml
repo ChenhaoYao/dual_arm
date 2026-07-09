@@ -1,0 +1,60 @@
+vr_pose_to_move_group_node:
+  ros__parameters:
+    planning_frame: base_link
+    combined_group: dual_arm
+
+    left_pose_topic: /vr/left_hand/pose
+    right_pose_topic: /vr/right_hand/pose
+    status_topic: /vr/status
+
+    left_enabled: true
+    right_enabled: true
+    left_group: left_arm
+    right_group: right_arm
+    left_ee_link: laxis7_link
+    right_ee_link: raxis7_link
+    left_joints:
+      - laxis1_joint
+      - laxis2_joint
+      - laxis3_joint
+      - laxis4_joint
+      - laxis5_joint
+      - laxis6_joint
+      - laxis7_joint
+    right_joints:
+      - raxis1_joint
+      - raxis2_joint
+      - raxis3_joint
+      - raxis4_joint
+      - raxis5_joint
+      - raxis6_joint
+      - raxis7_joint
+
+    # Use the first received controller pose as the VR reference. Controller
+    # motion after that is applied as a relative offset from the current robot
+    # end-effector pose captured at the same time.
+    position_scale: 0.5
+    follow_orientation: false
+    orientation_scale: 1.0
+
+    # MoveGroup is not a realtime servo loop. Send sparse pose goals.
+    goal_period: 1.0
+    min_position_delta: 0.03
+    min_rotation_delta: 0.25
+
+    position_tolerance: 0.04
+    orientation_tolerance: 3.14
+    allowed_planning_time: 5.0
+    num_planning_attempts: 10
+    ik_timeout: 0.5
+    joint_tolerance: 0.01
+    velocity_scale: 0.1
+    acceleration_scale: 0.1
+
+    workspace_min: [-0.6, -0.8, 0.05]
+    workspace_max: [0.8, 0.8, 1.2]
+
+    # Unity/XR: x=right, y=up, z=forward. ROS base_link: x=forward,
+    # y=left, z=up. Mapping: ros = [unity_z, -unity_x, unity_y].
+    unity_to_ros_axis_map: [2, 0, 1]
+    unity_to_ros_axis_sign: [1.0, -1.0, 1.0]

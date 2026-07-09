@@ -1,0 +1,24 @@
+# Colcon build artifacts
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ROS2
+COLCON_IGNORE
+
+# Debug files
+DEBUGGING_NOTES.md
+OPENCODE_KEYBINDS.md
+

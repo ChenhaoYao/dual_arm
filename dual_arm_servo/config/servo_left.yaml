@@ -1,0 +1,67 @@
+###############################################
+# MoveIt Servo 配置 - 左臂
+###############################################
+
+## Gazebo 补偿
+use_gazebo: false
+
+## 坐标系配置
+planning_frame: base_link
+ee_frame_name: laxis7_link
+robot_link_command_frame: base_link
+
+## 输出命令属性
+publish_period: 0.034              # 发布周期 [秒]，约 30Hz（官方默认值）
+low_latency_mode: false            # 收到 Twist 立即发布，忽略 publish_period
+
+## 输入命令类型
+# "unitless" → 范围 [-1:1]，类似摇杆输入
+# "speed_units" → 单位为 m/s 和 rad/s
+command_in_type: "speed_units"
+scale:
+  linear: 0.2                      # 最大线速度 [m/s]，仅笛卡尔命令
+  rotational: 0.8                  # 最大角速度 [rad/s]，仅笛卡尔命令
+  joint: 0.5                       # 最大关节速度 [rad/s]，仅关节命令
+
+## 输出命令类型
+# trajectory_msgs/JointTrajectory → 发给 JTC
+# std_msgs/Float64MultiArray → 直接发关节速度
+command_out_type: trajectory_msgs/JointTrajectory
+
+## 发布内容
+publish_joint_positions: true
+publish_joint_velocities: true
+publish_joint_accelerations: false
+
+## 平滑滤波插件（留空则不使用平滑）
+smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
+
+## Planning Scene Monitor
+# Servo 模式与 move_group 互斥运行，因此 Servo 节点自己管理 planning scene。
+is_primary_planning_scene_monitor: true
+
+## MoveIt 规划组
+move_group_name: left_arm
+
+## 停止行为
+incoming_command_timeout: 0.1      # 超过此时间 [秒] 无新命令则停止
+num_outgoing_halt_msgs_to_publish: 4  # 停止时发布多少条零速消息
+
+## 奇异点和关节限制配置
+lower_singularity_threshold: 17.0       # 条件数达到此值时开始减速
+hard_stop_singularity_threshold: 30.0   # 条件数达到此值时停止
+joint_limit_margin: 0.1                 # 关节极限缓冲 [rad]
+leaving_singularity_threshold_multiplier: 2.0
+
+## 话题名称
+cartesian_command_in_topic: ~/delta_twist_cmds
+joint_command_in_topic: ~/delta_joint_cmds
+joint_topic: /joint_states
+status_topic: ~/status
+command_out_topic: /left_arm_controller/joint_trajectory
+
+## 碰撞检测
+check_collisions: false  # FIXME: STL meshes too large for FCL, simplify first
+collision_check_rate: 10.0
+self_collision_proximity_threshold: 0.01
+scene_collision_proximity_threshold: 0.02
