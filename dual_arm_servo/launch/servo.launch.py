@@ -71,9 +71,10 @@ def generate_launch_description():
         "use_sim_time": use_sim_time,
     }
 
+
     servo_left_node = Node(
         package="moveit_servo",
-        executable="servo_node_main",
+        executable="servo_node_main", #使用moveit_servo包中的servo_node_main可执行文件
         name="servo_left",
         parameters=[servo_left_params, common_params],
         output="screen",
@@ -85,6 +86,7 @@ def generate_launch_description():
         parameters=[servo_right_params, common_params],
         output="screen",
     )
+
 
     return LaunchDescription([
         use_sim_time_arg,
