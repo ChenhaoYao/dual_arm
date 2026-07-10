@@ -57,4 +57,7 @@ ROS 主机侧 `ros_tcp_endpoint` 可以启动并监听 `10000` 端口。
 6. `dual_arm_bringup/launch/sim.launch.py`
 7. `dual_arm_bringup/launch/real.launch.py`
 
-具体待办见 `.codex/TASKS.md`。
+具体待办见：
+
+- `.codex/TASKS.md`：PICO/Unity VR pose 稳定发布与 VR 闭环任务。
+- `.codex/SERVO_HANDOFF.md`：MoveIt Servo 模块达到最终可用状态的交接计划。
