@@ -25,6 +25,7 @@
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
+#include "hardware_interface/types/hardware_component_interface_params.hpp"
 
 // ROS2 核心
 #include "rclcpp/macros.hpp"
@@ -71,10 +72,10 @@ public:
    * 3. 保存关节名称列表
    * 4. 验证所有关节支持 position/velocity 接口
    *
-   * @param hardware_info 硬件参数（包含 URDF 解析信息）
+   * @param params 硬件参数（包含 URDF 解析信息和 executor）
    */
   hardware_interface::CallbackReturn on_init(
-    const hardware_interface::HardwareInfo & hardware_info) override;
+    const hardware_interface::HardwareComponentInterfaceParams & params) override;
 
   /**
    * @brief 配置回调
