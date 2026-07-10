@@ -7,9 +7,10 @@ from typing import List, Optional, Tuple
 
 import rclpy
 from geometry_msgs.msg import PoseStamped, TwistStamped
+from moveit_msgs.srv import ServoCommandType
 from rclpy.node import Node
 from std_msgs.msg import Bool, String
-from std_srvs.srv import Trigger
+from std_srvs.srv import SetBool
 
 
 Vector3 = Tuple[float, float, float]
@@ -131,12 +132,17 @@ class VrPoseToServo(Node):
         publish_rate = float(self.get_parameter("publish_rate").value)
         self.publish_timer = self.create_timer(1.0 / publish_rate, self._publish_commands)
 
-        self._start_clients: List = []
+        self._command_type_clients: List = []
+        self._pause_clients: List = []
         self._start_wait_log_time = 0.0
         if self.auto_start_servo:
-            self._start_clients = [
-                self.create_client(Trigger, "/servo_left/start_servo"),
-                self.create_client(Trigger, "/servo_right/start_servo"),
+            self._command_type_clients = [
+                self.create_client(ServoCommandType, "/servo_left/switch_command_type"),
+                self.create_client(ServoCommandType, "/servo_right/switch_command_type"),
+            ]
+            self._pause_clients = [
+                self.create_client(SetBool, "/servo_left/pause_servo"),
+                self.create_client(SetBool, "/servo_right/pause_servo"),
             ]
             self._start_timer = self.create_timer(1.0, self._try_start_servo)
 
@@ -173,17 +179,25 @@ class VrPoseToServo(Node):
             raise ValueError("unity_to_ros_axis_map must be a permutation of [0, 1, 2]")
 
     def _try_start_servo(self):
-        for client in self._start_clients:
+        for client in (*self._command_type_clients, *self._pause_clients):
             if not client.wait_for_service(timeout_sec=0.2):
                 now = self.get_clock().now().nanoseconds * 1e-9
                 if now - self._start_wait_log_time > 5.0:
                     self._start_wait_log_time = now
-                    self.get_logger().info("Waiting for MoveIt Servo start services")
+                    self.get_logger().info(
+                        "Waiting for MoveIt Servo configuration services"
+                    )
                 return
-        for client in self._start_clients:
-            client.call_async(Trigger.Request())
+        command_request = ServoCommandType.Request()
+        command_request.command_type = ServoCommandType.Request.TWIST
+        for client in self._command_type_clients:
+            client.call_async(command_request)
+        pause_request = SetBool.Request()
+        pause_request.data = False
+        for client in self._pause_clients:
+            client.call_async(pause_request)
         self._start_timer.cancel()
-        self.get_logger().info("MoveIt Servo start requested for both arms")
+        self.get_logger().info("MoveIt Servo configured for Twist commands on both arms")
 
     def _on_enable(self, arm: ArmState, msg: Bool):
         arm.enabled_signal = bool(msg.data)

@@ -38,7 +38,7 @@ ros2 launch dual_arm_bringup sim.launch.py \
   ros_tcp_port:=10000
 ```
 
-注意：Servo 模式不会启动 `move_group`。当前仍复用 `moveit.rviz`，RViz MotionPlanning 面板连接不到 MoveGroup 属于预期现象。
+注意：Servo 模式不会启动 `move_group`，并使用独立的 `servo.rviz` 交互 marker。
 
 ### 实物模式
 
@@ -67,9 +67,9 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_
 # 终端 3：使能电机
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool '{data: true}'"
 
-# 如 Servo 未自动开始，手动启动左右 Servo
-sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /servo_left/start_servo std_srvs/srv/Trigger '{}'"
-sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /servo_right/start_servo std_srvs/srv/Trigger '{}'"
+# 如输入 adapter 未自动配置，手动切换到 Twist 模式
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /servo_left/switch_command_type moveit_msgs/srv/ServoCommandType '{command_type: 1}'"
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /servo_right/switch_command_type moveit_msgs/srv/ServoCommandType '{command_type: 1}'"
 ```
 
 ### 只启动 Unity ROS TCP Endpoint
@@ -189,13 +189,13 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call
 # 故障复位
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/clear_fault std_srvs/srv/Trigger"
 
-# 启动 MoveIt Servo
-ros2 service call /servo_left/start_servo std_srvs/srv/Trigger "{}"
-ros2 service call /servo_right/start_servo std_srvs/srv/Trigger "{}"
+# 选择 MoveIt Servo Twist 命令模式
+ros2 service call /servo_left/switch_command_type moveit_msgs/srv/ServoCommandType "{command_type: 1}"
+ros2 service call /servo_right/switch_command_type moveit_msgs/srv/ServoCommandType "{command_type: 1}"
 
 # 暂停 MoveIt Servo
-ros2 service call /servo_left/pause_servo std_srvs/srv/Trigger "{}"
-ros2 service call /servo_right/pause_servo std_srvs/srv/Trigger "{}"
+ros2 service call /servo_left/pause_servo std_srvs/srv/SetBool "{data: true}"
+ros2 service call /servo_right/pause_servo std_srvs/srv/SetBool "{data: true}"
 ```
 
 ### 单电机测试

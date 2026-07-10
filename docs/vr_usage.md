@@ -39,11 +39,11 @@ ros2 launch dual_arm_soem_bridge soem_bridge.launch.py
 ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool "{data: true}"
 ```
 
-If the bridge logs `Waiting for MoveIt Servo start services` after Servo has initialized, start Servo manually:
+If the bridge cannot configure Servo automatically, select Twist mode manually:
 
 ```bash
-ros2 service call /servo_left/start_servo std_srvs/srv/Trigger "{}"
-ros2 service call /servo_right/start_servo std_srvs/srv/Trigger "{}"
+ros2 service call /servo_left/switch_command_type moveit_msgs/srv/ServoCommandType "{command_type: 1}"
+ros2 service call /servo_right/switch_command_type moveit_msgs/srv/ServoCommandType "{command_type: 1}"
 ```
 
 Unity/PICO should connect to the PC IP address on port `10000` and publish:
