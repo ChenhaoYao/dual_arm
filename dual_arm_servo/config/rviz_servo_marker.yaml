@@ -1,0 +1,18 @@
+rviz_servo_marker:
+  ros__parameters:
+    base_frame: base_link
+    left_ee_frame: laxis7_link
+    right_ee_frame: raxis7_link
+    left_twist_topic: /servo_left/delta_twist_cmds
+    right_twist_topic: /servo_right/delta_twist_cmds
+
+    linear_gain: 1.5
+    angular_gain: 1.5
+    max_linear_speed: 0.08
+    max_angular_speed: 0.4
+    position_tolerance: 0.004
+    orientation_tolerance: 0.025
+    command_timeout: 10.0
+    state_timeout: 0.5
+    publish_rate: 50.0
+    auto_start_servo: true

@@ -49,6 +49,11 @@ def generate_launch_description():
         default_value="false",
         description="是否启动 VR 遥操作桥接节点",
     )
+    enable_rviz_servo_marker_arg = DeclareLaunchArgument(
+        "enable_rviz_servo_marker",
+        default_value="false",
+        description="真机 Servo 模式下是否启用 RViz 双臂交互 marker",
+    )
     vr_teleop_params_file_arg = DeclareLaunchArgument(
         "vr_teleop_params_file",
         default_value=PathJoinSubstitution([
@@ -73,6 +78,7 @@ def generate_launch_description():
     use_broadcaster = LaunchConfiguration("use_broadcaster")
     mode = LaunchConfiguration("mode")
     enable_vr_teleop = LaunchConfiguration("enable_vr_teleop")
+    enable_rviz_servo_marker = LaunchConfiguration("enable_rviz_servo_marker")
     vr_teleop_params_file = LaunchConfiguration("vr_teleop_params_file")
     enable_ros_tcp_endpoint = LaunchConfiguration("enable_ros_tcp_endpoint")
     ros_tcp_port = LaunchConfiguration("ros_tcp_port")
@@ -108,11 +114,15 @@ def generate_launch_description():
         launch_arguments={
             "use_sim_time": use_sim_time,
             "hw_plugin": hw_plugin,
+            "enable_rviz_marker": PythonExpression([
+                "'", enable_rviz_servo_marker, "' == 'true' and '",
+                enable_vr_teleop, "' != 'true'",
+            ]),
         }.items(),
         condition=mode_is(mode, "servo"),
     )
 
-    rviz_launch = IncludeLaunchDescription(
+    moveit_rviz_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             PathJoinSubstitution([dual_arm_moveit_config_pkg, "launch", "rviz.launch.py"])
         ),
@@ -120,6 +130,19 @@ def generate_launch_description():
             "use_sim_time": use_sim_time,
             "hw_plugin": hw_plugin,
         }.items(),
+        condition=mode_is(mode, "moveit"),
+    )
+
+    servo_rviz_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([dual_arm_moveit_config_pkg, "launch", "rviz.launch.py"])
+        ),
+        launch_arguments={
+            "use_sim_time": use_sim_time,
+            "hw_plugin": hw_plugin,
+            "rviz_config": "servo.rviz",
+        }.items(),
+        condition=mode_is(mode, "servo"),
     )
 
     vr_teleop_bridge_launch = IncludeLaunchDescription(
@@ -161,13 +184,15 @@ def generate_launch_description():
         use_broadcaster_arg,
         mode_arg,
         enable_vr_teleop_arg,
+        enable_rviz_servo_marker_arg,
         vr_teleop_params_file_arg,
         enable_ros_tcp_endpoint_arg,
         ros_tcp_port_arg,
         control_base_launch,
         move_group_launch,
         servo_launch,
-        rviz_launch,
+        moveit_rviz_launch,
+        servo_rviz_launch,
         ros_tcp_endpoint_node,
         vr_move_group_bridge_launch,
         vr_teleop_bridge_launch,

@@ -2,17 +2,14 @@
 # MoveIt Servo 配置 - 右臂
 ###############################################
 
-## Gazebo 补偿
-use_gazebo: false
-
 ## 坐标系配置
 planning_frame: base_link
 ee_frame_name: raxis7_link
 robot_link_command_frame: base_link
 
 ## 输出命令属性
-publish_period: 0.034
-low_latency_mode: false
+publish_period: 0.01
+max_expected_latency: 0.1
 
 ## 输入命令类型
 command_in_type: "speed_units"
@@ -30,23 +27,26 @@ publish_joint_velocities: true
 publish_joint_accelerations: false
 
 ## 平滑滤波插件
+use_smoothing: false
 smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
 
 ## Planning Scene Monitor
+# 左右 Servo 各自管理 planning scene，并在 launch 中为服务使用独立名称。
 is_primary_planning_scene_monitor: true
+monitored_planning_scene_topic: /planning_scene
+check_octomap_collisions: false
 
 ## MoveIt 规划组
 move_group_name: right_arm
 
 ## 停止行为
 incoming_command_timeout: 0.1
-num_outgoing_halt_msgs_to_publish: 4
 
 ## 奇异点和关节限制配置
-lower_singularity_threshold: 17.0
-hard_stop_singularity_threshold: 30.0
-joint_limit_margin: 0.1
+lower_singularity_threshold: 200.0
+hard_stop_singularity_threshold: 400.0
 leaving_singularity_threshold_multiplier: 2.0
+joint_limit_margins: [0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12]
 
 ## 话题名称
 cartesian_command_in_topic: ~/delta_twist_cmds

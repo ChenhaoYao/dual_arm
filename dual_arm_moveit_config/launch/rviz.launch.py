@@ -1,11 +1,9 @@
 """Start only RViz with the shared MoveIt RViz config.
 
-This launch loads robot_description, SRDF, and kinematics for RViz, then opens
-dual_arm_moveit_config/config/moveit.rviz.
+This launch loads robot_description, SRDF, and kinematics for RViz. The
+rviz_config argument selects a config installed under dual_arm_moveit_config/config.
 
 It does not start MoveGroup, MoveIt Servo, ros2_control, or arm controllers.
-Servo mode currently reuses moveit.rviz, so the MotionPlanning panel may report
-that MoveGroup is unavailable; that is expected in mode:=servo.
 """
 
 import os
@@ -33,9 +31,15 @@ def generate_launch_description():
         default_value="mock_components/GenericSystem",
         description="硬件插件类型",
     )
+    rviz_config_arg = DeclareLaunchArgument(
+        "rviz_config",
+        default_value="moveit.rviz",
+        description="dual_arm_moveit_config/config 下的 RViz 配置文件",
+    )
 
     use_sim_time = LaunchConfiguration("use_sim_time")
     hw_plugin = LaunchConfiguration("hw_plugin")
+    rviz_config = LaunchConfiguration("rviz_config")
 
     robot_description_content = Command([
         "xacro ",
@@ -53,7 +57,11 @@ def generate_launch_description():
     with open(kinematics_yaml_file, "r") as f:
         kinematics_yaml = yaml.safe_load(f)
 
-    rviz_config_file = os.path.join(dual_arm_moveit_config_pkg, "config", "moveit.rviz")
+    rviz_config_file = PathJoinSubstitution([
+        dual_arm_moveit_config_pkg,
+        "config",
+        rviz_config,
+    ])
     rviz_node = Node(
         package="rviz2",
         executable="rviz2",
@@ -71,5 +79,6 @@ def generate_launch_description():
     return LaunchDescription([
         use_sim_time_arg,
         hw_plugin_arg,
+        rviz_config_arg,
         rviz_node,
     ])
