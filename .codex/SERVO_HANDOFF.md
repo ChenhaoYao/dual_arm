@@ -45,8 +45,9 @@ executable 'servo_node_main' not found on the libexec directory
   `servo_node`，并移除“RViz 中的 MotionPlanning 错误属于正常主流程”等误导描述。
 - `incoming_command_timeout: 0.1` 是 Jazzy 有效参数，但也是默认值；可以显式保留以表达
   安全意图。
-- 奇异点阈值从 `200/400` 降到 `17/30` 的方向合理。建议先采用接近 Jazzy 官方默认的
-  `10/30`，在 mock 中从非奇异初始位姿验证，再按机器人运动学调参。
+- PR 将奇异点阈值从 `200/400` 降到 `17/30` 后，当前机器人模型的 Servo
+  输出被全部缩放为零。已通过轨迹采样确认，现阶段保留 `200/400`；真机前需基于
+  实测 Jacobian 条件数重新标定，不能直接套用官方 Panda 阈值。
 - `publish_period: 0.034` 不是 Jazzy 官方默认值（官方示例为 `0.01`）。VR 输入为 50 Hz、
   controller update rate 为 100 Hz 时，优先保留 `0.01`，除非测量证明确实需要降到约 30 Hz。
 - 平滑滤波可以启用，但要显式保留 `use_smoothing: true` 和插件名，避免依赖版本默认值。
@@ -106,22 +107,24 @@ ros2 launch dual_arm_bringup sim.launch.py mode:=servo
 2. `mode:=servo`：用独立 Servo interactive marker adapter 实时控制，验证
    marker feedback -> Twist -> Servo -> JTC -> `/joint_states`。
 
-建议新增：
+当前已新增：
 
 ```text
-dual_arm_servo/dual_arm_servo/servo_smoke_test.py
 dual_arm_servo/dual_arm_servo/rviz_servo_marker.py
-dual_arm_servo/config/servo.rviz
+dual_arm_moveit_config/config/servo.rviz
 ```
 
-marker adapter 应实现：左右臂独立 marker、末端 pose 误差到 Twist 的比例控制、线/角速度限幅、
-死区、clutch/enable、输入超时、松开后零速度，以及 start/pause Servo 服务管理。不要复用
+`servo_smoke_test.py` 仍待实现。
+
+marker adapter 已实现：左右臂独立 marker、松开后执行目标、末端 pose 误差到 Twist 的比例控制、
+线/角速度限幅、到达容差、10 秒目标超时和零速度停止，并通过 `switch_command_type(TWIST)` 与
+`pause_servo(false)` 配置 Jazzy Servo。后续仍需补充显式 clutch/enable。不要复用
 MotionPlanning display 内部 marker。
 
 验收：
 
 - 无 VR、无网络时可独立控制任一手臂。
-- marker 松开、节点退出或输入超时后，命令在 100 ms 量级归零。
+- 目标到达、10 秒目标超时、节点退出或 joint state 失联后，命令归零。
 - `/servo_left/status`、`/servo_right/status` 无持续奇异/限位错误。
 - 输出话题为 `/left_arm_controller/joint_trajectory` 和
   `/right_arm_controller/joint_trajectory`，关节顺序正确。
@@ -177,10 +180,16 @@ ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool "{data: true}"
 
 ## 当前已知风险
 
+- 左右 Servo 必须各自使用 primary PlanningSceneMonitor，并将
+  `/get_planning_scene` 重映射为各自的私有服务。右臂作为 secondary 订阅左臂 scene 时，
+  Jazzy Servo 会持续等待 robot state update。
+- Servo 必须使用独立 KDL 运动学配置。MoveGroup 的 PickIK `position_threshold: 0.001`
+  大于 Servo 单周期位移，会返回当前姿态并产生全零关节增量。
+- JTC 必须保留 `allow_nonzero_velocity_at_trajectory_end: true`；默认值会拒绝
+  Servo 的滚动 `JointTrajectory`。
 - `keyboard_teleop.py` 的空格“急停”日志与实现不一致；无有效按键时仍可能发布零 Twist。
   它只能作为调试工具，不能作为安全控制器。
 - 当前 VR 配置 `require_enable_signal: false`，不满足真机 dead-man switch 要求。
-- Servo 模式仍复用 `moveit.rviz`，MotionPlanning 面板会误导用户，应提供 `servo.rviz`。
 - laxis/raxis 3-7 仍使用较大的 STL collision mesh，碰撞检测当前关闭。
 - 当前没有自动 smoke test，也没有输入源仲裁节点。
 - 真机链路通过 controller state topic 到 SOEM bridge，必须单独验证 feedback QoS、控制器接口和
@@ -188,13 +197,12 @@ ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool "{data: true}"
 
 ## 推荐下一步顺序
 
-1. 回到 Jazzy 主分支，恢复 `servo_node` 和 Jazzy 参数/OMPL/ros2_control 接口。
-2. 新增 Servo smoke test，建立不依赖 RViz/VR 的最小验收。
-3. 新增 `servo.rviz` 与 `rviz_servo_marker.py`，完成 mock 下的 Servo 交互。
-4. 加入统一输入仲裁和 dead-man/timeout/pause 行为。
-5. 在 mock 下接入现有 VR bridge，完成断连和时间戳异常测试。
-6. 简化碰撞模型并恢复碰撞检测。
-7. 最后进行单臂低速真机验证，再开放双臂。
+1. 将本轮端到端脚本整理为仓库内 `servo_smoke_test.py`，固化左右臂小位移验收。
+2. 加入统一输入仲裁和 dead-man/timeout/pause 行为。
+3. 在 mock 下接入现有 VR bridge，完成断连和时间戳异常测试。
+4. 简化碰撞模型并恢复碰撞检测。
+5. 基于真实关节状态采样 Jacobian 条件数，重新标定奇异点阈值。
+6. 最后进行单臂低速真机验证，再开放双臂。
 
 ## 不要回退的决策
 

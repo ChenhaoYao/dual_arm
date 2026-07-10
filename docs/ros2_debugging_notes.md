@@ -262,6 +262,224 @@ active_arm: left  # 只订阅左臂
 
 ---
 
+## 实战案例：RViz MoveIt Servo marker 移动后机械臂不动
+
+### 现象
+
+在 `mode:=servo` 下拖动 RViz Interactive Marker，机械臂不动，数秒后 marker
+回到原位。日志反复出现：
+
+```text
+[servo_right]: Waiting to receive robot state update.
+[rviz_servo_marker]: right marker command timed out
+```
+
+marker 回位是 adapter 的超时停止行为，不是 RViz 本身将目标丢失。真正故障
+不止一处，而是 PlanningSceneMonitor、IK 和 JTC 三层问题叠加。
+
+### 排查原则
+
+按数据流逐段检查，不要只看 RViz 是否移动：
+
+```text
+InteractiveMarker feedback
+  -> rviz_servo_marker TwistStamped
+  -> MoveIt Servo JointTrajectory
+  -> JointTrajectoryController command
+  -> mock hardware position
+  -> /joint_states
+  -> robot_state_publisher TF
+  -> RViz
+```
+
+每一段都要用话题、状态码或数值采样证明，不能因为“有话题”就假定内容有效。
+
+### 尝试 1：确认 robot state 数据源
+
+首先检查 `/joint_states` 和控制器：
+
+```bash
+source install/setup.bash
+ros2 topic echo /joint_states --once
+ros2 control list_controllers
+ros2 topic info /joint_states --verbose
+```
+
+结果是 14 个关节都在持续发布，两个 JTC 也处于 `active`。左 Servo 只等待一帧
+后就继续运行，只有右 Servo 永久等待，所以不是 joint state broadcaster 缺失。
+
+MoveIt Servo 启动时会等待 PlanningSceneMonitor 的 `last_update_time` 晚于 Servo
+节点启动时间。最初左右都作为 primary monitor，会竞争全局
+`/get_planning_scene` 服务；将右臂改为 secondary 并订阅左臂 scene 后，又因
+没有收到启动时间之后的 scene update 而继续等待。
+
+最终解决方案：
+
+- 左右 Servo 都使用 `is_primary_planning_scene_monitor: true`。
+- 两者都直接从 `/joint_states` 更新各自的 robot state。
+- 在 launch 中分别重映射服务：
+
+```python
+remappings=[
+    ("/get_planning_scene", "/servo_left/get_planning_scene"),
+]
+```
+
+右臂对应使用 `/servo_right/get_planning_scene`。修复后两个 Servo 都只等待第一帧
+robot state，不再持续打印等待日志。
+
+### 尝试 2：排除 RViz marker 初始化误触发
+
+在无人操作的启动测试中仍然出现 marker command timeout 和奇异点告警。原因是
+RViz 初始化 Interactive Marker 时的 `POSE_UPDATE` 被 adapter 当成了用户命令。
+
+修复为明确的拖拽状态机：
+
+```text
+MOUSE_DOWN  -> 进入 dragging，不驱动机械臂
+POSE_UPDATE -> 仅在 dragging 时记录目标
+MOUSE_UP    -> 开始执行最终目标
+```
+
+同时增加 `/joint_states` 新鲜度检查，只有 14 个关节齐全且数据未超时时才
+创建 marker 和发送命令。目标执行超时从 3 秒改为 10 秒。
+
+### 尝试 3：有 JointTrajectory 不代表有有效输出
+
+注入左右各 1 cm 的 marker feedback，采样结果是每侧都收到约 300 条
+`JointTrajectory`，但 `/joint_states` 完全不变。进一步检查轨迹点后发现：
+
+```text
+max joint velocity = 0.0
+max position step  = 0.0
+```
+
+此时问题在 Servo 安全缩放内部，不在 JTC。PR 将当前机器人的奇异点阈值从
+`200/400` 改成了接近 Panda 示例的 `17/30`。当前机器人 Jacobian 的数值尺度
+不同，这一阈值会将命令缩放为零并反复报告靠近奇异点。
+
+处理：
+
+```yaml
+lower_singularity_threshold: 200.0
+hard_stop_singularity_threshold: 400.0
+```
+
+这是恢复当前项目基线，不代表该数值已经完成真机安全标定。真机前必须采样
+实际工作区间的 Jacobian 条件数，再重新确定减速和急停阈值。
+
+### 尝试 4：Servo 不能直接复用 MoveGroup 的 PickIK 容差
+
+恢复奇异点阈值后，adapter 已经持续发布非零 Twist，消息年龄小于 4 ms，
+`switch_command_type` 也返回 `success=True`，但 Servo status 显示 `No warnings` 且关节
+增量仍然为零。
+
+原因是 MoveIt Servo 对 Twist 每个控制周期求一次 IK。当前周期为 10 ms，
+marker 的测试速度为 `0.015 m/s`，所以单周期目标位移只有：
+
+```text
+0.015 m/s * 0.01 s = 0.00015 m = 0.15 mm
+```
+
+MoveGroup 的 PickIK 配置却使用 `position_threshold: 0.001`，即 1 mm。当前姿态
+已在 PickIK 的允许误差内，因此它会把“原关节位置”作为成功解返回，导致
+Servo 没有告警但每帧关节增量都是零。
+
+不应为了 Servo 直接改掉 MoveGroup 的 PickIK 配置。最终将两者分离：
+
+```text
+dual_arm_moveit_config/config/kinematics.yaml -> MoveGroup / PickIK
+dual_arm_servo/config/kinematics.yaml         -> MoveIt Servo / KDL
+```
+
+Servo 专用 KDL 配置：
+
+```yaml
+left_arm:
+  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+  kinematics_solver_timeout: 0.005
+  kinematics_solver_attempts: 1
+```
+
+右臂使用相同配置。改为 KDL 后，Servo 轨迹中开始出现非零关节速度，
+证明 marker -> Twist -> Servo 链路已正常。
+
+### 尝试 5：JTC 拒绝 Servo 滚动轨迹
+
+KDL 生效后 Servo 输出已经非零，但 mock 关节仍然不动。与一条可以正常执行的
+2 秒单点手工轨迹比较后，从 JTC 日志看到确切原因：
+
+```text
+Velocity of last trajectory point ... is not zero
+```
+
+MoveIt Servo 发布的是不断刷新的滚动轨迹，末点速度正常情况下不为零。Jazzy
+JointTrajectoryController 默认拒绝这种轨迹。在 mock 和 real 两套配置的左右
+控制器中增加：
+
+```yaml
+allow_nonzero_velocity_at_trajectory_end: true
+```
+
+该参数只放宽流式轨迹的格式校验。Servo 仍然使用 `incoming_command_timeout: 0.1`，
+在 100 ms 没有新 Twist 后生成停止命令。
+
+### 最终修复汇总
+
+| 层级 | 根因 | 修复 |
+|------|------|------|
+| Planning scene | 右侧 secondary monitor 没有新 scene update | 左右独立 primary monitor，私有化 service |
+| RViz adapter | 初始 `POSE_UPDATE` 被当成用户命令 | 按下/拖动/松开状态机 |
+| Servo safety | `17/30` 与当前 Jacobian 尺度不匹配 | 恢复 `200/400`，真机前再标定 |
+| IK | PickIK 1 mm 容差大于 Servo 单周期步长 | Servo 独立使用 KDL |
+| JTC | 默认拒绝非零末点速度 | `allow_nonzero_velocity_at_trajectory_end: true` |
+
+另外保留了以下运行安全检查：
+
+- Servo 栈延迟 3 秒启动，等待 controller 和 joint state 稳定。
+- marker 仅在 14 个关节状态齐全且新鲜时启用。
+- 目标到达、10 秒目标超时、joint state 过期和节点退出时发布零 Twist。
+- RViz marker 与 VR bridge 在顶层 launch 中互斥，避免两个输入源同时发布。
+
+### 验证结果
+
+自动向左右 marker 各注入 1 cm 目标，全链路实测：
+
+```text
+left:  joint_delta=0.065874 rad, cartesian_delta=0.007113 m
+right: joint_delta=0.043274 rad, cartesian_delta=0.007124 m
+Servo status: No warnings
+```
+
+目标未走满 10 mm 是因为 adapter 的 `position_tolerance` 为 4 mm；约 7.1 mm 后剩余
+误差已进入容差，adapter 正常停止。
+
+完整启动命令：
+
+```bash
+cd /home/dell/dual_arm
+colcon build --packages-select dual_arm_moveit_config dual_arm_servo dual_arm_bringup
+source install/setup.bash
+ros2 launch dual_arm_bringup sim.launch.py mode:=servo
+```
+
+启动后 RViz 选择 `Interact`，拖动蓝色或橙色 marker，松开鼠标后执行目标。
+
+### 通用调试经验
+
+1. `Waiting to receive robot state update` 不一定表示 `/joint_states` 没有发布，也可能是
+   PlanningSceneMonitor 的更新时间不满足 Servo 启动条件。
+2. 话题有消息不等于命令有效。对 `JointTrajectory` 至少要检查速度、位置步长、
+   时间戳和控制器是否接受。
+3. Servo status 为 `No warnings` 也不代表 IK 解会产生运动；运动学插件的容差可能将
+   当前姿态直接判定为成功解。
+4. 流式 Servo/MPC 轨迹和 MoveGroup 的有限时长轨迹对 JTC 的格式要求不同，
+   必须查看 JTC 日志，不能只监控 Servo publisher。
+5. 每次修复后只验证下一段链路，例如依次证明非零 Twist、非零关节轨迹、
+   JTC 接受和 `/joint_states` 变化，能快速分离多个叠加故障。
+
+---
+
 ## Hardware Interface (Jazzy 新 API)
 
 ```cpp
