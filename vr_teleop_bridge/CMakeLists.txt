@@ -10,6 +10,7 @@ install(DIRECTORY config launch
 install(PROGRAMS
   vr_teleop_bridge/vr_pose_to_servo_node.py
   vr_teleop_bridge/vr_pose_to_move_group_node.py
+  vr_teleop_bridge/trajectory_logger_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

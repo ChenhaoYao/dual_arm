@@ -1,0 +1,11 @@
+vr_servo_trajectory_logger:
+  ros__parameters:
+    sample_rate: 5.0
+    output_directory: /home/dell/dual_arm/vr_teleop_bridge/log
+    base_frame: base_link
+    left_ee_frame: laxis7_link
+    right_ee_frame: raxis7_link
+    left_pose_topic: /vr/left_hand/pose
+    right_pose_topic: /vr/right_hand/pose
+    left_enable_topic: /vr/left_hand/enabled
+    right_enable_topic: /vr/right_hand/enabled

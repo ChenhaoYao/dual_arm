@@ -66,6 +66,15 @@ ros2 launch dual_arm_bringup sim.launch.py \
 
 启用 VR 后会自动关闭 RViz Servo marker，避免两个输入 adapter 同时控制机械臂。Servo 模式不会启动 `move_group`，RViz 使用独立的 `servo.rviz` 配置。
 
+VR 模式默认以 5 Hz 将原始手柄轨迹和机械臂末端反馈分别记录为：
+
+```text
+/home/dell/dual_arm/vr_teleop_bridge/log/<启动时间>/vr_hand_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<启动时间>/robot_ee_trajectory.csv
+```
+
+两个文件使用相同的 `sample_ros_time_ns` 和 `side` 字段对齐。`enabled=1` 表示对应 Grip 正在按下。机械臂文件记录由 `/joint_states` 经 TF 得到的实际末端位姿，不是 Servo 指令目标。修改采样频率时直接编辑 `vr_teleop_bridge/config/trajectory_logger.yaml` 并重启 launch，无需重新编译。
+
 ### MoveIt 规划实物模式
 
 ```bash

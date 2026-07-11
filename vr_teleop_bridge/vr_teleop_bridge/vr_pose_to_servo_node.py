@@ -92,6 +92,9 @@ class VrPoseToServo(Node):
         self.servo_startup_settle_time = float(
             self.get_parameter("servo_startup_settle_time").value
         )
+        self.servo_command_settle_time = float(
+            self.get_parameter("servo_command_settle_time").value
+        )
         self.axis_map = list(self.get_parameter("unity_to_ros_axis_map").value)
         self.axis_sign = [float(value) for value in self.get_parameter("unity_to_ros_axis_sign").value]
 
@@ -140,6 +143,7 @@ class VrPoseToServo(Node):
         self._pause_clients: List = []
         self._start_wait_log_time = 0.0
         self._servo_services_ready_time: Optional[float] = None
+        self._commands_ready_time: Optional[float] = None if self.auto_start_servo else 0.0
         if self.auto_start_servo:
             self._command_type_clients = [
                 self.create_client(ServoCommandType, "/servo_left/switch_command_type"),
@@ -177,6 +181,7 @@ class VrPoseToServo(Node):
         self.declare_parameter("publish_rate", 50.0)
         self.declare_parameter("auto_start_servo", True)
         self.declare_parameter("servo_startup_settle_time", 1.0)
+        self.declare_parameter("servo_command_settle_time", 1.0)
         # Unity publishes poses after ROSGeometry.To<FLU>(), so they are
         # already expressed with ROS axis conventions.
         self.declare_parameter("unity_to_ros_axis_map", [0, 1, 2])
@@ -216,8 +221,11 @@ class VrPoseToServo(Node):
         pause_request.data = False
         for client in self._pause_clients:
             client.call_async(pause_request)
+        self._commands_ready_time = time.monotonic() + self.servo_command_settle_time
         self._start_timer.cancel()
-        self.get_logger().info("MoveIt Servo configured for Twist commands on both arms")
+        self.get_logger().info(
+            "MoveIt Servo configured; VR commands remain gated during state synchronization"
+        )
 
     def _on_enable(self, arm: ArmState, msg: Bool):
         arm.enabled_signal = bool(msg.data)
@@ -231,6 +239,8 @@ class VrPoseToServo(Node):
             self._reset_arm(self.right)
 
     def _arm_enabled(self, arm: ArmState) -> bool:
+        if self._commands_ready_time is None or time.monotonic() < self._commands_ready_time:
+            return False
         if self.require_enable_signal:
             return arm.enabled_param and arm.enabled_signal
         return arm.enabled_param

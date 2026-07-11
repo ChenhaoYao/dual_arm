@@ -28,6 +28,8 @@ vr_pose_to_servo_node:
     auto_start_servo: true
     # Servo services appear before CurrentStateMonitor is fully ready.
     servo_startup_settle_time: 1.0
+    # Keep VR input gated briefly after unpausing so robot state can synchronize.
+    servo_command_settle_time: 1.0
 
     # VRHandPublisher converts poses with ROSGeometry.To<FLU>() before
     # publishing, so the bridge must not apply a second axis conversion.

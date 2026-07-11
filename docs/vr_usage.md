@@ -63,6 +63,20 @@ The bridge publishes MoveIt Servo commands:
 /servo_right/delta_twist_cmds   geometry_msgs/msg/TwistStamped
 ```
 
+## Trajectory Logs
+
+VR Servo launch starts a 5 Hz trajectory logger by default. Each run creates:
+
+```text
+/home/dell/dual_arm/vr_teleop_bridge/log/<timestamp>/vr_hand_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<timestamp>/robot_ee_trajectory.csv
+```
+
+The VR file contains the raw FLU controller poses received before Servo
+processing. The robot file contains the measured end-effector poses computed
+from `/joint_states` through TF. Join rows using `sample_ros_time_ns` and
+`side`; `enabled=1` marks samples recorded while that hand's Grip is held.
+
 ## Bridge Only
 
 If `ros_tcp_endpoint` is already running:
