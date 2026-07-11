@@ -5,7 +5,7 @@ ROS2 ament_cmake package — URDF description for a dual-arm mobile robot with 6
 ## Build & run
 
 ```bash
-colcon build --packages-select dual_arm_description
+colcon build --symlink-install --packages-select dual_arm_description
 source install/setup.bash
 ros2 launch dual_arm_description display_rviz2.launch.py
 ```

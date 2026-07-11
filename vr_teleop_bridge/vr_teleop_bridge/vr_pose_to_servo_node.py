@@ -2,6 +2,7 @@
 """Convert Unity/PICO VR controller poses to MoveIt Servo TwistStamped commands."""
 
 import math
+import time
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
@@ -88,6 +89,9 @@ class VrPoseToServo(Node):
         self.command_timeout = float(self.get_parameter("command_timeout").value)
         self.require_enable_signal = bool(self.get_parameter("require_enable_signal").value)
         self.auto_start_servo = bool(self.get_parameter("auto_start_servo").value)
+        self.servo_startup_settle_time = float(
+            self.get_parameter("servo_startup_settle_time").value
+        )
         self.axis_map = list(self.get_parameter("unity_to_ros_axis_map").value)
         self.axis_sign = [float(value) for value in self.get_parameter("unity_to_ros_axis_sign").value]
 
@@ -135,6 +139,7 @@ class VrPoseToServo(Node):
         self._command_type_clients: List = []
         self._pause_clients: List = []
         self._start_wait_log_time = 0.0
+        self._servo_services_ready_time: Optional[float] = None
         if self.auto_start_servo:
             self._command_type_clients = [
                 self.create_client(ServoCommandType, "/servo_left/switch_command_type"),
@@ -161,7 +166,7 @@ class VrPoseToServo(Node):
         self.declare_parameter("right_twist_topic", "/servo_right/delta_twist_cmds")
         self.declare_parameter("left_enabled", True)
         self.declare_parameter("right_enabled", True)
-        self.declare_parameter("require_enable_signal", False)
+        self.declare_parameter("require_enable_signal", True)
         self.declare_parameter("linear_scale", 0.5)
         self.declare_parameter("angular_scale", 1.0)
         self.declare_parameter("max_linear_speed", 0.15)
@@ -171,8 +176,11 @@ class VrPoseToServo(Node):
         self.declare_parameter("command_timeout", 0.2)
         self.declare_parameter("publish_rate", 50.0)
         self.declare_parameter("auto_start_servo", True)
-        self.declare_parameter("unity_to_ros_axis_map", [2, 0, 1])
-        self.declare_parameter("unity_to_ros_axis_sign", [1.0, -1.0, 1.0])
+        self.declare_parameter("servo_startup_settle_time", 1.0)
+        # Unity publishes poses after ROSGeometry.To<FLU>(), so they are
+        # already expressed with ROS axis conventions.
+        self.declare_parameter("unity_to_ros_axis_map", [0, 1, 2])
+        self.declare_parameter("unity_to_ros_axis_sign", [1.0, 1.0, 1.0])
 
     def _validate_axis_mapping(self):
         if sorted(self.axis_map) != [0, 1, 2] or len(self.axis_sign) != 3:
@@ -181,6 +189,7 @@ class VrPoseToServo(Node):
     def _try_start_servo(self):
         for client in (*self._command_type_clients, *self._pause_clients):
             if not client.wait_for_service(timeout_sec=0.2):
+                self._servo_services_ready_time = None
                 now = self.get_clock().now().nanoseconds * 1e-9
                 if now - self._start_wait_log_time > 5.0:
                     self._start_wait_log_time = now
@@ -188,6 +197,17 @@ class VrPoseToServo(Node):
                         "Waiting for MoveIt Servo configuration services"
                     )
                 return
+
+        # The service endpoints become visible slightly before Servo finishes
+        # initializing its CurrentStateMonitor. Unpausing at that instant can
+        # leave Servo blocked waiting for its first robot state update.
+        now = time.monotonic()
+        if self._servo_services_ready_time is None:
+            self._servo_services_ready_time = now
+            return
+        if now - self._servo_services_ready_time < self.servo_startup_settle_time:
+            return
+
         command_request = ServoCommandType.Request()
         command_request.command_type = ServoCommandType.Request.TWIST
         for client in self._command_type_clients:
@@ -333,9 +353,12 @@ def main():
     node = VrPoseToServo()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

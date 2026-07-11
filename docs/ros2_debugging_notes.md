@@ -458,7 +458,7 @@ Servo status: No warnings
 
 ```bash
 cd /home/dell/dual_arm
-colcon build --packages-select dual_arm_moveit_config dual_arm_servo dual_arm_bringup
+colcon build --symlink-install --packages-select dual_arm_moveit_config dual_arm_servo dual_arm_bringup
 source install/setup.bash
 ros2 launch dual_arm_bringup sim.launch.py mode:=servo
 ```

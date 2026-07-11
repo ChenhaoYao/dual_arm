@@ -12,6 +12,8 @@ public class VRHandPublisher : MonoBehaviour
     [Header("ROS Settings")]
     public string leftHandTopic = "/vr/left_hand/pose";
     public string rightHandTopic = "/vr/right_hand/pose";
+    public string leftHandEnabledTopic = "/vr/left_hand/enabled";
+    public string rightHandEnabledTopic = "/vr/right_hand/enabled";
     public string statusTopic = "/vr/status";
     public float publishFrequency = 50f;
 
@@ -25,6 +27,8 @@ public class VRHandPublisher : MonoBehaviour
         ros = ROSConnection.GetOrCreateInstance();
         ros.RegisterPublisher<PoseStampedMsg>(leftHandTopic);
         ros.RegisterPublisher<PoseStampedMsg>(rightHandTopic);
+        ros.RegisterPublisher<BoolMsg>(leftHandEnabledTopic);
+        ros.RegisterPublisher<BoolMsg>(rightHandEnabledTopic);
         ros.RegisterPublisher<StringMsg>(statusTopic);
 
         Debug.Log("[VRHandPublisher] 已启动，正在发布到 ROS");
@@ -38,6 +42,8 @@ public class VRHandPublisher : MonoBehaviour
         if (publishTimer >= 1f / publishFrequency)
         {
             publishTimer = 0f;
+            PublishHandEnabled(XRNode.LeftHand, leftHandEnabledTopic);
+            PublishHandEnabled(XRNode.RightHand, rightHandEnabledTopic);
             PublishHandPose(XRNode.LeftHand, leftHandTopic);
             PublishHandPose(XRNode.RightHand, rightHandTopic);
             PublishStatus();
@@ -63,6 +69,21 @@ public class VRHandPublisher : MonoBehaviour
             rightHandConnected = rightNow;
             Debug.Log(rightNow ? "[VRHandPublisher] 右手已连接" : "[VRHandPublisher] 右手已断开");
         }
+    }
+
+    void PublishHandEnabled(XRNode node, string topic)
+    {
+        InputDevice device = InputDevices.GetDeviceAtXRNode(node);
+        bool gripPressed = false;
+
+        // Servo deadman/clutch：CommonUsages.gripButton 对应手柄侧面的 Grip
+        // 握持键，通常由中指按住。松开后 ROS bridge 会立即停止对应机械臂。
+        // 如需改成食指扳机，应将 gripButton 改为 triggerButton。
+        bool enabled = device.isValid
+            && device.TryGetFeatureValue(CommonUsages.gripButton, out gripPressed)
+            && gripPressed;
+
+        ros.Publish(topic, new BoolMsg(enabled));
     }
 
     void PublishStatus()

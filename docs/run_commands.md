@@ -3,14 +3,20 @@
 ## 编译
 
 ```bash
-# 编译全部
-colcon build
+cd /home/dell/dual_arm
+
+# 编译全部。统一使用软连接安装，修改 YAML/Python/launch 后只需重启节点。
+colcon build --symlink-install
+
+# 本次 MoveIt Servo / RViz / VR 相关包
+colcon build --symlink-install --packages-select \
+  dual_arm_moveit_config dual_arm_servo dual_arm_bringup vr_teleop_bridge
 
 # 编译单个包（更快）
-colcon build --packages-select dual_arm_soem_bridge
+colcon build --symlink-install --packages-select dual_arm_soem_bridge
 
 # 编译 SOEM 示例（通过 colcon）
-colcon build --packages-select SOEM
+colcon build --symlink-install --packages-select SOEM
 
 # 或者直接用 cmake（更快，不经过 colcon）
 cmake --build /home/dell/dual_arm/SOEM/build --target csv_test
@@ -20,14 +26,34 @@ cmake --build /home/dell/dual_arm/SOEM/build --target slaveinfo
 
 ## 启动
 
-### 仿真模式（mock 硬件）
+所有命令默认在 `/home/dell/dual_arm` 下执行。推荐按以下顺序验证：
+
+1. mock 硬件 + RViz Servo marker
+2. mock 硬件 + VR
+3. 真实机械臂 + RViz Servo marker
+4. 真实机械臂 + VR
+
+### MoveIt 规划仿真（mock 硬件）
 
 ```bash
+cd /home/dell/dual_arm
 source install/setup.bash
-ros2 launch dual_arm_bringup sim.launch.py
+ros2 launch dual_arm_bringup sim.launch.py mode:=moveit
 ```
 
-### VR 遥操作仿真模式（mock 硬件）
+### RViz Servo 仿真验证（mock 硬件，推荐先执行）
+
+```bash
+cd /home/dell/dual_arm
+source install/setup.bash
+ros2 launch dual_arm_bringup sim.launch.py \
+  mode:=servo \
+  enable_rviz_servo_marker:=true
+```
+
+RViz 启动后选择顶部的 **Interact** 工具。蓝色 marker 控制左臂，橙色 marker 控制右臂；拖动过程中只更新目标，松开鼠标后机械臂开始执行。目标超时或关节状态不完整时不会发送运动命令。
+
+### VR Servo 仿真验证（mock 硬件）
 
 ```bash
 source install/setup.bash
@@ -38,9 +64,9 @@ ros2 launch dual_arm_bringup sim.launch.py \
   ros_tcp_port:=10000
 ```
 
-注意：Servo 模式不会启动 `move_group`，并使用独立的 `servo.rviz` 交互 marker。
+启用 VR 后会自动关闭 RViz Servo marker，避免两个输入 adapter 同时控制机械臂。Servo 模式不会启动 `move_group`，RViz 使用独立的 `servo.rviz` 配置。
 
-### 实物模式
+### MoveIt 规划实物模式
 
 ```bash
 # 终端 1：MoveGroup + ros2_control + RViz（real.launch.py 默认 mode:=moveit, use_broadcaster:=false）
@@ -55,7 +81,22 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call
 sudo bash -c 'source /home/dell/dual_arm/install/setup.bash && ros2 topic echo  /left_arm_controller/controller_state'
 ```
 
-### VR 遥操作实物模式
+### RViz Servo 实物验证
+
+先确认急停可用、EtherCAT 标定和关节方向正确，并将速度限制设为适合首次测试的低值。真机启动参数默认关闭 marker，因此这里必须显式传入 `enable_rviz_servo_marker:=true`。
+
+```bash
+# 终端 1：MoveIt Servo + 真实硬件接口 + RViz marker
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_bringup real.launch.py mode:=servo enable_rviz_servo_marker:=true"
+
+# 终端 2：SOEM 桥接节点
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_soem_bridge soem_bridge.launch.py"
+
+# 终端 3：确认状态正常后使能电机
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool '{data: true}'"
+```
+
+### VR Servo 实物模式
 
 ```bash
 # 终端 1：MoveIt Servo + 真实硬件接口 + Unity TCP Endpoint + VR bridge
@@ -71,6 +112,8 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /servo_left/switch_command_type moveit_msgs/srv/ServoCommandType '{command_type: 1}'"
 sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 service call /servo_right/switch_command_type moveit_msgs/srv/ServoCommandType '{command_type: 1}'"
 ```
+
+真机 VR 模式下 `enable_vr_teleop:=true` 会强制关闭 RViz Servo marker，即使同时传入 `enable_rviz_servo_marker:=true`。
 
 ### 只启动 Unity ROS TCP Endpoint
 
@@ -117,6 +160,8 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic list"
 # 查看 VR 手柄输入
 ros2 topic echo /vr/left_hand/pose --once
 ros2 topic echo /vr/right_hand/pose --once
+ros2 topic echo /vr/left_hand/enabled --once
+ros2 topic echo /vr/right_hand/enabled --once
 ros2 topic echo /vr/status --once
 
 # 查看 VR 到 Servo 的输出
@@ -196,6 +241,10 @@ ros2 service call /servo_right/switch_command_type moveit_msgs/srv/ServoCommandT
 # 暂停 MoveIt Servo
 ros2 service call /servo_left/pause_servo std_srvs/srv/SetBool "{data: true}"
 ros2 service call /servo_right/pause_servo std_srvs/srv/SetBool "{data: true}"
+
+# 恢复 MoveIt Servo
+ros2 service call /servo_left/pause_servo std_srvs/srv/SetBool "{data: false}"
+ros2 service call /servo_right/pause_servo std_srvs/srv/SetBool "{data: false}"
 ```
 
 ### 单电机测试

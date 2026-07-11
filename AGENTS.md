@@ -5,7 +5,7 @@ Colcon workspace with 5 ament_cmake packages for a dual-arm mobile robot (two 7-
 ## Build & launch
 
 ```bash
-colcon build                          # build all packages
+colcon build --symlink-install        # build all packages; link YAML/Python/launch resources
 source install/setup.bash             # required before any ros2 command
 ros2 launch dual_arm_bringup sim.launch.py   # simulation (mock hardware)
 ```
@@ -24,7 +24,7 @@ ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool "{data: true}"
 
 Single-package build (faster iteration):
 ```bash
-colcon build --packages-select dual_arm_soem_bridge
+colcon build --symlink-install --packages-select dual_arm_soem_bridge
 ```
 
 There is no test suite, lint config, or CI. No typecheck or formatter is configured.

@@ -4,7 +4,7 @@
 
 ```bash
 cd /home/dell/dual_arm
-colcon build --packages-select ros_tcp_endpoint vr_teleop_bridge dual_arm_bringup
+colcon build --symlink-install --packages-select ros_tcp_endpoint vr_teleop_bridge dual_arm_bringup
 source install/setup.bash
 ```
 
@@ -51,6 +51,8 @@ Unity/PICO should connect to the PC IP address on port `10000` and publish:
 ```text
 /vr/left_hand/pose    geometry_msgs/msg/PoseStamped
 /vr/right_hand/pose   geometry_msgs/msg/PoseStamped
+/vr/left_hand/enabled std_msgs/msg/Bool
+/vr/right_hand/enabled std_msgs/msg/Bool
 /vr/status            std_msgs/msg/String
 ```
 
@@ -95,19 +97,22 @@ deadband_rotation: 0.02
 command_timeout: 0.2
 ```
 
-The default Unity to ROS axis mapping is:
+`VRHandPublisher` uses `ROSGeometry.To<FLU>()` before publishing. The bridge
+therefore uses an identity mapping and must not convert the axes a second time:
 
 ```text
-ROS x = Unity z
-ROS y = -Unity x
-ROS z = Unity y
+ROS x = message x
+ROS y = message y
+ROS z = message z
 ```
 
-For future controller-button gating, publish `std_msgs/msg/Bool` to:
+The Unity client publishes `std_msgs/msg/Bool` deadman signals to:
 
 ```text
 /vr/left_hand/enabled
 /vr/right_hand/enabled
 ```
 
-Then set `require_enable_signal: true` in the bridge YAML.
+The bridge defaults to `require_enable_signal: true`. Hold the corresponding
+controller grip button to control that arm; releasing it immediately resets the
+command and requires a fresh pose reference before motion resumes.
