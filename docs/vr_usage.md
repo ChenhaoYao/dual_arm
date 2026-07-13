@@ -68,14 +68,19 @@ The bridge publishes MoveIt Servo commands:
 VR Servo launch starts a 5 Hz trajectory logger by default. Each run creates:
 
 ```text
-/home/dell/dual_arm/vr_teleop_bridge/log/<timestamp>/vr_hand_trajectory.csv
-/home/dell/dual_arm/vr_teleop_bridge/log/<timestamp>/robot_ee_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<timestamp>/vr_left_hand_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<timestamp>/vr_right_hand_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<timestamp>/robot_left_ee_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<timestamp>/robot_right_ee_trajectory.csv
 ```
 
-The VR file contains the raw FLU controller poses received before Servo
-processing. The robot file contains the measured end-effector poses computed
-from `/joint_states` through TF. Join rows using `sample_ros_time_ns` and
-`side`; `enabled=1` marks samples recorded while that hand's Grip is held.
+The VR files contain the raw FLU controller poses received before Servo
+processing. The robot files contain the measured end-effector poses computed
+from `/joint_states` through TF. Join rows using `sample_index`; `elapsed_sec`
+is time since the logger started, and `enabled=1` marks samples recorded while
+that hand's Grip is held. All pose and quaternion values are rounded to four
+decimal places. Robot poses are expressed relative to `base_link`; the file
+name identifies the end-effector link whose pose was measured.
 
 ## Bridge Only
 
@@ -129,4 +134,6 @@ The Unity client publishes `std_msgs/msg/Bool` deadman signals to:
 
 The bridge defaults to `require_enable_signal: true`. Hold the corresponding
 controller grip button to control that arm; releasing it immediately resets the
-command and requires a fresh pose reference before motion resumes.
+command and pauses that Servo instance. Pressing Grip activates only the
+corresponding arm after all 14 joint states have remained complete and fresh;
+the first accepted controller pose becomes the new reference before motion.

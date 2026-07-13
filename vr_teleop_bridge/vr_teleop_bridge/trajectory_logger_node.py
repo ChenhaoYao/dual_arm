@@ -2,7 +2,7 @@
 """Record low-rate VR input and robot end-effector trajectories as CSV."""
 
 import csv
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -26,6 +26,8 @@ class TrajectoryLogger(Node):
         session_name = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.session_directory = session_root / session_name
         self.session_directory.mkdir(parents=True, exist_ok=False)
+        self.start_time = self.get_clock().now()
+        self.sample_index = 0
 
         self.latest_pose: Dict[str, Optional[PoseStamped]] = {"left": None, "right": None}
         self.enabled = {"left": False, "right": False}
@@ -34,24 +36,20 @@ class TrajectoryLogger(Node):
             "right": self.get_parameter("right_ee_frame").value,
         }
 
-        self.vr_file = (self.session_directory / "vr_hand_trajectory.csv").open(
-            "w", newline="", encoding="utf-8"
-        )
-        self.robot_file = (self.session_directory / "robot_ee_trajectory.csv").open(
-            "w", newline="", encoding="utf-8"
-        )
-        self.vr_writer = csv.writer(self.vr_file)
-        self.robot_writer = csv.writer(self.robot_file)
-        header = [
-            "sample_ros_time_ns", "wall_time_utc", "side", "enabled",
-            "source_time_sec", "source_time_nanosec", "frame_id",
+        self.files = {}
+        self.writers = {}
+        trajectory_header = [
+            "sample_index", "elapsed_sec", "enabled",
             "position_x", "position_y", "position_z",
             "orientation_x", "orientation_y", "orientation_z", "orientation_w",
         ]
-        self.vr_writer.writerow(header)
-        self.robot_writer.writerow(header)
-        self.vr_file.flush()
-        self.robot_file.flush()
+        for side in ("left", "right"):
+            self._open_log(
+                f"vr_{side}_hand_trajectory.csv", f"vr_{side}", trajectory_header
+            )
+            self._open_log(
+                f"robot_{side}_ee_trajectory.csv", f"robot_{side}", trajectory_header
+            )
 
         self.create_subscription(
             PoseStamped, self.get_parameter("left_pose_topic").value,
@@ -76,6 +74,16 @@ class TrajectoryLogger(Node):
         self.timer = self.create_timer(1.0 / self.sample_rate, self._sample)
         self.get_logger().info(f"Trajectory logs: {self.session_directory}")
 
+    def _open_log(self, filename, key, header):
+        file_handle = (self.session_directory / filename).open(
+            "w", newline="", encoding="utf-8"
+        )
+        writer = csv.writer(file_handle)
+        writer.writerow(header)
+        file_handle.flush()
+        self.files[key] = file_handle
+        self.writers[key] = writer
+
     def _declare_parameters(self):
         self.declare_parameter("sample_rate", 5.0)
         self.declare_parameter(
@@ -97,14 +105,13 @@ class TrajectoryLogger(Node):
 
     def _sample(self):
         sample_time = self.get_clock().now()
-        wall_time = datetime.now(timezone.utc).isoformat()
+        elapsed_sec = round((sample_time - self.start_time).nanoseconds / 1e9, 3)
         for side in ("left", "right"):
             pose_msg = self.latest_pose[side]
             if pose_msg is not None:
-                self.vr_writer.writerow(self._pose_row(
-                    sample_time.nanoseconds, wall_time, side, self.enabled[side],
-                    pose_msg.header.stamp.sec, pose_msg.header.stamp.nanosec,
-                    pose_msg.header.frame_id, pose_msg.pose,
+                self.writers[f"vr_{side}"].writerow(self._pose_row(
+                    self.sample_index, elapsed_sec, self.enabled[side],
+                    pose_msg.pose,
                 ))
 
             try:
@@ -113,8 +120,9 @@ class TrajectoryLogger(Node):
                     timeout=Duration(seconds=0.02),
                 )
                 self._tf_warning_logged[side] = False
-                self.robot_writer.writerow(self._transform_row(
-                    sample_time.nanoseconds, wall_time, side, self.enabled[side], transform
+                self.writers[f"robot_{side}"].writerow(self._transform_row(
+                    self.sample_index, elapsed_sec, self.enabled[side],
+                    transform,
                 ))
             except TransformException as exc:
                 if not self._tf_warning_logged[side]:
@@ -123,32 +131,41 @@ class TrajectoryLogger(Node):
                     )
                     self._tf_warning_logged[side] = True
 
-        self.vr_file.flush()
-        self.robot_file.flush()
+        for file_handle in self.files.values():
+            file_handle.flush()
+        self.sample_index += 1
 
     @staticmethod
-    def _pose_row(sample_ns, wall_time, side, enabled, sec, nanosec, frame_id, pose):
+    def _pose_row(sample_index, elapsed_sec, enabled, pose):
         return [
-            sample_ns, wall_time, side, int(enabled), sec, nanosec, frame_id,
-            pose.position.x, pose.position.y, pose.position.z,
-            pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w,
+            sample_index, elapsed_sec, int(enabled),
+            round(pose.position.x, 4),
+            round(pose.position.y, 4),
+            round(pose.position.z, 4),
+            round(pose.orientation.x, 4),
+            round(pose.orientation.y, 4),
+            round(pose.orientation.z, 4),
+            round(pose.orientation.w, 4),
         ]
 
     @staticmethod
-    def _transform_row(sample_ns, wall_time, side, enabled, transform):
+    def _transform_row(sample_index, elapsed_sec, enabled, transform):
         translation = transform.transform.translation
         rotation = transform.transform.rotation
-        stamp = transform.header.stamp
         return [
-            sample_ns, wall_time, side, int(enabled), stamp.sec, stamp.nanosec,
-            transform.header.frame_id,
-            translation.x, translation.y, translation.z,
-            rotation.x, rotation.y, rotation.z, rotation.w,
+            sample_index, elapsed_sec, int(enabled),
+            round(translation.x, 4),
+            round(translation.y, 4),
+            round(translation.z, 4),
+            round(rotation.x, 4),
+            round(rotation.y, 4),
+            round(rotation.z, 4),
+            round(rotation.w, 4),
         ]
 
     def destroy_node(self):
-        self.vr_file.close()
-        self.robot_file.close()
+        for file_handle in self.files.values():
+            file_handle.close()
         return super().destroy_node()
 
 

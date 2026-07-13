@@ -4,12 +4,14 @@
 import math
 import time
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import rclpy
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from moveit_msgs.srv import ServoCommandType
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool, String
 from std_srvs.srv import SetBool
 
@@ -72,6 +74,14 @@ class ArmState:
     latest_twist: TwistStamped = field(default_factory=TwistStamped)
     latest_pose_receive_time: Optional[float] = None
     published_zero: bool = True
+    servo_active: bool = False
+    activation_stage: str = "idle"
+    command_future: Optional[object] = None
+    unpause_future: Optional[object] = None
+    pause_future: Optional[object] = None
+    pause_confirmed: bool = False
+    commands_ready_time: float = 0.0
+    last_wait_log_time: float = 0.0
 
 
 class VrPoseToServo(Node):
@@ -87,6 +97,7 @@ class VrPoseToServo(Node):
         self.deadband_position = float(self.get_parameter("deadband_position").value)
         self.deadband_rotation = float(self.get_parameter("deadband_rotation").value)
         self.command_timeout = float(self.get_parameter("command_timeout").value)
+        self.state_timeout = float(self.get_parameter("state_timeout").value)
         self.require_enable_signal = bool(self.get_parameter("require_enable_signal").value)
         self.auto_start_servo = bool(self.get_parameter("auto_start_servo").value)
         self.servo_startup_settle_time = float(
@@ -102,6 +113,13 @@ class VrPoseToServo(Node):
 
         self.left = ArmState("left", bool(self.get_parameter("left_enabled").value))
         self.right = ArmState("right", bool(self.get_parameter("right_enabled").value))
+        self.arms = (self.left, self.right)
+        self.required_joint_names = {
+            *(f"laxis{index}_joint" for index in range(1, 8)),
+            *(f"raxis{index}_joint" for index in range(1, 8)),
+        }
+        self.last_joint_state_time: Optional[float] = None
+        self.robot_state_ready_since: Optional[float] = None
 
         self.pub_left = self.create_publisher(
             TwistStamped, self.get_parameter("left_twist_topic").value, 10
@@ -135,25 +153,27 @@ class VrPoseToServo(Node):
             10,
         )
         self.create_subscription(String, self.get_parameter("status_topic").value, self._on_status, 10)
+        self.create_subscription(
+            JointState, "/joint_states", self._on_joint_state, qos_profile_sensor_data
+        )
 
         publish_rate = float(self.get_parameter("publish_rate").value)
         self.publish_timer = self.create_timer(1.0 / publish_rate, self._publish_commands)
 
-        self._command_type_clients: List = []
-        self._pause_clients: List = []
-        self._start_wait_log_time = 0.0
-        self._servo_services_ready_time: Optional[float] = None
-        self._commands_ready_time: Optional[float] = None if self.auto_start_servo else 0.0
+        self._command_type_clients = {}
+        self._pause_clients = {}
         if self.auto_start_servo:
-            self._command_type_clients = [
-                self.create_client(ServoCommandType, "/servo_left/switch_command_type"),
-                self.create_client(ServoCommandType, "/servo_right/switch_command_type"),
-            ]
-            self._pause_clients = [
-                self.create_client(SetBool, "/servo_left/pause_servo"),
-                self.create_client(SetBool, "/servo_right/pause_servo"),
-            ]
-            self._start_timer = self.create_timer(1.0, self._try_start_servo)
+            for arm in self.arms:
+                self._command_type_clients[arm.name] = self.create_client(
+                    ServoCommandType, f"/servo_{arm.name}/switch_command_type"
+                )
+                self._pause_clients[arm.name] = self.create_client(
+                    SetBool, f"/servo_{arm.name}/pause_servo"
+                )
+            self._start_timer = self.create_timer(0.1, self._try_start_servo)
+        else:
+            for arm in self.arms:
+                arm.servo_active = True
 
         self.get_logger().info(
             "VR teleop bridge ready: /vr/*/pose -> /servo_left/right/delta_twist_cmds"
@@ -178,6 +198,7 @@ class VrPoseToServo(Node):
         self.declare_parameter("deadband_position", 0.005)
         self.declare_parameter("deadband_rotation", 0.02)
         self.declare_parameter("command_timeout", 0.2)
+        self.declare_parameter("state_timeout", 0.5)
         self.declare_parameter("publish_rate", 50.0)
         self.declare_parameter("auto_start_servo", True)
         self.declare_parameter("servo_startup_settle_time", 1.0)
@@ -192,58 +213,191 @@ class VrPoseToServo(Node):
             raise ValueError("unity_to_ros_axis_map must be a permutation of [0, 1, 2]")
 
     def _try_start_servo(self):
-        for client in (*self._command_type_clients, *self._pause_clients):
-            if not client.wait_for_service(timeout_sec=0.2):
-                self._servo_services_ready_time = None
-                now = self.get_clock().now().nanoseconds * 1e-9
-                if now - self._start_wait_log_time > 5.0:
-                    self._start_wait_log_time = now
-                    self.get_logger().info(
-                        "Waiting for MoveIt Servo configuration services"
-                    )
+        for arm in self.arms:
+            self._advance_servo_activation(arm)
+
+    def _advance_servo_activation(self, arm: ArmState):
+        """
+        Grip-triggered Servo activation sequence:
+        - Keep Servo paused until the corresponding Grip requests control.
+        - Require a complete, fresh joint state before contacting Servo.
+        - Confirm TWIST mode before sending the unpause request.
+        - Admit VR commands only after the unpause service succeeds.
+        """
+        if arm.pause_future is not None:
+            if not arm.pause_future.done():
                 return
+            try:
+                response = arm.pause_future.result()
+            except Exception as exc:
+                self.get_logger().warn(f"{arm.name} Servo pause failed: {exc}")
+                arm.pause_future = None
+                return
+            arm.pause_future = None
+            if not response.success:
+                self.get_logger().warn(
+                    f"{arm.name} Servo pause rejected: {response.message}"
+                )
+                return
+            arm.pause_confirmed = True
+            self.get_logger().info(f"{arm.name} Servo paused; waiting for Grip")
 
-        # The service endpoints become visible slightly before Servo finishes
-        # initializing its CurrentStateMonitor. Unpausing at that instant can
-        # leave Servo blocked waiting for its first robot state update.
+        if arm.servo_active:
+            if not self._robot_state_ready():
+                self._log_activation_wait(arm, "complete, fresh /joint_states")
+                self._deactivate_arm(arm)
+            return
+
+        if arm.activation_stage == "idle" and not arm.pause_confirmed:
+            client = self._pause_clients[arm.name]
+            if not client.service_is_ready():
+                if self._activation_requested(arm):
+                    self._log_activation_wait(arm, "MoveIt Servo pause service")
+                return
+            request = SetBool.Request()
+            request.data = True
+            arm.pause_future = client.call_async(request)
+            return
+
+        if not self._activation_requested(arm):
+            return
+
+        if not self._robot_state_ready():
+            self._log_activation_wait(arm, "complete, fresh /joint_states")
+            if arm.servo_active:
+                self._deactivate_arm(arm)
+            return
+
+        command_client = self._command_type_clients[arm.name]
+        pause_client = self._pause_clients[arm.name]
+        if not command_client.service_is_ready() or not pause_client.service_is_ready():
+            self._log_activation_wait(arm, "MoveIt Servo services")
+            return
+
+        if arm.activation_stage == "idle":
+            request = ServoCommandType.Request()
+            request.command_type = ServoCommandType.Request.TWIST
+            arm.command_future = command_client.call_async(request)
+            arm.activation_stage = "switching"
+            return
+
+        if arm.activation_stage == "switching":
+            if arm.command_future is None or not arm.command_future.done():
+                return
+            try:
+                response = arm.command_future.result()
+            except Exception as exc:
+                self._activation_failed(arm, f"TWIST mode request failed: {exc}")
+                return
+            if not response.success:
+                self._activation_failed(arm, "Servo rejected TWIST mode")
+                return
+            request = SetBool.Request()
+            request.data = False
+            arm.unpause_future = pause_client.call_async(request)
+            arm.pause_confirmed = False
+            arm.activation_stage = "unpausing"
+            return
+
+        if arm.activation_stage == "unpausing":
+            if arm.unpause_future is None or not arm.unpause_future.done():
+                return
+            try:
+                response = arm.unpause_future.result()
+            except Exception as exc:
+                self._activation_failed(arm, f"unpause request failed: {exc}")
+                return
+            if not response.success:
+                self._activation_failed(arm, f"Servo stayed paused: {response.message}")
+                return
+            arm.servo_active = True
+            arm.activation_stage = "active"
+            arm.commands_ready_time = time.monotonic() + self.servo_command_settle_time
+            self._reset_arm(arm)
+            self.get_logger().info(f"{arm.name} Servo activated by Grip")
+
+    def _activation_failed(self, arm: ArmState, reason: str):
+        self.get_logger().warn(f"{arm.name} Servo activation failed: {reason}")
+        arm.activation_stage = "idle"
+        arm.command_future = None
+        arm.unpause_future = None
+
+    def _log_activation_wait(self, arm: ArmState, resource: str):
         now = time.monotonic()
-        if self._servo_services_ready_time is None:
-            self._servo_services_ready_time = now
-            return
-        if now - self._servo_services_ready_time < self.servo_startup_settle_time:
-            return
+        if now - arm.last_wait_log_time >= 5.0:
+            arm.last_wait_log_time = now
+            self.get_logger().info(f"{arm.name} Grip waiting for {resource}")
 
-        command_request = ServoCommandType.Request()
-        command_request.command_type = ServoCommandType.Request.TWIST
-        for client in self._command_type_clients:
-            client.call_async(command_request)
-        pause_request = SetBool.Request()
-        pause_request.data = False
-        for client in self._pause_clients:
-            client.call_async(pause_request)
-        self._commands_ready_time = time.monotonic() + self.servo_command_settle_time
-        self._start_timer.cancel()
-        self.get_logger().info(
-            "MoveIt Servo configured; VR commands remain gated during state synchronization"
+    def _on_joint_state(self, msg: JointState):
+        if not self.required_joint_names.issubset(msg.name):
+            return
+        now = time.monotonic()
+        if (
+            self.last_joint_state_time is None
+            or now - self.last_joint_state_time > self.state_timeout
+        ):
+            self.robot_state_ready_since = now
+        self.last_joint_state_time = now
+
+    def _robot_state_ready(self) -> bool:
+        if self.last_joint_state_time is None or self.robot_state_ready_since is None:
+            return False
+        now = time.monotonic()
+        return (
+            now - self.last_joint_state_time <= self.state_timeout
+            and now - self.robot_state_ready_since >= self.servo_startup_settle_time
         )
 
     def _on_enable(self, arm: ArmState, msg: Bool):
+        was_enabled = arm.enabled_signal
         arm.enabled_signal = bool(msg.data)
-        if not self._arm_enabled(arm):
+        if arm.enabled_signal and not was_enabled:
             self._reset_arm(arm)
+            self.get_logger().info(f"{arm.name} Grip pressed; requesting Servo activation")
+        elif was_enabled and not arm.enabled_signal:
+            self._deactivate_arm(arm)
 
     def _on_status(self, msg: String):
         text = msg.data.lower()
         if "disable" in text or "stop" in text:
-            self._reset_arm(self.left)
-            self._reset_arm(self.right)
+            for arm in self.arms:
+                arm.enabled_signal = False
+                self._deactivate_arm(arm)
 
-    def _arm_enabled(self, arm: ArmState) -> bool:
-        if self._commands_ready_time is None or time.monotonic() < self._commands_ready_time:
-            return False
+    def _activation_requested(self, arm: ArmState) -> bool:
         if self.require_enable_signal:
             return arm.enabled_param and arm.enabled_signal
         return arm.enabled_param
+
+    def _arm_enabled(self, arm: ArmState) -> bool:
+        if not arm.servo_active or time.monotonic() < arm.commands_ready_time:
+            return False
+        return self._activation_requested(arm)
+
+    def _deactivate_arm(self, arm: ArmState):
+        was_engaged = arm.servo_active or arm.activation_stage != "idle"
+        self._reset_arm(arm)
+        self._publisher_for(arm).publish(arm.latest_twist)
+        arm.published_zero = True
+        arm.servo_active = not self.auto_start_servo
+        arm.activation_stage = "idle"
+        arm.command_future = None
+        arm.unpause_future = None
+        arm.pause_future = None
+        arm.pause_confirmed = not self.auto_start_servo
+        arm.commands_ready_time = 0.0
+
+        if self.auto_start_servo:
+            client = self._pause_clients[arm.name]
+            if client.service_is_ready():
+                request = SetBool.Request()
+                request.data = True
+                arm.pause_future = client.call_async(request)
+        if was_engaged:
+            self.get_logger().info(f"{arm.name} Servo paused after Grip release")
+
+    def _publisher_for(self, arm: ArmState):
+        return self.pub_left if arm is self.left else self.pub_right
 
     def _on_pose(self, arm: ArmState, msg: PoseStamped):
         now = self.get_clock().now().nanoseconds * 1e-9
@@ -269,6 +423,13 @@ class VrPoseToServo(Node):
             arm.latest_twist = self._zero_twist()
             return
 
+        """
+        Why relative controller motion is converted to Cartesian velocity:
+        - The VR and robot coordinate origins are unrelated.
+        - An absolute VR pose could cause a jump toward an unreachable target.
+        - Pose differences make Grip act as a clutch for relative motion only.
+        - Deadbands and speed limits can be applied before commands reach Servo.
+        """
         delta_position = self._position_delta(arm.last_pose, msg)
         delta_rotation = self._rotation_delta(arm.last_pose, msg)
 

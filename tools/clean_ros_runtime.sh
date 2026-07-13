@@ -60,12 +60,25 @@ kill_pattern "${WORKSPACE}/install/ros_tcp_endpoint/lib/ros_tcp_endpoint/default
 kill_pattern "ros2 run ros_tcp_endpoint default_server_endpoint" "ros_tcp_endpoint ros2 wrapper"
 kill_pattern "${WORKSPACE}/install/.*/lib/.*/.*" "workspace-installed ROS executables"
 kill_pattern "ros2 launch .*dual_arm|ros2 run .*dual_arm|ros2 run .*vr_teleop" "workspace ros2 launch/run commands"
+# Launch children can become orphaned after an abnormal shutdown, so their
+# command lines no longer contain the workspace path or the ros2 launch parent.
+kill_pattern "/opt/ros/jazzy/lib/moveit_servo/servo_node" "MoveIt Servo nodes"
+kill_pattern "/opt/ros/jazzy/lib/controller_manager/ros2_control_node" "ros2_control nodes"
+kill_pattern "/opt/ros/jazzy/lib/controller_manager/spawner" "controller spawners"
+kill_pattern "/opt/ros/jazzy/lib/robot_state_publisher/robot_state_publisher" "robot_state_publisher nodes"
+kill_pattern "/opt/ros/jazzy/lib/rviz2/rviz2" "RViz nodes"
+
+# One-off rclpy/ros2 diagnostics are not workspace executables. In particular,
+# a malformed joint_state_probe previously survived cleanup at 100% CPU.
+kill_pattern "python3 -c .*rclpy" "temporary rclpy diagnostics"
+kill_pattern "ros2 (topic|node|service|param|action|doctor) " "ROS 2 diagnostic commands"
 
 if command -v ros2 >/dev/null 2>&1; then
   echo "Stopping ros2 daemon."
   set +e
   bash -lc "source /opt/ros/jazzy/setup.bash; ros2 daemon stop" >/dev/null 2>&1
   set -e
+  kill_pattern "_ros2_daemon" "ROS 2 daemon processes"
 fi
 
 if [[ "$START_ENDPOINT" -eq 1 ]]; then

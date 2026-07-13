@@ -24,11 +24,13 @@ vr_pose_to_servo_node:
     deadband_position: 0.005
     deadband_rotation: 0.02
     command_timeout: 0.2
+    # Grip activation is allowed only while all 14 joint states remain fresh.
+    state_timeout: 0.5
     publish_rate: 50.0
     auto_start_servo: true
-    # Servo services appear before CurrentStateMonitor is fully ready.
+    # Require a stable joint-state stream before Grip may unpause Servo.
     servo_startup_settle_time: 1.0
-    # Keep VR input gated briefly after unpausing so robot state can synchronize.
+    # Capture a fresh VR reference after unpausing before motion is admitted.
     servo_command_settle_time: 1.0
 
     # VRHandPublisher converts poses with ROSGeometry.To<FLU>() before

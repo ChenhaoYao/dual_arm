@@ -44,7 +44,6 @@ ros2 launch dual_arm_bringup sim.launch.py mode:=moveit
 ### RViz Servo 仿真验证（mock 硬件，推荐先执行）
 
 ```bash
-cd /home/dell/dual_arm
 source install/setup.bash
 ros2 launch dual_arm_bringup sim.launch.py \
   mode:=servo \
@@ -69,11 +68,13 @@ ros2 launch dual_arm_bringup sim.launch.py \
 VR 模式默认以 5 Hz 将原始手柄轨迹和机械臂末端反馈分别记录为：
 
 ```text
-/home/dell/dual_arm/vr_teleop_bridge/log/<启动时间>/vr_hand_trajectory.csv
-/home/dell/dual_arm/vr_teleop_bridge/log/<启动时间>/robot_ee_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<启动时间>/vr_left_hand_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<启动时间>/vr_right_hand_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<启动时间>/robot_left_ee_trajectory.csv
+/home/dell/dual_arm/vr_teleop_bridge/log/<启动时间>/robot_right_ee_trajectory.csv
 ```
 
-两个文件使用相同的 `sample_ros_time_ns` 和 `side` 字段对齐。`enabled=1` 表示对应 Grip 正在按下。机械臂文件记录由 `/joint_states` 经 TF 得到的实际末端位姿，不是 Servo 指令目标。修改采样频率时直接编辑 `vr_teleop_bridge/config/trajectory_logger.yaml` 并重启 launch，无需重新编译。
+四个文件使用相同的表头和 `sample_index` 对齐，`elapsed_sec` 是本次记录开始后的简化秒数。`enabled=1` 表示对应 Grip 正在按下。Grip 按下后会在 14 个关节状态完整且新鲜时激活对应 Servo，松开后发送零速度并暂停对应 Servo。位姿坐标和四元数保留 4 位小数。机械臂文件记录由 `/joint_states` 经 TF 得到、以 `base_link` 为参考的实际末端位姿，不是 Servo 指令目标。修改采样频率时直接编辑 `vr_teleop_bridge/config/trajectory_logger.yaml` 并重启 launch，无需重新编译。
 
 ### MoveIt 规划实物模式
 
@@ -159,6 +160,22 @@ sudo /home/dell/dual_arm/SOEM/build/samples/ec_sample/ec_sample enp0s31f6
 ```
 
 ## 调试
+
+### 临时解除 Servo 状态等待
+
+如果 Servo 持续打印 `Waiting to receive robot state update.`，并且已经确认
+`/joint_states` 正在发布完整的 14 个关节，可以在控制输入保持静止时执行：
+
+```bash
+cd /home/dell/dual_arm
+source install/setup.bash
+python3 tools/kick_servo_state_monitor.py
+```
+
+脚本读取当前完整关节状态，对 `laxis1_joint` 的副本临时增加 `1e-6 rad`，随后立即
+恢复原值，重复三次后退出。它只用于规避 MoveIt Servo 2.12.4 的启动等待问题，
+不会向控制器发送运动命令。默认按仿真使用；连接真实硬件时不要执行，除非已经
+禁止 Servo 运动输出并明确传入 `--allow-real-hardware`。
 
 ### 话题查看
 
