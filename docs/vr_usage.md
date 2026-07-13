@@ -116,14 +116,19 @@ deadband_rotation: 0.02
 command_timeout: 0.2
 ```
 
-`VRHandPublisher` uses `ROSGeometry.To<FLU>()` before publishing. The bridge
-therefore uses an identity mapping and must not convert the axes a second time:
+`VRHandPublisher` uses `ROSGeometry.To<FLU>()` before publishing. Runtime
+calibration against the robot control frame found that its x/y translation
+axes still need to be exchanged:
 
 ```text
-ROS x = message x
-ROS y = message y
-ROS z = message z
+robot translation x = message y
+robot translation y = message x
+robot translation z = message z
 ```
+
+Translation and rotation mappings are configured independently. Rotation
+currently keeps the published x/y/z axes unchanged; use a dedicated
+single-axis recording before changing the rotation mapping.
 
 The Unity client publishes `std_msgs/msg/Bool` deadman signals to:
 

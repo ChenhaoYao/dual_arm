@@ -106,8 +106,20 @@ class VrPoseToServo(Node):
         self.servo_command_settle_time = float(
             self.get_parameter("servo_command_settle_time").value
         )
-        self.axis_map = list(self.get_parameter("unity_to_ros_axis_map").value)
-        self.axis_sign = [float(value) for value in self.get_parameter("unity_to_ros_axis_sign").value]
+        self.position_axis_map = list(
+            self.get_parameter("unity_to_ros_axis_map").value
+        )
+        self.position_axis_sign = [
+            float(value)
+            for value in self.get_parameter("unity_to_ros_axis_sign").value
+        ]
+        self.rotation_axis_map = list(
+            self.get_parameter("unity_to_ros_rotation_axis_map").value
+        )
+        self.rotation_axis_sign = [
+            float(value)
+            for value in self.get_parameter("unity_to_ros_rotation_axis_sign").value
+        ]
 
         self._validate_axis_mapping()
 
@@ -203,14 +215,29 @@ class VrPoseToServo(Node):
         self.declare_parameter("auto_start_servo", True)
         self.declare_parameter("servo_startup_settle_time", 1.0)
         self.declare_parameter("servo_command_settle_time", 1.0)
-        # Unity publishes poses after ROSGeometry.To<FLU>(), so they are
-        # already expressed with ROS axis conventions.
+        # Keep position and rotation mappings independent. A translation-only
+        # calibration must not silently change the commanded rotation axes.
         self.declare_parameter("unity_to_ros_axis_map", [0, 1, 2])
         self.declare_parameter("unity_to_ros_axis_sign", [1.0, 1.0, 1.0])
+        self.declare_parameter("unity_to_ros_rotation_axis_map", [0, 1, 2])
+        self.declare_parameter("unity_to_ros_rotation_axis_sign", [1.0, 1.0, 1.0])
 
     def _validate_axis_mapping(self):
-        if sorted(self.axis_map) != [0, 1, 2] or len(self.axis_sign) != 3:
-            raise ValueError("unity_to_ros_axis_map must be a permutation of [0, 1, 2]")
+        mappings = (
+            (
+                "unity_to_ros_axis_map",
+                self.position_axis_map,
+                self.position_axis_sign,
+            ),
+            (
+                "unity_to_ros_rotation_axis_map",
+                self.rotation_axis_map,
+                self.rotation_axis_sign,
+            ),
+        )
+        for name, axis_map, axis_sign in mappings:
+            if sorted(axis_map) != [0, 1, 2] or len(axis_sign) != 3:
+                raise ValueError(f"{name} must be a permutation of [0, 1, 2]")
 
     def _try_start_servo(self):
         for arm in self.arms:
@@ -452,17 +479,30 @@ class VrPoseToServo(Node):
             current.pose.position.y - previous.pose.position.y,
             current.pose.position.z - previous.pose.position.z,
         )
-        return self._map_unity_vector_to_ros(delta)
+        return self._map_unity_vector_to_ros(
+            delta,
+            self.position_axis_map,
+            self.position_axis_sign,
+        )
 
     def _rotation_delta(self, previous: PoseStamped, current: PoseStamped) -> Vector3:
         prev_q = self._pose_quat(previous)
         curr_q = self._pose_quat(current)
         delta_q = _quat_multiply(curr_q, _quat_inverse(prev_q))
-        return self._map_unity_vector_to_ros(_quat_to_rotvec(delta_q))
+        return self._map_unity_vector_to_ros(
+            _quat_to_rotvec(delta_q),
+            self.rotation_axis_map,
+            self.rotation_axis_sign,
+        )
 
-    def _map_unity_vector_to_ros(self, vector: Vector3) -> Vector3:
+    @staticmethod
+    def _map_unity_vector_to_ros(
+        vector: Vector3,
+        axis_map,
+        axis_sign,
+    ) -> Vector3:
         values = [vector[0], vector[1], vector[2]]
-        return tuple(self.axis_sign[i] * values[self.axis_map[i]] for i in range(3))
+        return tuple(axis_sign[i] * values[axis_map[i]] for i in range(3))
 
     def _pose_quat(self, msg: PoseStamped) -> Quat:
         return (
