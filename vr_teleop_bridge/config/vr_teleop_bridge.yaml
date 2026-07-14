@@ -28,10 +28,8 @@ vr_pose_to_servo_node:
     state_timeout: 0.5
     publish_rate: 50.0
     auto_start_servo: true
-    # Require a stable joint-state stream before Grip may unpause Servo.
+    # Let joint states and Servo's CurrentStateMonitor stabilize before startup.
     servo_startup_settle_time: 1.0
-    # Capture a fresh VR reference after unpausing before motion is admitted.
-    servo_command_settle_time: 1.0
 
     # Operator calibration on 2026-07-14 found that the robot control frame's
     # x/y translation axes are exchanged relative to VR hand motion. Output is

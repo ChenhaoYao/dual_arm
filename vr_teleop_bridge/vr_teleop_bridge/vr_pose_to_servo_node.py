@@ -80,7 +80,7 @@ class ArmState:
     unpause_future: Optional[object] = None
     pause_future: Optional[object] = None
     pause_confirmed: bool = False
-    commands_ready_time: float = 0.0
+    startup_pause_confirmed_time: Optional[float] = None
     last_wait_log_time: float = 0.0
 
 
@@ -102,9 +102,6 @@ class VrPoseToServo(Node):
         self.auto_start_servo = bool(self.get_parameter("auto_start_servo").value)
         self.servo_startup_settle_time = float(
             self.get_parameter("servo_startup_settle_time").value
-        )
-        self.servo_command_settle_time = float(
-            self.get_parameter("servo_command_settle_time").value
         )
         self.position_axis_map = list(
             self.get_parameter("unity_to_ros_axis_map").value
@@ -214,7 +211,6 @@ class VrPoseToServo(Node):
         self.declare_parameter("publish_rate", 50.0)
         self.declare_parameter("auto_start_servo", True)
         self.declare_parameter("servo_startup_settle_time", 1.0)
-        self.declare_parameter("servo_command_settle_time", 1.0)
         # Keep position and rotation mappings independent. A translation-only
         # calibration must not silently change the commanded rotation axes.
         self.declare_parameter("unity_to_ros_axis_map", [0, 1, 2])
@@ -245,11 +241,11 @@ class VrPoseToServo(Node):
 
     def _advance_servo_activation(self, arm: ArmState):
         """
-        Grip-triggered Servo activation sequence:
-        - Keep Servo paused until the corresponding Grip requests control.
+        One-time Servo activation sequence:
+        - Start each enabled Servo independently of the Grip signal.
         - Require a complete, fresh joint state before contacting Servo.
         - Confirm TWIST mode before sending the unpause request.
-        - Admit VR commands only after the unpause service succeeds.
+        - Keep Servo active afterward; Grip only gates motion commands.
         """
         if arm.pause_future is not None:
             if not arm.pause_future.done():
@@ -267,18 +263,19 @@ class VrPoseToServo(Node):
                 )
                 return
             arm.pause_confirmed = True
-            self.get_logger().info(f"{arm.name} Servo paused; waiting for Grip")
+            arm.startup_pause_confirmed_time = time.monotonic()
+            self.get_logger().info(f"{arm.name} Servo startup pause confirmed")
 
         if arm.servo_active:
             if not self._robot_state_ready():
                 self._log_activation_wait(arm, "complete, fresh /joint_states")
-                self._deactivate_arm(arm)
+                self._deactivate_arm(arm, "joint states became stale")
             return
 
         if arm.activation_stage == "idle" and not arm.pause_confirmed:
             client = self._pause_clients[arm.name]
             if not client.service_is_ready():
-                if self._activation_requested(arm):
+                if self._servo_activation_requested(arm):
                     self._log_activation_wait(arm, "MoveIt Servo pause service")
                 return
             request = SetBool.Request()
@@ -286,13 +283,21 @@ class VrPoseToServo(Node):
             arm.pause_future = client.call_async(request)
             return
 
-        if not self._activation_requested(arm):
+        if not self._servo_activation_requested(arm):
             return
 
         if not self._robot_state_ready():
             self._log_activation_wait(arm, "complete, fresh /joint_states")
             if arm.servo_active:
-                self._deactivate_arm(arm)
+                self._deactivate_arm(arm, "joint states became stale")
+            return
+
+        if (
+            arm.startup_pause_confirmed_time is None
+            or time.monotonic() - arm.startup_pause_confirmed_time
+            < self.servo_startup_settle_time
+        ):
+            self._log_activation_wait(arm, "Servo CurrentStateMonitor startup")
             return
 
         command_client = self._command_type_clients[arm.name]
@@ -339,9 +344,10 @@ class VrPoseToServo(Node):
                 return
             arm.servo_active = True
             arm.activation_stage = "active"
-            arm.commands_ready_time = time.monotonic() + self.servo_command_settle_time
             self._reset_arm(arm)
-            self.get_logger().info(f"{arm.name} Servo activated by Grip")
+            self.get_logger().info(
+                f"{arm.name} Servo active; Grip now gates motion commands"
+            )
 
     def _activation_failed(self, arm: ArmState, reason: str):
         self.get_logger().warn(f"{arm.name} Servo activation failed: {reason}")
@@ -353,7 +359,7 @@ class VrPoseToServo(Node):
         now = time.monotonic()
         if now - arm.last_wait_log_time >= 5.0:
             arm.last_wait_log_time = now
-            self.get_logger().info(f"{arm.name} Grip waiting for {resource}")
+            self.get_logger().info(f"{arm.name} Servo waiting for {resource}")
 
     def _on_joint_state(self, msg: JointState):
         if not self.required_joint_names.issubset(msg.name):
@@ -380,39 +386,45 @@ class VrPoseToServo(Node):
         arm.enabled_signal = bool(msg.data)
         if arm.enabled_signal and not was_enabled:
             self._reset_arm(arm)
-            self.get_logger().info(f"{arm.name} Grip pressed; requesting Servo activation")
+            self.get_logger().info(f"{arm.name} Grip pressed; motion enabled")
         elif was_enabled and not arm.enabled_signal:
-            self._deactivate_arm(arm)
+            self._stop_arm_motion(arm)
+            self.get_logger().info(f"{arm.name} Grip released; motion stopped")
 
     def _on_status(self, msg: String):
         text = msg.data.lower()
         if "disable" in text or "stop" in text:
             for arm in self.arms:
                 arm.enabled_signal = False
-                self._deactivate_arm(arm)
+                self._stop_arm_motion(arm)
 
-    def _activation_requested(self, arm: ArmState) -> bool:
+    @staticmethod
+    def _servo_activation_requested(arm: ArmState) -> bool:
+        return arm.enabled_param
+
+    def _motion_requested(self, arm: ArmState) -> bool:
         if self.require_enable_signal:
             return arm.enabled_param and arm.enabled_signal
         return arm.enabled_param
 
     def _arm_enabled(self, arm: ArmState) -> bool:
-        if not arm.servo_active or time.monotonic() < arm.commands_ready_time:
-            return False
-        return self._activation_requested(arm)
+        return arm.servo_active and self._motion_requested(arm)
 
-    def _deactivate_arm(self, arm: ArmState):
-        was_engaged = arm.servo_active or arm.activation_stage != "idle"
+    def _stop_arm_motion(self, arm: ArmState):
         self._reset_arm(arm)
         self._publisher_for(arm).publish(arm.latest_twist)
         arm.published_zero = True
+
+    def _deactivate_arm(self, arm: ArmState, reason: str):
+        was_engaged = arm.servo_active or arm.activation_stage != "idle"
+        self._stop_arm_motion(arm)
         arm.servo_active = not self.auto_start_servo
         arm.activation_stage = "idle"
         arm.command_future = None
         arm.unpause_future = None
         arm.pause_future = None
         arm.pause_confirmed = not self.auto_start_servo
-        arm.commands_ready_time = 0.0
+        arm.startup_pause_confirmed_time = None
 
         if self.auto_start_servo:
             client = self._pause_clients[arm.name]
@@ -421,7 +433,7 @@ class VrPoseToServo(Node):
                 request.data = True
                 arm.pause_future = client.call_async(request)
         if was_engaged:
-            self.get_logger().info(f"{arm.name} Servo paused after Grip release")
+            self.get_logger().warn(f"{arm.name} Servo paused: {reason}")
 
     def _publisher_for(self, arm: ArmState):
         return self.pub_left if arm is self.left else self.pub_right

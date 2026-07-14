@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import rclpy
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
+from moveit_msgs.msg import ServoStatus
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.time import Time
@@ -30,6 +31,15 @@ class TrajectoryLogger(Node):
         self.sample_index = 0
 
         self.latest_pose: Dict[str, Optional[PoseStamped]] = {"left": None, "right": None}
+        self.latest_twist: Dict[str, Optional[TwistStamped]] = {"left": None, "right": None}
+        self.latest_servo_status: Dict[str, Optional[ServoStatus]] = {
+            "left": None, "right": None,
+        }
+        self.interval_servo_warning: Dict[str, Optional[ServoStatus]] = {
+            "left": None, "right": None,
+        }
+        self.twist_messages = {"left": 0, "right": 0}
+        self.nonzero_twist_messages = {"left": 0, "right": 0}
         self.enabled = {"left": False, "right": False}
         self.ee_frames = {
             "left": self.get_parameter("left_ee_frame").value,
@@ -43,12 +53,22 @@ class TrajectoryLogger(Node):
             "position_x", "position_y", "position_z",
             "orientation_x", "orientation_y", "orientation_z", "orientation_w",
         ]
+        control_header = [
+            "sample_index", "elapsed_sec", "enabled",
+            "twist_messages", "nonzero_twist_messages",
+            "linear_x", "linear_y", "linear_z",
+            "angular_x", "angular_y", "angular_z",
+            "servo_status_code", "servo_status_message",
+        ]
         for side in ("left", "right"):
             self._open_log(
                 f"vr_{side}_hand_trajectory.csv", f"vr_{side}", trajectory_header
             )
             self._open_log(
                 f"robot_{side}_ee_trajectory.csv", f"robot_{side}", trajectory_header
+            )
+            self._open_log(
+                f"control_{side}.csv", f"control_{side}", control_header
             )
 
         self.create_subscription(
@@ -66,6 +86,22 @@ class TrajectoryLogger(Node):
         self.create_subscription(
             Bool, self.get_parameter("right_enable_topic").value,
             lambda msg: self._on_enable("right", msg), 10,
+        )
+        self.create_subscription(
+            TwistStamped, self.get_parameter("left_twist_topic").value,
+            lambda msg: self._on_twist("left", msg), 10,
+        )
+        self.create_subscription(
+            TwistStamped, self.get_parameter("right_twist_topic").value,
+            lambda msg: self._on_twist("right", msg), 10,
+        )
+        self.create_subscription(
+            ServoStatus, self.get_parameter("left_servo_status_topic").value,
+            lambda msg: self._on_servo_status("left", msg), 10,
+        )
+        self.create_subscription(
+            ServoStatus, self.get_parameter("right_servo_status_topic").value,
+            lambda msg: self._on_servo_status("right", msg), 10,
         )
 
         self.tf_buffer = Buffer()
@@ -96,12 +132,31 @@ class TrajectoryLogger(Node):
         self.declare_parameter("right_pose_topic", "/vr/right_hand/pose")
         self.declare_parameter("left_enable_topic", "/vr/left_hand/enabled")
         self.declare_parameter("right_enable_topic", "/vr/right_hand/enabled")
+        self.declare_parameter("left_twist_topic", "/servo_left/delta_twist_cmds")
+        self.declare_parameter("right_twist_topic", "/servo_right/delta_twist_cmds")
+        self.declare_parameter("left_servo_status_topic", "/servo_left/status")
+        self.declare_parameter("right_servo_status_topic", "/servo_right/status")
 
     def _on_pose(self, side: str, msg: PoseStamped):
         self.latest_pose[side] = msg
 
     def _on_enable(self, side: str, msg: Bool):
         self.enabled[side] = bool(msg.data)
+
+    def _on_twist(self, side: str, msg: TwistStamped):
+        self.latest_twist[side] = msg
+        self.twist_messages[side] += 1
+        components = (
+            msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z,
+            msg.twist.angular.x, msg.twist.angular.y, msg.twist.angular.z,
+        )
+        if any(abs(component) > 1e-9 for component in components):
+            self.nonzero_twist_messages[side] += 1
+
+    def _on_servo_status(self, side: str, msg: ServoStatus):
+        self.latest_servo_status[side] = msg
+        if msg.code != ServoStatus.NO_WARNING:
+            self.interval_servo_warning[side] = msg
 
     def _sample(self):
         sample_time = self.get_clock().now()
@@ -130,6 +185,18 @@ class TrajectoryLogger(Node):
                         f"Waiting for {self.base_frame} -> {self.ee_frames[side]}: {exc}"
                     )
                     self._tf_warning_logged[side] = True
+
+            status = self.interval_servo_warning[side]
+            if status is None:
+                status = self.latest_servo_status[side]
+            self.writers[f"control_{side}"].writerow(self._control_row(
+                self.sample_index, elapsed_sec, self.enabled[side],
+                self.twist_messages[side], self.nonzero_twist_messages[side],
+                self.latest_twist[side], status,
+            ))
+            self.twist_messages[side] = 0
+            self.nonzero_twist_messages[side] = 0
+            self.interval_servo_warning[side] = None
 
         for file_handle in self.files.values():
             file_handle.flush()
@@ -161,6 +228,32 @@ class TrajectoryLogger(Node):
             round(rotation.y, 4),
             round(rotation.z, 4),
             round(rotation.w, 4),
+        ]
+
+    @staticmethod
+    def _control_row(
+        sample_index, elapsed_sec, enabled, twist_messages,
+        nonzero_twist_messages, twist_msg, servo_status,
+    ):
+        if twist_msg is None:
+            twist_values = [""] * 6
+        else:
+            twist_values = [
+                round(twist_msg.twist.linear.x, 4),
+                round(twist_msg.twist.linear.y, 4),
+                round(twist_msg.twist.linear.z, 4),
+                round(twist_msg.twist.angular.x, 4),
+                round(twist_msg.twist.angular.y, 4),
+                round(twist_msg.twist.angular.z, 4),
+            ]
+        if servo_status is None:
+            status_values = ["", ""]
+        else:
+            status_values = [servo_status.code, servo_status.message]
+        return [
+            sample_index, elapsed_sec, int(enabled),
+            twist_messages, nonzero_twist_messages,
+            *twist_values, *status_values,
         ]
 
     def destroy_node(self):

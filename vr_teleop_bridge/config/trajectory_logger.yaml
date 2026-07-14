@@ -9,3 +9,7 @@ vr_servo_trajectory_logger:
     right_pose_topic: /vr/right_hand/pose
     left_enable_topic: /vr/left_hand/enabled
     right_enable_topic: /vr/right_hand/enabled
+    left_twist_topic: /servo_left/delta_twist_cmds
+    right_twist_topic: /servo_right/delta_twist_cmds
+    left_servo_status_topic: /servo_left/status
+    right_servo_status_topic: /servo_right/status
