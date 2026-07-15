@@ -107,28 +107,35 @@ vr_teleop_bridge/config/vr_teleop_bridge.yaml
 Important tuning values:
 
 ```yaml
-linear_scale: 0.5
+linear_scale: 1.0
 angular_scale: 1.0
-max_linear_speed: 0.15
+max_linear_speed: 0.3
 max_angular_speed: 0.5
-deadband_position: 0.005
-deadband_rotation: 0.02
+velocity_window: 0.10
+linear_velocity_start: 0.02
+linear_velocity_stop: 0.01
+angular_velocity_start: 0.05
+angular_velocity_stop: 0.025
 command_timeout: 0.2
 ```
 
-`VRHandPublisher` uses `ROSGeometry.To<FLU>()` before publishing. Runtime
-calibration against the robot control frame found that its x/y translation
-axes still need to be exchanged:
+`VRHandPublisher` uses `ROSGeometry.To<FLU>()` before publishing, so the VR
+message axes are forward, left, and up. The robot's physical forward, left,
+and up directions are `base_link` -y, +x, and +z. The bridge therefore applies
+the same proper -90 degree yaw transform to linear and angular vectors:
 
 ```text
 robot translation x = message y
-robot translation y = message x
+robot translation y = -message x
 robot translation z = message z
+
+robot rotation x = message rotation y
+robot rotation y = -message rotation x
+robot rotation z = message rotation z
 ```
 
-Translation and rotation mappings are configured independently. Rotation
-currently keeps the published x/y/z axes unchanged; use a dedicated
-single-axis recording before changing the rotation mapping.
+Translation and rotation mappings remain independently configurable, but their
+normal values represent the same rigid coordinate transform.
 
 The Unity client publishes `std_msgs/msg/Bool` deadman signals to:
 
@@ -138,7 +145,8 @@ The Unity client publishes `std_msgs/msg/Bool` deadman signals to:
 ```
 
 The bridge defaults to `require_enable_signal: true`. Hold the corresponding
-controller grip button to control that arm; releasing it immediately resets the
-command and pauses that Servo instance. Pressing Grip activates only the
-corresponding arm after all 14 joint states have remained complete and fresh;
-the first accepted controller pose becomes the new reference before motion.
+controller grip button to control that arm. Releasing it immediately publishes
+a zero command and resets the pose history, but Servo remains active. Servo is
+activated once after all 14 joint states and its services are ready; a new Grip
+press uses the first accepted pose as a fresh clutch reference without another
+startup delay. Stale joint state remains a safety fault and pauses Servo.

@@ -21,8 +21,13 @@ vr_pose_to_servo_node:
     angular_scale: 1.0
     max_linear_speed: 0.3
     max_angular_speed: 0.5
-    deadband_position: 0.005
-    deadband_rotation: 0.02
+    # Estimate controller velocity from 100 ms of pose history. Separate start
+    # and stop thresholds suppress stationary jitter without blocking slow motion.
+    velocity_window: 0.10
+    linear_velocity_start: 0.02
+    linear_velocity_stop: 0.01
+    angular_velocity_start: 0.05
+    angular_velocity_stop: 0.025
     command_timeout: 0.2
     # Grip activation is allowed only while all 14 joint states remain fresh.
     state_timeout: 0.5
@@ -31,14 +36,11 @@ vr_pose_to_servo_node:
     # Let joint states and Servo's CurrentStateMonitor stabilize before startup.
     servo_startup_settle_time: 1.0
 
-    # Operator calibration on 2026-07-14 found that the robot control frame's
-    # x/y translation axes are exchanged relative to VR hand motion. Output is
-    # [VR y, VR x, VR z].
+    # VR uses FLU: +x forward, +y left, +z up. In base_link, robot forward is
+    # -y and robot left is +x, so both linear and angular vectors use the same
+    # proper -90 degree yaw transform: [VR y, -VR x, VR z].
     unity_to_ros_axis_map: [1, 0, 2]
-    unity_to_ros_axis_sign: [1.0, 1.0, 1.0]
+    unity_to_ros_axis_sign: [1.0, -1.0, 1.0]
 
-    # Rotation is calibrated separately so translation corrections cannot
-    # silently alter angular commands. The current log supports identity for
-    # x/y rotation; z needs a dedicated single-axis recording to confirm.
-    unity_to_ros_rotation_axis_map: [0, 1, 2]
-    unity_to_ros_rotation_axis_sign: [1.0, 1.0, 1.0]
+    unity_to_ros_rotation_axis_map: [1, 0, 2]
+    unity_to_ros_rotation_axis_sign: [1.0, -1.0, 1.0]

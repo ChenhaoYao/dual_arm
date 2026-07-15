@@ -3,8 +3,9 @@
 
 import math
 import time
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
+from typing import Deque, Optional, Tuple
 
 import rclpy
 from geometry_msgs.msg import PoseStamped, TwistStamped
@@ -69,8 +70,9 @@ class ArmState:
     name: str
     enabled_param: bool
     enabled_signal: bool = False
-    last_pose: Optional[PoseStamped] = None
-    last_pose_time: Optional[float] = None
+    pose_history: Deque[Tuple[float, PoseStamped]] = field(default_factory=deque)
+    linear_motion_active: bool = False
+    angular_motion_active: bool = False
     latest_twist: TwistStamped = field(default_factory=TwistStamped)
     latest_pose_receive_time: Optional[float] = None
     published_zero: bool = True
@@ -94,8 +96,19 @@ class VrPoseToServo(Node):
         self.angular_scale = float(self.get_parameter("angular_scale").value)
         self.max_linear_speed = float(self.get_parameter("max_linear_speed").value)
         self.max_angular_speed = float(self.get_parameter("max_angular_speed").value)
-        self.deadband_position = float(self.get_parameter("deadband_position").value)
-        self.deadband_rotation = float(self.get_parameter("deadband_rotation").value)
+        self.velocity_window = float(self.get_parameter("velocity_window").value)
+        self.linear_velocity_start = float(
+            self.get_parameter("linear_velocity_start").value
+        )
+        self.linear_velocity_stop = float(
+            self.get_parameter("linear_velocity_stop").value
+        )
+        self.angular_velocity_start = float(
+            self.get_parameter("angular_velocity_start").value
+        )
+        self.angular_velocity_stop = float(
+            self.get_parameter("angular_velocity_stop").value
+        )
         self.command_timeout = float(self.get_parameter("command_timeout").value)
         self.state_timeout = float(self.get_parameter("state_timeout").value)
         self.require_enable_signal = bool(self.get_parameter("require_enable_signal").value)
@@ -119,6 +132,7 @@ class VrPoseToServo(Node):
         ]
 
         self._validate_axis_mapping()
+        self._validate_velocity_filter()
 
         self.left = ArmState("left", bool(self.get_parameter("left_enabled").value))
         self.right = ArmState("right", bool(self.get_parameter("right_enabled").value))
@@ -204,19 +218,25 @@ class VrPoseToServo(Node):
         self.declare_parameter("angular_scale", 1.0)
         self.declare_parameter("max_linear_speed", 0.15)
         self.declare_parameter("max_angular_speed", 0.5)
-        self.declare_parameter("deadband_position", 0.005)
-        self.declare_parameter("deadband_rotation", 0.02)
+        self.declare_parameter("velocity_window", 0.1)
+        self.declare_parameter("linear_velocity_start", 0.02)
+        self.declare_parameter("linear_velocity_stop", 0.01)
+        self.declare_parameter("angular_velocity_start", 0.05)
+        self.declare_parameter("angular_velocity_stop", 0.025)
         self.declare_parameter("command_timeout", 0.2)
         self.declare_parameter("state_timeout", 0.5)
         self.declare_parameter("publish_rate", 50.0)
         self.declare_parameter("auto_start_servo", True)
         self.declare_parameter("servo_startup_settle_time", 1.0)
-        # Keep position and rotation mappings independent. A translation-only
-        # calibration must not silently change the commanded rotation axes.
-        self.declare_parameter("unity_to_ros_axis_map", [0, 1, 2])
-        self.declare_parameter("unity_to_ros_axis_sign", [1.0, 1.0, 1.0])
-        self.declare_parameter("unity_to_ros_rotation_axis_map", [0, 1, 2])
-        self.declare_parameter("unity_to_ros_rotation_axis_sign", [1.0, 1.0, 1.0])
+        # VR FLU is [forward, left, up], while base_link is
+        # [left, backward, up]. Apply the same proper rotation to linear and
+        # angular vectors, while retaining separate parameters for calibration.
+        self.declare_parameter("unity_to_ros_axis_map", [1, 0, 2])
+        self.declare_parameter("unity_to_ros_axis_sign", [1.0, -1.0, 1.0])
+        self.declare_parameter("unity_to_ros_rotation_axis_map", [1, 0, 2])
+        self.declare_parameter(
+            "unity_to_ros_rotation_axis_sign", [1.0, -1.0, 1.0]
+        )
 
     def _validate_axis_mapping(self):
         mappings = (
@@ -234,6 +254,29 @@ class VrPoseToServo(Node):
         for name, axis_map, axis_sign in mappings:
             if sorted(axis_map) != [0, 1, 2] or len(axis_sign) != 3:
                 raise ValueError(f"{name} must be a permutation of [0, 1, 2]")
+
+    def _validate_velocity_filter(self):
+        if self.velocity_window <= 0.0:
+            raise ValueError("velocity_window must be greater than zero")
+        if self.velocity_window >= self.command_timeout:
+            raise ValueError("velocity_window must be shorter than command_timeout")
+        thresholds = (
+            (
+                "linear",
+                self.linear_velocity_start,
+                self.linear_velocity_stop,
+            ),
+            (
+                "angular",
+                self.angular_velocity_start,
+                self.angular_velocity_stop,
+            ),
+        )
+        for name, start, stop in thresholds:
+            if stop < 0.0 or start <= stop:
+                raise ValueError(
+                    f"{name}_velocity thresholds must satisfy 0 <= stop < start"
+                )
 
     def _try_start_servo(self):
         for arm in self.arms:
@@ -449,41 +492,83 @@ class VrPoseToServo(Node):
         msg_time = self._stamp_to_seconds(msg)
         sample_time = msg_time if msg_time > 0.0 else now
 
-        if arm.last_pose is None or arm.last_pose_time is None:
-            arm.last_pose = msg
-            arm.last_pose_time = sample_time
+        if arm.pose_history:
+            dt = sample_time - arm.pose_history[-1][0]
+            if dt <= 1e-4 or dt > self.command_timeout:
+                self._reset_arm(arm)
+
+        arm.pose_history.append((sample_time, msg))
+        oldest_sample_time = arm.pose_history[0][0]
+        if sample_time - oldest_sample_time + 1e-6 < self.velocity_window:
             arm.latest_twist = self._zero_twist()
             return
 
-        dt = sample_time - arm.last_pose_time
-        if dt <= 1e-4 or dt > self.command_timeout:
-            arm.last_pose = msg
-            arm.last_pose_time = sample_time
-            arm.latest_twist = self._zero_twist()
-            return
+        cutoff_time = sample_time - self.velocity_window
+        while (
+            len(arm.pose_history) >= 2
+            and arm.pose_history[1][0] <= cutoff_time
+        ):
+            arm.pose_history.popleft()
+
+        window_start_time, window_start_pose = arm.pose_history[0]
+        window_dt = sample_time - window_start_time
 
         """
-        Why relative controller motion is converted to Cartesian velocity:
+        Why controller motion is estimated over a time window:
         - The VR and robot coordinate origins are unrelated.
         - An absolute VR pose could cause a jump toward an unreachable target.
         - Pose differences make Grip act as a clutch for relative motion only.
-        - Deadbands and speed limits can be applied before commands reach Servo.
+        - A multi-frame difference averages pose jitter better than adjacent frames.
+        - Time normalization makes thresholds independent of the VR publish rate.
+        - Start/stop hysteresis prevents noise near one threshold from chattering.
         """
-        delta_position = self._position_delta(arm.last_pose, msg)
-        delta_rotation = self._rotation_delta(arm.last_pose, msg)
+        delta_position = self._position_delta(window_start_pose, msg)
+        delta_rotation = self._rotation_delta(window_start_pose, msg)
+        estimated_linear = tuple(
+            component / window_dt for component in delta_position
+        )
+        estimated_angular = tuple(
+            component / window_dt for component in delta_rotation
+        )
+
+        arm.linear_motion_active = self._update_hysteresis(
+            arm.linear_motion_active,
+            _norm(estimated_linear),
+            self.linear_velocity_start,
+            self.linear_velocity_stop,
+        )
+        arm.angular_motion_active = self._update_hysteresis(
+            arm.angular_motion_active,
+            _norm(estimated_angular),
+            self.angular_velocity_start,
+            self.angular_velocity_stop,
+        )
 
         linear = (0.0, 0.0, 0.0)
-        if _norm(delta_position) >= self.deadband_position:
-            linear = tuple(component * self.linear_scale / dt for component in delta_position)
+        if arm.linear_motion_active:
+            linear = tuple(
+                component * self.linear_scale for component in estimated_linear
+            )
 
         angular = (0.0, 0.0, 0.0)
-        if _norm(delta_rotation) >= self.deadband_rotation:
-            angular = tuple(component * self.angular_scale / dt for component in delta_rotation)
+        if arm.angular_motion_active:
+            angular = tuple(
+                component * self.angular_scale for component in estimated_angular
+            )
 
         arm.latest_twist = self._make_twist(linear, angular)
-        arm.last_pose = msg
-        arm.last_pose_time = sample_time
         arm.published_zero = False
+
+    @staticmethod
+    def _update_hysteresis(
+        active: bool,
+        speed: float,
+        start_threshold: float,
+        stop_threshold: float,
+    ) -> bool:
+        if active:
+            return speed > stop_threshold
+        return speed >= start_threshold
 
     def _position_delta(self, previous: PoseStamped, current: PoseStamped) -> Vector3:
         delta = (
@@ -540,8 +625,9 @@ class VrPoseToServo(Node):
         return self._make_twist((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
 
     def _reset_arm(self, arm: ArmState):
-        arm.last_pose = None
-        arm.last_pose_time = None
+        arm.pose_history.clear()
+        arm.linear_motion_active = False
+        arm.angular_motion_active = False
         arm.latest_twist = self._zero_twist()
 
     def _publish_commands(self):
@@ -555,9 +641,7 @@ class VrPoseToServo(Node):
             or now - arm.latest_pose_receive_time > self.command_timeout
         )
         if stale or not self._arm_enabled(arm):
-            arm.latest_twist = self._zero_twist()
-            arm.last_pose = None
-            arm.last_pose_time = None
+            self._reset_arm(arm)
             if arm.published_zero:
                 return
             arm.published_zero = True
