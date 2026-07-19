@@ -1,0 +1,60 @@
+zmq_bridge_node:
+  ros__parameters:
+    # ZMQ 服务端监听地址。"*" 表示接受本机和局域网连接；主机防火墙仍应只放行可信网段。
+    bind_address: "*"
+
+    # “action”在这里有两个不同含义：
+    # - demo_action/5557：桥向 LeRobot 发布的 JTC reference，是训练数据标签；
+    # - policy_action/5558：训练好的模型反向发给桥的控制命令。
+    # 下方 allow_action_commands 只管 5558，不影响 5555/5556/5557 数据输出。
+    joint_state_port: 5556
+    demo_action_port: 5557
+    policy_action_port: 5558
+
+    joint_state_topic: /joint_states
+    left_controller_state_topic: /left_arm_controller/controller_state
+    right_controller_state_topic: /right_arm_controller/controller_state
+    left_vr_enable_topic: /vr/left_hand/enabled
+    right_vr_enable_topic: /vr/right_hand/enabled
+    left_trajectory_topic: /left_arm_controller/joint_trajectory
+    right_trajectory_topic: /right_arm_controller/joint_trajectory
+
+    # LeRobot 记录循环通常为 30 Hz。两侧 JTC reference 都新鲜时才发布完整 14 轴 action。
+    demo_action_publish_rate: 30.0
+    state_timeout: 0.25
+
+    # 安全默认值：继续发布关节观测、示教 action 和相机，只禁止 5558 策略命令进入 JTC。
+    # true 只是“允许之后解锁”，节点启动时策略输入门仍关闭；策略推理前还要手动调用
+    # /zmq_bridge_node/enable_actions。该服务不等于、也不会打开 /soem_bridge_node/enable；
+    # 后者是现有的下游 EtherCAT 电机命令门。
+    allow_action_commands: false
+
+    # 迁移期兼容 LeRobot 旧半成品（没有 protocol_version/message_type）。
+    # LeRobot 侧完成 v1 后应改成 false。
+    accept_legacy_actions: true
+    action_watchdog_timeout: 0.30
+    action_max_age: 0.50
+    action_future_tolerance: 1.0
+    max_joint_delta: 0.10
+    joint_position_limit: 3.14
+    trajectory_time_from_start: 0.10
+
+    camera_width: 640
+    camera_height: 480
+    camera_fps: 30.0
+    jpeg_quality: 80
+
+    # 优先把 device 改成 /dev/v4l/by-id/...，避免 videoX 在重启后改变。
+    cameras:
+      head_camera:
+        enabled: true
+        device: /dev/video0
+        port: 5555
+      left_wrist_camera:
+        enabled: true
+        device: /dev/video2
+        port: 5559
+      right_wrist_camera:
+        enabled: true
+        device: /dev/video4
+        port: 5560

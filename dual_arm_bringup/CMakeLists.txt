@@ -13,6 +13,7 @@ install(DIRECTORY config
 
 install(PROGRAMS
   scripts/move_to_ready.py
+  scripts/zmq_bridge_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -2,6 +2,12 @@
 
 ROS 2 工作空间：双臂移动机器人（两个 7 自由度机械臂 + 轮式底盘）
 
+面向新同学的系统架构、源码导读、分级实验、安全要求和故障排查见
+[`docs/project_manual.md`](docs/project_manual.md)。
+
+LeRobot 数据采集、ZMQ 协议和分级联调见
+[`docs/lerobot_integration.md`](docs/lerobot_integration.md)。
+
 ## 快速开始
 
 ```bash

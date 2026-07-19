@@ -220,6 +220,50 @@ sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 topic echo /
 
 真机 VR 模式下 `enable_vr_teleop:=true` 会强制关闭 RViz Servo marker，即使同时传入 `enable_rviz_servo_marker:=true`。
 
+#### 启动 LeRobot ZMQ 数据桥
+
+需要把 VR 示教过程传给 `/home/dell/lerobot` 时，在上述 SOEM、Servo、TCP
+Endpoint 和 VR bridge 都正常后，再开一个独立终端启动数据桥：
+
+```bash
+# 终端 4：只增加 LeRobot 数据传输，不重复启动 real.launch.py。
+sudo bash -c "source /home/dell/dual_arm/install/setup.bash && ros2 launch dual_arm_bringup lerobot_bridge.launch.py"
+```
+
+启动前先在 `dual_arm_bringup/config/lerobot_bridge.yaml` 中核对三路相机的
+`device`。正式使用时优先填写 `/dev/v4l/by-id/...`，避免重启后
+`/dev/video0`、`/dev/video2`、`/dev/video4` 对应关系改变。
+
+默认配置为 `allow_action_commands: false`，因此该节点只向 LeRobot 发送：
+
+- `/joint_states` 的 14 轴实际状态；
+- 左右 JTC reference 组成的 14 轴示教 action；
+- 头部、左腕和右腕三路相机图像。
+
+这里有两种容易混淆的 `action`：5557 的“示教 action”是桥向 LeRobot 发送的
+训练标签，始终可以记录；5558 的“策略 action”是训练后的模型反向发给 JTC 的
+控制命令。`allow_action_commands` 和 `/zmq_bridge_node/enable_actions` 只控制
+5558，不会关闭上述三类采集数据。
+
+两个 `enable` 服务也处在不同位置：
+
+| 服务 | 控制的数据段 | 采集 VR 数据时是否调用 |
+|---|---|---|
+| `/zmq_bridge_node/enable_actions` | LeRobot 策略 action（5558）→ 左右 JTC | 不调用 |
+| `/soem_bridge_node/enable` | JTC 输出 → EtherCAT 电机 | 按现有真机流程使用 |
+
+前者不会打开、关闭或替代后者。即使 LeRobot 策略输入门关闭，原来的
+VR → Servo → JTC → SOEM 控制链仍按现有 SOEM 门状态工作。
+
+VR 数据采集期间不要调用 `/zmq_bridge_node/enable_actions`，机械臂仍只由原来的
+VR → Servo 控制路径驱动。只有经过 mock 策略推理验证、准备执行策略 action 时，
+才按照 `docs/lerobot_integration.md` 的分级流程修改配置并手动打开策略 action
+输入门。
+
+`lerobot_bridge.launch.py` 只能启动一次；重复启动会因为 ZMQ 端口
+`5555`–`5560` 已占用而失败。停止 VR 实物栈后，也应在终端 4 用 `Ctrl+C` 停止
+数据桥。
+
 ### 只启动 Unity ROS TCP Endpoint
 
 ```bash
