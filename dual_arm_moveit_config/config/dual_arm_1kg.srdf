@@ -22,9 +22,13 @@
   <end_effector name="left_ee" parent_link="laxis7_link" group="left_arm"/>
   <end_effector name="right_ee" parent_link="raxis7_link" group="right_arm"/>
 
-  <!-- Named poses 预定义姿态 -->
-  <!-- TODO 把真实机器人的位姿映射到仿真中
-  启动时自动校准 -->
+  <!--
+    Named poses 预定义姿态：group_state 是供 MoveIt 主动选择和执行的命名目标，
+    不是机器人启动时自动采用的初始关节状态。
+    home 保留为全零姿态；ready 应与 dual_arm_bringup/config/ready_pose.yaml 以及
+    URDF/xacro 中供 mock hardware 使用的 initial_value 保持一致。
+  -->
+  <!-- 实物启动运动由 move_to_ready_node 执行，SRDF 本身不会自动校准或发送命令。 -->
   <group_state name="home" group="left_arm">
     <joint name="laxis1_joint" value="0"/>
     <joint name="laxis2_joint" value="0"/>
@@ -40,6 +44,44 @@
     <joint name="raxis2_joint" value="0"/>
     <joint name="raxis3_joint" value="0"/>
     <joint name="raxis4_joint" value="0"/>
+    <joint name="raxis5_joint" value="0"/>
+    <joint name="raxis6_joint" value="0"/>
+    <joint name="raxis7_joint" value="0"/>
+  </group_state>
+
+  <!-- 镜像预备位：避开双臂全零时的运动学奇异点。 -->
+  <group_state name="ready" group="left_arm">
+    <joint name="laxis1_joint" value="0.3"/>
+    <joint name="laxis2_joint" value="0"/>
+    <joint name="laxis3_joint" value="1.2"/>
+    <joint name="laxis4_joint" value="1.2"/>
+    <joint name="laxis5_joint" value="0"/>
+    <joint name="laxis6_joint" value="0"/>
+    <joint name="laxis7_joint" value="0"/>
+  </group_state>
+
+  <group_state name="ready" group="right_arm">
+    <joint name="raxis1_joint" value="-0.3"/>
+    <joint name="raxis2_joint" value="0"/>
+    <joint name="raxis3_joint" value="-1.2"/>
+    <joint name="raxis4_joint" value="-1.2"/>
+    <joint name="raxis5_joint" value="0"/>
+    <joint name="raxis6_joint" value="0"/>
+    <joint name="raxis7_joint" value="0"/>
+  </group_state>
+
+  <group_state name="ready" group="dual_arm">
+    <joint name="laxis1_joint" value="0.3"/>
+    <joint name="laxis2_joint" value="0"/>
+    <joint name="laxis3_joint" value="1.2"/>
+    <joint name="laxis4_joint" value="1.2"/>
+    <joint name="laxis5_joint" value="0"/>
+    <joint name="laxis6_joint" value="0"/>
+    <joint name="laxis7_joint" value="0"/>
+    <joint name="raxis1_joint" value="-0.3"/>
+    <joint name="raxis2_joint" value="0"/>
+    <joint name="raxis3_joint" value="-1.2"/>
+    <joint name="raxis4_joint" value="-1.2"/>
     <joint name="raxis5_joint" value="0"/>
     <joint name="raxis6_joint" value="0"/>
     <joint name="raxis7_joint" value="0"/>

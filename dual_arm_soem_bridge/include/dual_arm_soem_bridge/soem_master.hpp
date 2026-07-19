@@ -41,6 +41,7 @@ struct AxisRuntime
   AxisConfig cfg;
   std::atomic<int32_t> target_vel_counts{0};   // 最新速度命令(由 submit_waypoints 写入)
   std::atomic<bool> has_target{false};          // 是否已收到过有效目标
+  std::atomic<int64_t> last_command_time_ns{0}; // 最近一次目标更新时间(steady clock)
   // 以下仅在 RT 线程内访问，无需原子。
   bool enabled_logged{false};
   bool op_enabled{false};       // 是否已进入 Operation enabled
@@ -85,6 +86,12 @@ public:
   // 接收 ROS 侧 waypoint，转 counts/s 后更新每轴 pending target。
   bool submit_waypoints(const std::vector<CsvWaypoint> & waypoints);
   bool enabled() const;
+  // 软件命令门：关闭时 RT 周期强制输出零速度并清除全部旧目标。
+  void set_command_enabled(bool enabled);
+  bool command_enabled() const;
+  bool watchdog_tripped() const;
+  // 设置命令更新超时；超时后锁定停止，必须重新 set_command_enabled(true)。
+  void set_command_timeout_ms(int timeout_ms);
   // 读取各轴真实反馈(rad)，供 ROS 发布。
   std::vector<AxisFeedback> feedback() const;
   // 设置逐个使能间隔时间(ms)。
@@ -104,6 +111,8 @@ private:
   void ecat_teardown();   // 降级到 SAFE-OP/INIT
   void rt_loop();         // RT 线程
   void axis_step(AxisRuntime & ax, int axis_idx);  // 单轴 CSV 状态机
+  void clear_targets();
+  void trip_command_watchdog(const AxisRuntime & ax, int64_t age_ns);
 
   std::string ifname_;
   std::vector<AxisConfig> axis_configs_;
@@ -112,6 +121,10 @@ private:
   std::atomic<bool> dorun_{false};        // RT 线程是否进行 PDO 交换
   std::atomic<bool> mapping_done_{false};
   std::atomic<bool> rt_should_exit_{false};
+  std::atomic<bool> command_enabled_{false};
+  std::atomic<bool> watchdog_tripped_{false};
+  // 默认 300ms：容忍非实时 ROS 命令流的短暂抖动，同时保留断流停车能力。
+  std::atomic<int64_t> command_timeout_ns_{300000000};
 
   std::vector<std::unique_ptr<AxisRuntime>> axes_;
   std::thread rt_thread_;

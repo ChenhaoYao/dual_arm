@@ -32,6 +32,10 @@ soem_bridge_node:
     # ---- 速度限制 ----
     # 正反转都限制，单位 rad/s
     max_velocity: 0.2
+    # JTC/controller_state 超过该时间未刷新时，RT 线程将所有轴速度清零并锁定。
+    # 300ms 可容忍 ROS 2/DDS 的短时调度抖动；它只监控命令流，不读取编码器
+    # error_code，触发后仍需重新调用 enable(true)，不会自动恢复运动。
+    command_watchdog_timeout_ms: 300
 
     # ---- 逐个使能 ----
     # 前一个轴使能后，等待多久再使能下一个轴（单位 ms）

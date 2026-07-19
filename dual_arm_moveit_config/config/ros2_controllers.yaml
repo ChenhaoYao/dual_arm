@@ -29,6 +29,7 @@ left_arm_controller:
     state_publish_rate: 100.0
     action_monitor_rate: 20.0
     allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: true
     constraints:
       stopped_velocity_tolerance: 0.01
       goal_time: 0.0
@@ -59,6 +60,7 @@ right_arm_controller:
     state_publish_rate: 100.0
     action_monitor_rate: 20.0
     allow_partial_joints_goal: false
+    allow_nonzero_velocity_at_trajectory_end: true
     constraints:
       stopped_velocity_tolerance: 0.01
       goal_time: 0.0

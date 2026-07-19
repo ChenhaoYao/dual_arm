@@ -1,0 +1,41 @@
+move_to_ready_node:
+  ros__parameters:
+    # 本文件是实物自动预备位节点实际执行的参数来源。
+    # 修改 ready 数值时，还要同步更新 SRDF 的 ready 命名姿态和 xacro 的 mock initial_value。
+    left_joint_names:
+      - laxis1_joint
+      - laxis2_joint
+      - laxis3_joint
+      - laxis4_joint
+      - laxis5_joint
+      - laxis6_joint
+      - laxis7_joint
+    right_joint_names:
+      - raxis1_joint
+      - raxis2_joint
+      - raxis3_joint
+      - raxis4_joint
+      - raxis5_joint
+      - raxis6_joint
+      - raxis7_joint
+
+    # 左右镜像预备位。基于当前 URDF 的 Jacobian 条件数约为 22，明显远离全零奇异位形。
+    left_ready_positions: [0.3, 0.0, 1.2, 1.2, 0.0, 0.0, 0.0]
+    right_ready_positions: [-0.3, 0.0, -1.2, -1.2, 0.0, 0.0, 0.0]
+
+    # 左右臂同时执行；1.2 rad 的最大行程用 12 秒完成，总运动时间约 12 秒。
+    trajectory_duration_sec: 12.0
+    action_timeout_margin_sec: 10.0
+
+    # 只允许从全零位、ready 位或两臂分别处于这两种已知状态启动。
+    allow_unknown_start: false
+    zero_tolerance_rad: 0.15
+    ready_tolerance_rad: 0.08
+    absolute_position_limit_rad: 3.2
+
+    # 需要连续完整的 14 轴反馈，并要求控制器和 SOEM 服务在超时内就绪。
+    required_stable_samples: 10
+    joint_state_timeout_sec: 0.5
+    startup_timeout_sec: 60.0
+    final_settle_timeout_sec: 5.0
+    manage_command_gate: true

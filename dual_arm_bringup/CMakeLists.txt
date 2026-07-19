@@ -7,4 +7,14 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(PROGRAMS
+  scripts/move_to_ready.py
+  scripts/zmq_bridge_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

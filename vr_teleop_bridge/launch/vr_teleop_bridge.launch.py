@@ -11,6 +11,7 @@ endpoint.
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 
@@ -27,6 +28,20 @@ def generate_launch_description():
         ]),
         description="VR teleop bridge parameter file",
     )
+    enable_logger_arg = DeclareLaunchArgument(
+        "enable_trajectory_logger",
+        default_value="true",
+        description="Record low-rate VR and robot end-effector trajectory CSV files",
+    )
+    logger_params_arg = DeclareLaunchArgument(
+        "trajectory_logger_params_file",
+        default_value=PathJoinSubstitution([
+            vr_teleop_bridge_pkg,
+            "config",
+            "trajectory_logger.yaml",
+        ]),
+        description="Trajectory logger parameter file",
+    )
 
     node = Node(
         package="vr_teleop_bridge",
@@ -35,8 +50,19 @@ def generate_launch_description():
         output="screen",
         parameters=[LaunchConfiguration("params_file")],
     )
+    logger = Node(
+        package="vr_teleop_bridge",
+        executable="trajectory_logger_node.py",
+        name="vr_servo_trajectory_logger",
+        output="screen",
+        parameters=[LaunchConfiguration("trajectory_logger_params_file")],
+        condition=IfCondition(LaunchConfiguration("enable_trajectory_logger")),
+    )
 
     return LaunchDescription([
         params_arg,
+        enable_logger_arg,
+        logger_params_arg,
         node,
+        logger,
     ])

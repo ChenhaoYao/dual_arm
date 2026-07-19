@@ -262,6 +262,224 @@ active_arm: left  # 只订阅左臂
 
 ---
 
+## 实战案例：RViz MoveIt Servo marker 移动后机械臂不动
+
+### 现象
+
+在 `mode:=servo` 下拖动 RViz Interactive Marker，机械臂不动，数秒后 marker
+回到原位。日志反复出现：
+
+```text
+[servo_right]: Waiting to receive robot state update.
+[rviz_servo_marker]: right marker command timed out
+```
+
+marker 回位是 adapter 的超时停止行为，不是 RViz 本身将目标丢失。真正故障
+不止一处，而是 PlanningSceneMonitor、IK 和 JTC 三层问题叠加。
+
+### 排查原则
+
+按数据流逐段检查，不要只看 RViz 是否移动：
+
+```text
+InteractiveMarker feedback
+  -> rviz_servo_marker TwistStamped
+  -> MoveIt Servo JointTrajectory
+  -> JointTrajectoryController command
+  -> mock hardware position
+  -> /joint_states
+  -> robot_state_publisher TF
+  -> RViz
+```
+
+每一段都要用话题、状态码或数值采样证明，不能因为“有话题”就假定内容有效。
+
+### 尝试 1：确认 robot state 数据源
+
+首先检查 `/joint_states` 和控制器：
+
+```bash
+source install/setup.bash
+ros2 topic echo /joint_states --once
+ros2 control list_controllers
+ros2 topic info /joint_states --verbose
+```
+
+结果是 14 个关节都在持续发布，两个 JTC 也处于 `active`。左 Servo 只等待一帧
+后就继续运行，只有右 Servo 永久等待，所以不是 joint state broadcaster 缺失。
+
+MoveIt Servo 启动时会等待 PlanningSceneMonitor 的 `last_update_time` 晚于 Servo
+节点启动时间。最初左右都作为 primary monitor，会竞争全局
+`/get_planning_scene` 服务；将右臂改为 secondary 并订阅左臂 scene 后，又因
+没有收到启动时间之后的 scene update 而继续等待。
+
+最终解决方案：
+
+- 左右 Servo 都使用 `is_primary_planning_scene_monitor: true`。
+- 两者都直接从 `/joint_states` 更新各自的 robot state。
+- 在 launch 中分别重映射服务：
+
+```python
+remappings=[
+    ("/get_planning_scene", "/servo_left/get_planning_scene"),
+]
+```
+
+右臂对应使用 `/servo_right/get_planning_scene`。修复后两个 Servo 都只等待第一帧
+robot state，不再持续打印等待日志。
+
+### 尝试 2：排除 RViz marker 初始化误触发
+
+在无人操作的启动测试中仍然出现 marker command timeout 和奇异点告警。原因是
+RViz 初始化 Interactive Marker 时的 `POSE_UPDATE` 被 adapter 当成了用户命令。
+
+修复为明确的拖拽状态机：
+
+```text
+MOUSE_DOWN  -> 进入 dragging，不驱动机械臂
+POSE_UPDATE -> 仅在 dragging 时记录目标
+MOUSE_UP    -> 开始执行最终目标
+```
+
+同时增加 `/joint_states` 新鲜度检查，只有 14 个关节齐全且数据未超时时才
+创建 marker 和发送命令。目标执行超时从 3 秒改为 10 秒。
+
+### 尝试 3：有 JointTrajectory 不代表有有效输出
+
+注入左右各 1 cm 的 marker feedback，采样结果是每侧都收到约 300 条
+`JointTrajectory`，但 `/joint_states` 完全不变。进一步检查轨迹点后发现：
+
+```text
+max joint velocity = 0.0
+max position step  = 0.0
+```
+
+此时问题在 Servo 安全缩放内部，不在 JTC。PR 将当前机器人的奇异点阈值从
+`200/400` 改成了接近 Panda 示例的 `17/30`。当前机器人 Jacobian 的数值尺度
+不同，这一阈值会将命令缩放为零并反复报告靠近奇异点。
+
+处理：
+
+```yaml
+lower_singularity_threshold: 200.0
+hard_stop_singularity_threshold: 400.0
+```
+
+这是恢复当前项目基线，不代表该数值已经完成真机安全标定。真机前必须采样
+实际工作区间的 Jacobian 条件数，再重新确定减速和急停阈值。
+
+### 尝试 4：Servo 不能直接复用 MoveGroup 的 PickIK 容差
+
+恢复奇异点阈值后，adapter 已经持续发布非零 Twist，消息年龄小于 4 ms，
+`switch_command_type` 也返回 `success=True`，但 Servo status 显示 `No warnings` 且关节
+增量仍然为零。
+
+原因是 MoveIt Servo 对 Twist 每个控制周期求一次 IK。当前周期为 10 ms，
+marker 的测试速度为 `0.015 m/s`，所以单周期目标位移只有：
+
+```text
+0.015 m/s * 0.01 s = 0.00015 m = 0.15 mm
+```
+
+MoveGroup 的 PickIK 配置却使用 `position_threshold: 0.001`，即 1 mm。当前姿态
+已在 PickIK 的允许误差内，因此它会把“原关节位置”作为成功解返回，导致
+Servo 没有告警但每帧关节增量都是零。
+
+不应为了 Servo 直接改掉 MoveGroup 的 PickIK 配置。最终将两者分离：
+
+```text
+dual_arm_moveit_config/config/kinematics.yaml -> MoveGroup / PickIK
+dual_arm_servo/config/kinematics.yaml         -> MoveIt Servo / KDL
+```
+
+Servo 专用 KDL 配置：
+
+```yaml
+left_arm:
+  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin
+  kinematics_solver_timeout: 0.005
+  kinematics_solver_attempts: 1
+```
+
+右臂使用相同配置。改为 KDL 后，Servo 轨迹中开始出现非零关节速度，
+证明 marker -> Twist -> Servo 链路已正常。
+
+### 尝试 5：JTC 拒绝 Servo 滚动轨迹
+
+KDL 生效后 Servo 输出已经非零，但 mock 关节仍然不动。与一条可以正常执行的
+2 秒单点手工轨迹比较后，从 JTC 日志看到确切原因：
+
+```text
+Velocity of last trajectory point ... is not zero
+```
+
+MoveIt Servo 发布的是不断刷新的滚动轨迹，末点速度正常情况下不为零。Jazzy
+JointTrajectoryController 默认拒绝这种轨迹。在 mock 和 real 两套配置的左右
+控制器中增加：
+
+```yaml
+allow_nonzero_velocity_at_trajectory_end: true
+```
+
+该参数只放宽流式轨迹的格式校验。Servo 仍然使用 `incoming_command_timeout: 0.1`，
+在 100 ms 没有新 Twist 后生成停止命令。
+
+### 最终修复汇总
+
+| 层级 | 根因 | 修复 |
+|------|------|------|
+| Planning scene | 右侧 secondary monitor 没有新 scene update | 左右独立 primary monitor，私有化 service |
+| RViz adapter | 初始 `POSE_UPDATE` 被当成用户命令 | 按下/拖动/松开状态机 |
+| Servo safety | `17/30` 与当前 Jacobian 尺度不匹配 | 恢复 `200/400`，真机前再标定 |
+| IK | PickIK 1 mm 容差大于 Servo 单周期步长 | Servo 独立使用 KDL |
+| JTC | 默认拒绝非零末点速度 | `allow_nonzero_velocity_at_trajectory_end: true` |
+
+另外保留了以下运行安全检查：
+
+- Servo 栈延迟 3 秒启动，等待 controller 和 joint state 稳定。
+- marker 仅在 14 个关节状态齐全且新鲜时启用。
+- 目标到达、10 秒目标超时、joint state 过期和节点退出时发布零 Twist。
+- RViz marker 与 VR bridge 在顶层 launch 中互斥，避免两个输入源同时发布。
+
+### 验证结果
+
+自动向左右 marker 各注入 1 cm 目标，全链路实测：
+
+```text
+left:  joint_delta=0.065874 rad, cartesian_delta=0.007113 m
+right: joint_delta=0.043274 rad, cartesian_delta=0.007124 m
+Servo status: No warnings
+```
+
+目标未走满 10 mm 是因为 adapter 的 `position_tolerance` 为 4 mm；约 7.1 mm 后剩余
+误差已进入容差，adapter 正常停止。
+
+完整启动命令：
+
+```bash
+cd /home/dell/dual_arm
+colcon build --symlink-install --packages-select dual_arm_moveit_config dual_arm_servo dual_arm_bringup
+source install/setup.bash
+ros2 launch dual_arm_bringup sim.launch.py mode:=servo
+```
+
+启动后 RViz 选择 `Interact`，拖动蓝色或橙色 marker，松开鼠标后执行目标。
+
+### 通用调试经验
+
+1. `Waiting to receive robot state update` 不一定表示 `/joint_states` 没有发布，也可能是
+   PlanningSceneMonitor 的更新时间不满足 Servo 启动条件。
+2. 话题有消息不等于命令有效。对 `JointTrajectory` 至少要检查速度、位置步长、
+   时间戳和控制器是否接受。
+3. Servo status 为 `No warnings` 也不代表 IK 解会产生运动；运动学插件的容差可能将
+   当前姿态直接判定为成功解。
+4. 流式 Servo/MPC 轨迹和 MoveGroup 的有限时长轨迹对 JTC 的格式要求不同，
+   必须查看 JTC 日志，不能只监控 Servo publisher。
+5. 每次修复后只验证下一段链路，例如依次证明非零 Twist、非零关节轨迹、
+   JTC 接受和 `/joint_states` 变化，能快速分离多个叠加故障。
+
+---
+
 ## Hardware Interface (Jazzy 新 API)
 
 ```cpp
@@ -491,3 +709,212 @@ pluginlib_export_plugin_description_file(
 ```
 
 如需订阅 sensor_msgs（如 /joint_states），还需添加 `sensor_msgs` 依赖。
+
+---
+
+## VR 遥操作：不响应、不顺滑与坐标系统一（2026-07-15）
+
+### 问题现象
+
+- 按住右手 Grip 并移动手柄时，右机械臂偶尔完全不动。
+- 小幅慢速动作容易被过滤，较快动作又突然达到速度上限，手感像“开/关”而不是连续跟随。
+- 左右移动修正后，前后方向和 roll/pitch/yaw 仍不符合人的直觉。
+- 仅看 VR 和末端轨迹时，无法区分 bridge 没发命令还是 MoveIt Servo 拒绝了命令。
+
+主要分析日志：
+
+```text
+vr_teleop_bridge/log/20260714_013541
+vr_teleop_bridge/log/20260715_170107
+vr_teleop_bridge/log/20260715_173212
+```
+
+### 1. Grip 后机械臂不动：Servo 生命周期与启动等待冲突
+
+旧流程在每次松开 Grip 时暂停 Servo，下一次按下时再切换 TWIST 模式并解除暂停，之后还通过
+`servo_command_settle_time: 1.0` 丢弃一秒命令。`20260714_013541` 中右手多次移动约
+0.20–0.33 m，但动作通常在按下 Grip 后 1.0–1.8 秒内完成，因此动作结束时命令才刚被允许，
+表现为手柄明显移动而机械臂完全不动。
+
+修复后的生命周期：
+
+- 收到完整且新鲜的 14 个关节状态、发现 Servo 服务并完成启动稳定时间后，每只 Servo 只激活一次。
+- Servo 在普通 Grip 松开期间保持运行，不再反复 pause/unpause。
+- Grip 按下只重置 clutch 位姿参考；第一个新位姿作为参考，不再等待一秒。
+- Grip 松开立即发布零 Twist，并清空位姿历史和滤波状态。
+- `/joint_states` 不完整或超时仍属于安全故障：停止命令并暂停对应 Servo。
+- 删除 `servo_command_settle_time`；`servo_startup_settle_time` 只用于进程启动阶段。
+
+相关已提交检查点：
+
+```text
+da6342e fix: keep VR Servo active across Grip cycles
+```
+
+### 2. 最小控制日志：区分 bridge 没发与 Servo 拒绝
+
+轨迹日志增加：
+
+```text
+control_left.csv
+control_right.csv
+```
+
+关键字段：
+
+```text
+twist_messages
+nonzero_twist_messages
+linear_x linear_y linear_z
+angular_x angular_y angular_z
+servo_status_code servo_status_message
+```
+
+判读规则：
+
+- `nonzero_twist_messages == 0`：bridge 没有发出运动命令。检查 Grip、VR 位姿是否超时、速度阈值和 bridge 状态。
+- `nonzero_twist_messages > 0` 且 Servo 状态非 0：bridge 已发命令，但 Servo 正在减速或急停。
+- `nonzero_twist_messages > 0`、Servo 状态为 0，但末端不动：继续检查 Servo robot state、控制器和硬件路径。
+- Servo 状态为空只表示当时尚未收到状态消息，不能当成 bridge 故障。
+
+常见 Servo 状态：
+
+```text
+0  No warnings
+1  接近奇异点，减速
+2  非常接近奇异点，急停
+3  离开奇异点，减速
+4/5  碰撞减速/急停
+6  关节边界
+```
+
+### 3. 运动不顺滑：逐帧位姿死区不是稳定的速度死区
+
+旧参数：
+
+```yaml
+publish_rate: 50.0
+deadband_position: 0.005
+deadband_rotation: 0.02
+max_angular_speed: 0.5
+```
+
+旧实现比较相邻两帧位姿。50 Hz 时：
+
+```text
+0.005 m / 0.02 s = 0.25 m/s
+0.02 rad / 0.02 s = 1.0 rad/s
+```
+
+这意味着线速度低于约 0.25 m/s 的动作可能被整段过滤；角速度阈值甚至高于配置的
+`max_angular_speed=0.5 rad/s`。结果是慢动作不响应，一旦越过阈值又很快饱和。
+
+速度仍然必须由至少两帧位姿做差得到。真正改善手感的不是把 `delta` 除以 `dt` 后换个名字，
+而是使用较长、按时间归一化的多帧窗口，再配合启停滞回：
+
+```text
+linear_velocity  = mapped_position_delta / window_dt
+angular_velocity = mapped_rotvec_delta   / window_dt
+```
+
+最终实现：
+
+- 每只手保存约 100 ms 位姿历史，使用窗口首尾计算平均线速度和角速度。
+- 线速度达到 `0.02 m/s` 才启动，启动后降到 `0.01 m/s` 以下才停止。
+- 角速度达到 `0.05 rad/s` 才启动，启动后降到 `0.025 rad/s` 以下才停止。
+- Grip 边沿、位姿时间戳异常、输入超时和 Servo 安全停用都会清空历史及滞回状态。
+- 保留原有速度上限；100 ms 窗口会带来相近量级的平滑延迟。
+
+当前参数：
+
+```yaml
+velocity_window: 0.10
+linear_velocity_start: 0.02
+linear_velocity_stop: 0.01
+angular_velocity_start: 0.05
+angular_velocity_stop: 0.025
+```
+
+实现时需要先确认历史已覆盖完整窗口，再裁剪到最接近窗口边界的旧样本。若先裁剪再判断窗口长度，
+50 Hz 与 100 ms 恰好整倍数时会受浮点误差影响，出现 Twist 一帧有、一帧无。
+
+### 4. 偶发短暂停顿：VR 位姿流超时，不是 Servo 拒绝
+
+在 `20260715_170107` 的约 58.8 秒处，左右 Grip 都保持按下，但左右 bridge 输出同时从正常的
+每个 0.2 秒日志周期约 10 条 Twist 降到 4 条，最后一条变为零；两侧 Servo 状态都是 0，下一周期
+又恢复正常。这说明双手 VR 位姿流发生了共同停顿，超过 `command_timeout: 0.2` 后 bridge 按安全设计
+归零，而不是 Servo 拒绝某一个方向。
+
+不要仅为掩盖网络或 Unity 卡顿而盲目增大 `command_timeout`：超时越长，真正断流后机械臂保持最后
+速度的时间也越长。若该问题再次出现，应检查 PICO/Unity 发布帧率、ROS TCP 和 Wi-Fi，并可在
+控制日志中增加单一诊断量 `max_pose_gap_ms`。
+
+### 5. VR FLU 与机器人 base_link 的统一变换
+
+Unity Robotics 的 `To<FLU>()` 转换为：
+
+```text
+VR +x = forward
+VR +y = left
+VR +z = up
+```
+
+根据 URDF 安装位置和机器人初始伸展方向：
+
+```text
+base_link +x = robot left
+base_link -y = robot forward
+base_link +z = robot up
+```
+
+所以从 VR FLU 到 `base_link` 的正确变换是绕 z 轴 -90° 的刚体旋转：
+
+```text
+robot_x =  VR_y
+robot_y = -VR_x
+robot_z =  VR_z
+```
+
+旧平移映射 `[VR y, VR x, VR z]` 少了第二轴负号，行列式为 -1，是镜像而不是合法旋转；同时旧旋转
+映射仍为 identity，导致平移和角速度属于两个不同坐标系。不要修改 URDF 或机械臂坐标系，应在
+VR bridge 中对线速度和角速度使用同一个旋转：
+
+```yaml
+unity_to_ros_axis_map: [1, 0, 2]
+unity_to_ros_axis_sign: [1.0, -1.0, 1.0]
+unity_to_ros_rotation_axis_map: [1, 0, 2]
+unity_to_ros_rotation_axis_sign: [1.0, -1.0, 1.0]
+```
+
+对应的人体动作与机器人基座轴：
+
+```text
+VR 向前 +x  -> base_link -y
+VR 向左 +y  -> base_link +x
+VR 向上 +z  -> base_link +z
+VR roll +x  -> 绕 base_link -y
+VR pitch +y -> 绕 base_link +x
+VR yaw +z   -> 绕 base_link +z
+```
+
+`20260715_173212` 的三段右手测试按 roll、pitch、yaw 排列。原始 VR 主分量依次为 x、y、z，说明
+VR 轴定义正确；旧 identity bridge 只是把这些数字原样送到同名 `base_link` 轴，并没有实现上述物理
+方向统一。yaw 测试在约 38.8 秒进入 Servo 状态 2（奇异点急停），这是运动学限制，不是坐标映射错误。
+
+### 验证结果与复测要点
+
+完成以下验证：
+
+```bash
+python3 -m py_compile vr_teleop_bridge/vr_teleop_bridge/vr_pose_to_servo_node.py
+colcon build --symlink-install --packages-select vr_teleop_bridge
+```
+
+- 隔离输入验证了 VR 三个正平移轴和三个正旋转轴的 bridge 输出轴及符号。
+- mock Servo 验证了向前、向左、向上的实际末端位移方向，且 Servo 无告警。
+- mock roll 验证了 `VR +x -> base_link -y` 的实际末端旋转方向。
+- 实际 VR 复测确认运动已变得柔顺，平移和旋转坐标方向问题已解决。
+- mock hardware 若长期静止，MoveIt Servo 2.12.4 可能停在 `Waiting to receive robot state update.`；仅在
+  mock 环境且控制空闲时使用 `python3 tools/kick_servo_state_monitor.py`，不要把该状态注入方案用于实机。
+
+后续若再次出现“手柄动、机械臂不动”，先查 `control_left/right.csv`，不要立刻调整速度阈值或坐标映射。

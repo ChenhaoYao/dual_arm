@@ -13,20 +13,34 @@ vr_pose_to_servo_node:
 
     left_enabled: true
     right_enabled: true
-    require_enable_signal: false
+    # Require the per-hand deadman signal. The Unity client publishes this
+    # while the corresponding controller grip button is held.
+    require_enable_signal: true
 
-    linear_scale: 0.5
+    linear_scale: 1.0
     angular_scale: 1.0
-    max_linear_speed: 0.15
+    max_linear_speed: 0.3
     max_angular_speed: 0.5
-    deadband_position: 0.005
-    deadband_rotation: 0.02
+    # Estimate controller velocity from 100 ms of pose history. Separate start
+    # and stop thresholds suppress stationary jitter without blocking slow motion.
+    velocity_window: 0.10
+    linear_velocity_start: 0.02
+    linear_velocity_stop: 0.01
+    angular_velocity_start: 0.05
+    angular_velocity_stop: 0.025
     command_timeout: 0.2
+    # Grip activation is allowed only while all 14 joint states remain fresh.
+    state_timeout: 0.5
     publish_rate: 50.0
     auto_start_servo: true
+    # Let joint states and Servo's CurrentStateMonitor stabilize before startup.
+    servo_startup_settle_time: 1.0
 
-    # Unity/XR coordinates are commonly x=right, y=up, z=forward.
-    # ROS base_link is x=forward, y=left, z=up.
-    # Mapping below: ros = [unity_z, -unity_x, unity_y].
-    unity_to_ros_axis_map: [2, 0, 1]
+    # VR uses FLU: +x forward, +y left, +z up. In base_link, robot forward is
+    # -y and robot left is +x, so both linear and angular vectors use the same
+    # proper -90 degree yaw transform: [VR y, -VR x, VR z].
+    unity_to_ros_axis_map: [1, 0, 2]
     unity_to_ros_axis_sign: [1.0, -1.0, 1.0]
+
+    unity_to_ros_rotation_axis_map: [1, 0, 2]
+    unity_to_ros_rotation_axis_sign: [1.0, -1.0, 1.0]

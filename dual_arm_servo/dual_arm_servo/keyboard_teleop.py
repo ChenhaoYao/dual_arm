@@ -13,8 +13,9 @@ import tty
 
 import rclpy
 from geometry_msgs.msg import TwistStamped
+from moveit_msgs.srv import ServoCommandType
 from rclpy.node import Node
-from std_srvs.srv import Trigger
+from std_srvs.srv import SetBool
 
 
 LINEAR = 1.0
@@ -36,8 +37,14 @@ class KeyboardTeleop(Node):
         self.pub_right = self.create_publisher(TwistStamped, "/servo_right/delta_twist_cmds", 10)
         self.arm = "left"
 
-        self._start_srv_left = self.create_client(Trigger, "/servo_left/start_servo")
-        self._start_srv_right = self.create_client(Trigger, "/servo_right/start_servo")
+        self._command_type_clients = [
+            self.create_client(ServoCommandType, "/servo_left/switch_command_type"),
+            self.create_client(ServoCommandType, "/servo_right/switch_command_type"),
+        ]
+        self._pause_clients = [
+            self.create_client(SetBool, "/servo_left/pause_servo"),
+            self.create_client(SetBool, "/servo_right/pause_servo"),
+        ]
         self._start_timer = self.create_timer(1.0, self._try_start_servo)
 
         self.get_logger().info(
@@ -45,12 +52,19 @@ class KeyboardTeleop(Node):
         )
 
     def _try_start_servo(self):
-        for srv in (self._start_srv_left, self._start_srv_right):
+        for srv in (*self._command_type_clients, *self._pause_clients):
             if not srv.wait_for_service(timeout_sec=0.5):
                 return
-            srv.call_async(Trigger.Request())
+        command_request = ServoCommandType.Request()
+        command_request.command_type = ServoCommandType.Request.TWIST
+        for srv in self._command_type_clients:
+            srv.call_async(command_request)
+        pause_request = SetBool.Request()
+        pause_request.data = False
+        for srv in self._pause_clients:
+            srv.call_async(pause_request)
         self._start_timer.cancel()
-        self.get_logger().info("Servo 左右臂已启动")
+        self.get_logger().info("Servo 左右臂已切换到 Twist 模式")
 
     def spin(self, settings):
         while rclpy.ok():

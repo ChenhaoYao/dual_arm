@@ -75,6 +75,15 @@ public:
     // 速度限制（正反转都限制）
     max_velocity_ = declare_parameter<double>("max_velocity", 1.0);
 
+    // JTC 命令流超时后，SOEM RT 线程清零并锁定，需重新 enable。
+    // 300ms 是命令断流保护，不是控制周期；正常 controller_state 仍以 100Hz 更新。
+    command_watchdog_timeout_ms_ = declare_parameter<int>(
+      "command_watchdog_timeout_ms", 300);
+    if (command_watchdog_timeout_ms_ <= 0) {
+      RCLCPP_WARN(get_logger(), "command_watchdog_timeout_ms must be > 0; using 300ms");
+      command_watchdog_timeout_ms_ = 300;
+    }
+
     // 逐个使能间隔时间(ms)
     axis_enable_interval_ms_ = declare_parameter<int>("axis_enable_interval_ms", 100);
 
@@ -151,6 +160,7 @@ public:
     } else {
       // 设置逐个使能间隔时间
       master_->set_enable_delay_ms(axis_enable_interval_ms_);
+      master_->set_command_timeout_ms(command_watchdog_timeout_ms_);
       if (!master_->start()) {
         RCLCPP_ERROR(get_logger(), "Failed to start SOEM master");
       } else {
@@ -161,9 +171,9 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "SOEM bridge ready (CSV): dry_run=%s ifname='%s' feedback='%s' axes=%zu",
+      "SOEM bridge ready (CSV): dry_run=%s ifname='%s' feedback='%s' axes=%zu watchdog=%dms",
       dry_run_ ? "true" : "false", ifname_.c_str(),
-      feedback_topic_.c_str(), axis_configs_.size());
+      feedback_topic_.c_str(), axis_configs_.size(), command_watchdog_timeout_ms_);
   }
 
 private:
@@ -299,6 +309,13 @@ private:
     }
 
     if (!master_->submit_waypoints(waypoints)) {
+      if (master_->watchdog_tripped()) {
+        send_enabled_.store(false);
+        RCLCPP_ERROR_THROTTLE(
+          get_logger(), *get_clock(), 2000,
+          "command watchdog latched: all axes stopped; call ~/enable with data=true to re-arm");
+        return;
+      }
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 2000, "failed to submit CSV waypoints");
     }
@@ -407,6 +424,15 @@ private:
   void publish_feedback()
   {
     if (!master_->enabled()) return;
+    if (master_->watchdog_tripped() && send_enabled_.exchange(false)) {
+      RCLCPP_ERROR(
+        get_logger(),
+        "command watchdog latched: all axes stopped; call ~/enable with data=true to re-arm");
+      if (trajectory_file_.is_open()) {
+        trajectory_file_.close();
+        RCLCPP_INFO(get_logger(), "Trajectory log file closed");
+      }
+    }
     auto fb = master_->feedback();
     if (fb.empty()) return;
     sensor_msgs::msg::JointState js;
@@ -442,9 +468,17 @@ private:
       return;
     }
 
-    send_enabled_.store(request->data);
+    if (request->data) {
+      master_->set_command_enabled(true);
+      send_enabled_.store(true);
+    } else {
+      send_enabled_.store(false);
+      master_->set_command_enabled(false);
+    }
     response->success = true;
-    response->message = request->data ? "send enabled" : "send disabled";
+    response->message = request->data
+      ? "send enabled (previous targets cleared)"
+      : "send disabled (all targets cleared)";
 
     // disable 时关闭轨迹日志文件
     if (!request->data && trajectory_file_.is_open()) {
@@ -458,8 +492,9 @@ private:
     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
     send_enabled_.store(false);
+    master_->set_command_enabled(false);
     response->success = true;
-    response->message = "send disabled (stop)";
+    response->message = "send disabled; all targets cleared (stop)";
 
     // 关闭轨迹日志文件
     if (trajectory_file_.is_open()) {
@@ -538,6 +573,7 @@ private:
 
   // 速度限制
   double max_velocity_{1.0};  // rad/s
+  int command_watchdog_timeout_ms_{300};
 
   // 逐个使能间隔时间(ms)
   int axis_enable_interval_ms_{100};

@@ -1,5 +1,6 @@
 #include "dual_arm_soem_bridge/soem_master.hpp"
 
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -32,6 +33,12 @@ constexpr int TX_TORQ = 10;
 constexpr int TX_ERR = 12;
 
 constexpr double TWO_PI = 6.283185307179586;
+
+int64_t steady_now_ns()
+{
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(
+    std::chrono::steady_clock::now().time_since_epoch()).count();
+}
 
 // SOEM 上下文与 IO 映射：单实例主站，沿用 ec_sample 的文件级静态变量。
 ecx_contextt g_ctx;
@@ -443,12 +450,27 @@ void SoemCsvMaster::axis_step(AxisRuntime & ax, int axis_idx)
       // 使能后等待一段时间再发速度指令
       ax.enable_wait_cnt++;
       tgt_vel = 0;
-    } else if (!ax.has_target.load()) {
+    } else if (!command_enabled_.load() || !ax.has_target.load()) {
       // 还没收到目标，速度保持 0。
       tgt_vel = 0;
     } else {
-      // 直接使用目标速度
-      tgt_vel = ax.target_vel_counts.load();
+      /*
+       * 命令流看门狗：
+       * - submit_waypoints() 每次收到该关节的新 JTC 输出都会刷新时间戳。
+       * - 这里使用 steady clock 计算命令年龄，避免系统时间校准造成误触发。
+       * - 超过配置阈值（实物默认 300ms）表示 ROS 2 -> bridge 命令流已经不再可信；
+       *   不能继续沿用旧速度。
+       * - 任意一个已有目标的轴超时都会停止全部轴，防止双臂只剩一侧继续运动。
+       */
+      const int64_t now_ns = steady_now_ns();
+      const int64_t last_command_ns = ax.last_command_time_ns.load();
+      const int64_t age_ns = now_ns - last_command_ns;
+      if (last_command_ns <= 0 || age_ns > command_timeout_ns_.load()) {
+        trip_command_watchdog(ax, age_ns);
+        tgt_vel = 0;
+      } else {
+        tgt_vel = ax.target_vel_counts.load();
+      }
     }
   } else {
     cw = 0x0006;
@@ -479,11 +501,12 @@ void SoemCsvMaster::axis_step(AxisRuntime & ax, int axis_idx)
 
 bool SoemCsvMaster::submit_waypoints(const std::vector<CsvWaypoint> & waypoints)
 {
-  if (!running_.load() || waypoints.empty()) {
+  if (!running_.load() || !command_enabled_.load() || waypoints.empty()) {
     return false;
   }
   // 取最后一个 waypoint 作为目标(低频采样持续刷新，无需逐点等待)。
   const CsvWaypoint & wp = waypoints.back();
+  const int64_t command_time_ns = steady_now_ns();
   int matched = 0;
   for (size_t i = 0; i < wp.joint_names.size() && i < wp.velocities.size(); i++) {
     for (auto & ax : axes_) {
@@ -491,6 +514,7 @@ bool SoemCsvMaster::submit_waypoints(const std::vector<CsvWaypoint> & waypoints)
         // 将速度(rad/s)转换为 counts/s
         int32_t vel_counts = vel_to_counts(ax->cfg, wp.velocities[i]);
         ax->target_vel_counts.store(vel_counts);
+        ax->last_command_time_ns.store(command_time_ns);
         ax->has_target.store(true);
         matched++;
         break;
@@ -503,6 +527,63 @@ bool SoemCsvMaster::submit_waypoints(const std::vector<CsvWaypoint> & waypoints)
 bool SoemCsvMaster::enabled() const
 {
   return running_.load();
+}
+
+void SoemCsvMaster::clear_targets()
+{
+  for (auto & ax : axes_) {
+    ax->target_vel_counts.store(0);
+    ax->last_command_time_ns.store(0);
+    ax->has_target.store(false);
+  }
+}
+
+void SoemCsvMaster::set_command_enabled(bool enabled)
+{
+  // 先关门再清目标，避免清理期间 RT 线程继续使用旧速度。
+  command_enabled_.store(false);
+  clear_targets();
+  watchdog_tripped_.store(false);
+  if (enabled) {
+    command_enabled_.store(true);
+  }
+}
+
+bool SoemCsvMaster::command_enabled() const
+{
+  return command_enabled_.load();
+}
+
+bool SoemCsvMaster::watchdog_tripped() const
+{
+  return watchdog_tripped_.load();
+}
+
+void SoemCsvMaster::set_command_timeout_ms(int timeout_ms)
+{
+  const int safe_timeout_ms = timeout_ms > 0 ? timeout_ms : 300;
+  command_timeout_ns_.store(static_cast<int64_t>(safe_timeout_ms) * 1000000);
+}
+
+void SoemCsvMaster::trip_command_watchdog(const AxisRuntime & ax, int64_t age_ns)
+{
+  /*
+   * 看门狗采用锁存停止：
+   * - 先关闭全局命令门并清除所有轴目标，使 RT 周期立即输出零速度。
+   * - watchdog_tripped_ 只负责记录和上报首次触发，避免 1kHz RT 循环刷屏。
+   * - 不自动恢复；操作者排除断流原因后必须显式调用 enable(true) 重新布防。
+   */
+  command_enabled_.store(false);
+  clear_targets();
+
+  bool expected = false;
+  if (watchdog_tripped_.compare_exchange_strong(expected, true)) {
+    const long long age_ms = age_ns > 0 ? age_ns / 1000000 : -1;
+    printf(
+      "[SAFETY] command watchdog timeout on %s (age=%lldms); "
+      "all targets cleared, call enable(true) to re-arm\n",
+      ax.cfg.joint_name.c_str(), age_ms);
+  }
 }
 
 void SoemCsvMaster::set_enable_delay_ms(int delay_ms)

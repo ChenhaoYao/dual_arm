@@ -2,6 +2,7 @@
 build/
 install/
 log/
+vr_teleop_bridge/log/
 
 # Python
 __pycache__/
@@ -17,8 +18,8 @@ __pycache__/
 
 # ROS2
 COLCON_IGNORE
+!vrtest-full-lite/vrtest/COLCON_IGNORE
 
 # Debug files
 DEBUGGING_NOTES.md
 OPENCODE_KEYBINDS.md
-

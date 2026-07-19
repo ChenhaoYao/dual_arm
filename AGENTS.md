@@ -5,7 +5,7 @@ Colcon workspace with 5 ament_cmake packages for a dual-arm mobile robot (two 7-
 ## Build & launch
 
 ```bash
-colcon build                          # build all packages
+colcon build --symlink-install        # build all packages; link YAML/Python/launch resources
 source install/setup.bash             # required before any ros2 command
 ros2 launch dual_arm_bringup sim.launch.py   # simulation (mock hardware)
 ```
@@ -24,7 +24,7 @@ ros2 service call /soem_bridge_node/enable std_srvs/srv/SetBool "{data: true}"
 
 Single-package build (faster iteration):
 ```bash
-colcon build --packages-select dual_arm_soem_bridge
+colcon build --symlink-install --packages-select dual_arm_soem_bridge
 ```
 
 There is no test suite, lint config, or CI. No typecheck or formatter is configured.
@@ -114,3 +114,18 @@ These are hard-won lessons from debugging `move_group` crashes. See `DEBUGGING_N
 - `sim.launch.py` / `real.launch.py` use startup-time exclusive `mode:=moveit|servo`. Both modes start RViz; only `moveit` starts `move_group`, only `servo` starts the two MoveIt Servo nodes.
 - Standalone joint control GUI (not a launch file): `python3 dual_arm_description/joint_control_panel.py`
 - `ros2_controllers.yaml` uses only `position` command interface, even though the URDF defines both position and velocity. This is intentional — velocity commands are unused.
+
+## Change scope and risk policy
+
+- Only fix the current, explicitly identified problem. Do not expand the scope without user confirmation.
+- Once the system reaches a working state, stop and ask the user to verify before making further changes.
+- The agent may autonomously make only small, low-risk, easily reversible changes.
+- If a proposed change could break previously working behavior or alter architecture, dependencies, the runtime environment, communication paths, or control paths, present it as a recommendation first.
+- Do not implement higher-risk changes until the user explicitly approves the approach.
+- Run diagnostic experiments in isolation and fully revert experimental changes afterward.
+- Preserve known-good checkpoints. Do not continue optimizing after the requested issue is resolved.
+
+## Comment style
+
+- In Python, write substantial logic explanations as triple-quoted, bullet-point blocks placed immediately before the relevant logic.
+- Keep ordinary short comments concise; reserve these structured blocks for reasoning, control-flow intent, safety constraints, and non-obvious design decisions.

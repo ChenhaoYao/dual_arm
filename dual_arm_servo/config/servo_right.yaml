@@ -31,12 +31,16 @@ use_smoothing: false
 smoothing_filter_plugin_name: "online_signal_smoothing::ButterworthFilterPlugin"
 
 ## Planning Scene Monitor
-# Servo 模式与 move_group 互斥运行，因此 Servo 节点自己管理 planning scene。
+# 左右 Servo 各自管理 planning scene，并在 launch 中为服务使用独立名称。
 is_primary_planning_scene_monitor: true
+monitored_planning_scene_topic: /planning_scene
 check_octomap_collisions: false
 
 ## MoveIt 规划组
 move_group_name: right_arm
+
+## 停止行为
+incoming_command_timeout: 0.1
 
 ## 奇异点和关节限制配置
 lower_singularity_threshold: 200.0
